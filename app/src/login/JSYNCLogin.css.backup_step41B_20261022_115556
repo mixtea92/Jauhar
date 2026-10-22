@@ -1,0 +1,111 @@
+/* JAUHAR JSYNC Login — separate GUI skin, no effect on dashboard/PV styles.
+   Coordinates follow the original 1122 × 1402 artwork. Keep artwork aspect ratio.
+   To adjust an overlay later, modify the left/top/width/height percentages below. */
+.jsync-page {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #070707;
+  overflow-x: hidden;
+  isolation: isolate;
+}
+.jsync-page, .jsync-page * { box-sizing: border-box; }
+
+.jsync-artboard {
+  position: relative;
+  width: min(100%, 920px, calc(100dvh * 1122 / 1402));
+  flex-shrink: 0;
+  container-type: inline-size;
+  line-height: normal;
+  user-select: none;
+}
+.jsync-artwork { display: block; width: 100%; height: auto; pointer-events: none; }
+.jsync-form-overlay { position: absolute; inset: 0; margin: 0; pointer-events: none; }
+.jsync-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.jsync-overlay-input {
+  position: absolute;
+  display: block;
+  padding: 0 1.1%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  color: #f9edcc;
+  background: linear-gradient(90deg, #111214 0%, #101113 64%, #111213 100%);
+  box-shadow: none;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(12px, 2.2cqw, 25px);
+  font-weight: 400;
+  line-height: 1.1;
+  pointer-events: auto;
+  user-select: text;
+  min-width: 0;
+  min-height: 0;
+}
+.jsync-overlay-input::placeholder { color: #777679; opacity: 1; }
+.jsync-overlay-input:focus { background: #141417; box-shadow: inset 0 -2px 0 #e2b357; }
+.jsync-overlay-input:disabled { opacity: .7; cursor: wait; }
+
+/* Text overlay starts after the golden icon in each artwork input. */
+.jsync-username-input { left: 24.7%; top: 50.55%; width: 49.3%; height: 4.65%; }
+.jsync-password-input { left: 24.7%; top: 65.54%; width: 49.3%; height: 4.65%; }
+
+/* Covers the printed eye icon and replaces it with an accessible real button. */
+.jsync-password-toggle {
+  position: absolute;
+  left: 76.6%; top: 66.18%; width: 5.65%; height: 3.55%;
+  display: grid; place-items: center;
+  padding: .15%; margin: 0;
+  background: #111214;
+  border: 0; border-radius: 50%;
+  color: #e8bd65;
+  cursor: pointer; pointer-events: auto;
+}
+.jsync-password-toggle svg { width: 92%; height: 92%; }
+.jsync-password-toggle:hover { color: #fff0bb; }
+.jsync-password-toggle:focus-visible { outline: 2px solid #ffdf87; outline-offset: 1px; }
+
+/* Leave the artwork's precise gold-gradient Login button visible and clickable. */
+.jsync-login-hotspot {
+  position: absolute;
+  left: 15.3%; top: 74.55%; width: 67.8%; height: 7.55%;
+  padding: 0; margin: 0; border: 0; border-radius: 18px;
+  background: transparent; cursor: pointer; pointer-events: auto;
+  display: grid; place-items: center;
+  color: #231705;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 750;
+  font-size: clamp(12px, 2.6cqw, 29px);
+}
+.jsync-login-hotspot:hover { box-shadow: inset 0 0 0 999px #fff8e20b, 0 0 20px #ffc85740; }
+.jsync-login-hotspot:focus-visible { outline: 3px solid #fff1b0; outline-offset: 3px; }
+.jsync-login-hotspot:disabled { cursor: wait; }
+.jsync-login-hotspot.jsync-is-loading {
+  background: linear-gradient(95deg, #d3a24c, #ffe596 50%, #c78f36);
+  box-shadow: 0 0 22px #ffcb5b55;
+}
+.jsync-loading-label { pointer-events: none; }
+.jsync-error {
+  position: absolute; left: 15.6%; top: 83%; width: 67.3%;
+  text-align: center; color: #ffe7df;
+  background: #421f1fef; border: 1px solid #d68d63;
+  border-radius: 8px; padding: .8% 1%;
+  font-size: clamp(11px, 1.6cqw, 18px);
+  line-height: 1.35; pointer-events: auto;
+}
+@media (max-width: 600px) {
+  .jsync-artboard { width: 100%; }
+  .jsync-overlay-input { font-size: clamp(11px, 2.3cqw, 17px); }
+  .jsync-login-hotspot { border-radius: 8px; }
+  .jsync-password-toggle { min-width: 22px; min-height: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jsync-page *, .jsync-page *::before, .jsync-page *::after { transition: none !important; animation: none !important; }
+}
