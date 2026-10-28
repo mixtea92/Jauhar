@@ -104,7 +104,7 @@ export async function parseCVWorkbook(file,sheetName='PC (Digital)'){
   const possibleCategory=cellText(sheet,'G13')
   return {
     source_sheet:sheetName,
-    date_of_request:CV_FORM_DATE(sheet.getCell('H10').value),
+    date_of_request:(()=>{const date=CV_FORM_DATE(sheet.getCell('H10').value);return /^\d{4}-\d{2}-\d{2}$/.test(date)?date:''})(),
     date_disbursed:'',
     claimant_name:cellText(sheet,'D13'),staff_id:cellText(sheet,'D14'),
     position:cellText(sheet,'D15'),department:cellText(sheet,'D16'),
