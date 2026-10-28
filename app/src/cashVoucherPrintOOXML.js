@@ -129,9 +129,9 @@ function appendSignatureDrawing(drawDoc,relDoc,stage,base64){
   child(drawDoc,start,X,'xdr','rowOff',28000)
   const finish=child(drawDoc,anchor,X,'xdr','to')
   child(drawDoc,finish,X,'xdr','col',toCol)
-  child(drawDoc,finish,X,'xdr','colOff',-57000)
+  child(drawDoc,finish,X,'xdr','colOff',0)
   child(drawDoc,finish,X,'xdr','row',43)
-  child(drawDoc,finish,X,'xdr','rowOff',-28000)
+  child(drawDoc,finish,X,'xdr','rowOff',0)
 
   const pic=child(drawDoc,anchor,X,'xdr','pic')
   const nv=child(drawDoc,pic,X,'xdr','nvPicPr')
