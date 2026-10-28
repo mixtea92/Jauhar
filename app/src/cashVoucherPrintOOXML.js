@@ -205,6 +205,16 @@ export async function downloadSignedCVExcel(voucher,approvals){
     setCell(sheet,'H'+r,l.amount,true)
     setCell(sheet,'I'+r,l.receipt_attached)
   })
+  // Preserve the original H31 SUM formula and refresh its cached result.
+  // This avoids a stale RM 0.00 total in PDF converters that do not recalculate.
+  const amountTotal=(data.lines||[]).slice(0,10).reduce((sum,l)=>sum+(Number(l.amount)||0),0)
+  const totalCell=nodes(sheet,S,'c').find(c=>c.getAttribute('r')==='H31')
+  const originalFormula=totalCell&&nodes(totalCell,S,'f')[0]
+  if(totalCell&&originalFormula){
+    let cached=nodes(totalCell,S,'v')[0]
+    if(!cached)cached=child(sheet,totalCell,S,'x','v')
+    cached.textContent=String(Math.round(amountTotal*100)/100)
+  }
   zip.file(sheetPath,enc.serializeToString(sheet))
 
   const available=Array.isArray(approvals)?approvals.filter(a=>a.voucher_id===voucher.id):[]
