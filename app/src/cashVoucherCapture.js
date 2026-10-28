@@ -52,7 +52,7 @@ async function captureOne(authority){
   const trimmed=document.createElement('canvas')
   trimmed.width=maxX-minX+1;trimmed.height=maxY-minY+1
   trimmed.getContext('2d').drawImage(canvas,minX,minY,trimmed.width,trimmed.height,0,0,trimmed.width,trimmed.height)
-  return trimmed.toDataURL('image/png').split(',')[1]
+  return {base64:trimmed.toDataURL('image/png').split(',')[1],width:trimmed.width,height:trimmed.height}
 }
 export async function captureSignedCVSignatures(){
   const result={}
