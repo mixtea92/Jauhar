@@ -91,6 +91,9 @@ function App() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [error, setError] = useState('')
   const [usersError, setUsersError] = useState('')
+  const [costCenterEdits, setCostCenterEdits] = useState({})
+  const [costCenterSaving, setCostCenterSaving] = useState(null)
+  const [costCenterNotice, setCostCenterNotice] = useState('')
   const [activePage, setActivePage] = useState('dashboard')
   const [financeOpen, setFinanceOpen] = useState(true)
   const [editingUser, setEditingUser] = useState(null)
@@ -134,7 +137,7 @@ function App() {
 
     const { data, error: queryError } = await supabase
       .from('user_profiles')
-      .select('id, username, role, department, is_active, created_at')
+      .select('id, username, role, department, cost_center, is_active, created_at')
       .order('username')
 
     if (queryError) {
@@ -219,6 +222,38 @@ function App() {
     setUsername('')
     setPassword('')
     setError('')
+  }
+
+  async function saveCostCenter(user) {
+    if (profile?.role !== 'system_admin' || user.role === 'system_admin' || costCenterSaving) return
+    const selected = Object.prototype.hasOwnProperty.call(costCenterEdits, user.id)
+      ? costCenterEdits[user.id] : (user.cost_center || '')
+    setCostCenterSaving(user.id)
+    setCostCenterNotice('')
+    setUsersError('')
+    try {
+      const { data, error: updateError } = await supabase.rpc('jauhar_set_user_cost_center_v1', {
+        p_user_id: user.id,
+        p_cost_center: selected || null
+      })
+      if (updateError || !data?.success) throw new Error(updateError?.message || 'Cost Center update failed')
+      const { data: saved, error: verifyError } = await supabase.from('user_profiles')
+        .select('cost_center').eq('id', user.id).single()
+      if (verifyError || saved?.cost_center !== (selected || null)) {
+        throw new Error('Cost Center was not verified. Refresh users and retry.')
+      }
+      setCostCenterEdits(prev => {
+        const next = { ...prev }
+        delete next[user.id]
+        return next
+      })
+      setCostCenterNotice('Cost Center saved for ' + user.username)
+      await loadUsers()
+    } catch (err) {
+      setUsersError(err?.message || 'Unable to update Cost Center')
+    } finally {
+      setCostCenterSaving(null)
+    }
   }
 
   const totalUsers = users.length
@@ -399,6 +434,7 @@ function App() {
                 </div>
 
                 {usersError && <p className="error">{usersError}</p>}
+                  {costCenterNotice && <p role="status">{costCenterNotice}</p>}
 
                 <div className="table-wrap">
                   <table>
@@ -407,6 +443,7 @@ function App() {
                         <th>Username</th>
                         <th>Role</th>
                         <th>Department</th>
+                        <th>Cost Center</th>
                         <th>Status</th>
                         <th>Created At</th>
                         <th>Actions</th>
@@ -418,6 +455,32 @@ function App() {
                           <td><strong>{user.username}</strong></td>
                           <td>{displayRole(user.role)}</td>
                           <td>{displayDepartment(user.role, user.department)}</td>
+                          <td>
+                            {user.role === 'system_admin' ? (
+                              <span className="muted">Protected</span>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                <select
+                                  aria-label={'Cost Center for ' + user.username}
+                                  value={Object.prototype.hasOwnProperty.call(costCenterEdits, user.id)
+                                    ? costCenterEdits[user.id] : (user.cost_center || '')}
+                                  disabled={costCenterSaving !== null}
+                                  onChange={e => setCostCenterEdits(prev => ({ ...prev, [user.id]: e.target.value }))}
+                                >
+                                  <option value="">Not Assigned</option>
+                                  <option value="Management">Management</option>
+                                  <option value="Operation">Operation</option>
+                                </select>
+                                <button type="button" className="btn"
+                                  disabled={costCenterSaving !== null ||
+                                    !Object.prototype.hasOwnProperty.call(costCenterEdits, user.id) ||
+                                    costCenterEdits[user.id] === (user.cost_center || '')}
+                                  onClick={() => saveCostCenter(user)}>
+                                  {costCenterSaving === user.id ? 'Saving...' : 'Save'}
+                                </button>
+                              </div>
+                            )}
+                          </td>
                           <td>
                             <span className={`status ${user.is_active ? 'active' : 'disabled'}`}>
                               {user.is_active ? 'Active' : 'Disabled'}
@@ -478,7 +541,7 @@ function App() {
                       ))}
                       {!usersLoading && users.length === 0 && (
                         <tr>
-                          <td colSpan="6">
+                          <td colSpan="7">
                             {usersError ? 'Unable to load users.' : 'No users found.'}
                           </td>
                         </tr>
