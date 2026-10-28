@@ -67,6 +67,7 @@ function SignaturePad({onSignatureChange}) {
 }
 
 export default function CashVoucher({profile}) {
+  const isMobileUpload=typeof navigator!=='undefined' && (Boolean(navigator.userAgentData?.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'') || (/Macintosh/i.test(navigator.userAgent||'') && navigator.maxTouchPoints>1))
   const isAdmin=profile?.is_active===true && profile?.role==='system_admin'
   const isAP=profile?.is_active===true && profile?.role==='executive' && profile?.department==='Finance'
   const isHOD=profile?.is_active===true && profile?.role==='manager'
@@ -158,6 +159,7 @@ export default function CashVoucher({profile}) {
   }
   async function uploadExcel(e){
     if(!isAP)return
+    if(isMobileUpload){setError('File uploads are disabled when accessing JSYNC on mobile. Use a desktop browser.');e.target.value='';return}
     const f=e.target.files?.[0]
     if(!f)return
     setError('');setNotice('');setBusy(true)
@@ -262,7 +264,7 @@ export default function CashVoucher({profile}) {
             </select>
           </label>
           <label>Upload Completed Official CV Excel (.xlsx)
-            <input style={{...inputStyle,marginTop:5}} type="file" accept=".xlsx" disabled={busy} onChange={uploadExcel}/>
+            <input style={{...inputStyle,marginTop:5}} type="file" accept=".xlsx" disabled={busy||isMobileUpload} onChange={uploadExcel}/>
           </label>
         </div>}
       </section>
