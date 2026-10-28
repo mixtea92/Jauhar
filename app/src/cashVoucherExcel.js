@@ -2,7 +2,7 @@
 // Preserve original source workbook; do not regenerate or restyle its print sheets.
 export const CV_TEMPLATE_URL = '/templates/FIN_FM_PC_Petty Cash.xlsx'
 export const CV_BRANCHES = ['JMC_GP','JMC_KM','JMC_PM','JMC_TD']
-export const CV_DEPARTMENTS = ['Finance','Operation','Sales & Marketing','Sales and Marketing','Medical','System, Project & Infrastructure','System, Project & Infra','System, Project & Infrastructure Department']
+export const CV_DEPARTMENTS = ['Operation','Medical','System, Project & Infrastructure','Sales & Marketing']
 export const CV_CLAIM_CATEGORIES = ['Cash Advance','Reimbursement Claim']
 export const CV_EXTRA_C18 = ['Petrol / Mileage','Courier / Postage','Parking / Toll','Stationery','Urgent Office Purchase','Medical Supplies','Refreshments','Others']
 export const CV_EXPENSE_CATEGORIES_DIGITAL = [
