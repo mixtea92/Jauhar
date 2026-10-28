@@ -135,8 +135,9 @@ function draw(page,font,map,cell,value,span=1,preferred=9){
   while(size>5*map.scale&&font.widthOfTextAtSize(str,size)>width)size-=0.5
   let output=str
   if(font.widthOfTextAtSize(output,size)>width){
-    while(output.length>1&&font.widthOfTextAtSize(output+'…',size)>width)
+    while(output.length>3&&font.widthOfTextAtSize(output+'...',size)>width)
       output=output.slice(0,-1)
+    output+='...'
   }
   const rowH=map.height(row,row+1)
   page.drawText(output,{
