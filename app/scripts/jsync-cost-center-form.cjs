@@ -18,8 +18,18 @@ if (!fs.existsSync(path.join(root, 'package.json')) ||
 }
 const originalForm = fs.readFileSync(formPath, 'utf8');
 const originalApp = fs.readFileSync(appPath, 'utf8');
-if (!originalForm.includes('JAUHAR_STEP_47_3D_ADMIN_USER_FORM')) {
-  throw new Error('Unrecognized JSYNCUserAdminForm version. No files changed.');
+// Validate actual form structure, not an optional comment/version marker.
+const required = [
+  "export default function JSYNCUserAdminForm",
+  "staffDesignation",
+  "subdepartment",
+  "const editing = Boolean(user?.id)",
+  "jauhar_update_user_organization_v2",
+  "const [busy,setBusy]"
+];
+const missing = required.filter(anchor => !originalForm.includes(anchor));
+if (missing.length) {
+  throw new Error('This form has a different structure ('+missing.join(', ')+'). No files changed. Show the source before adapting.');
 }
 if (originalForm.includes('id="usr-cost-center"')) {
   console.log('Cost Center dropdown is already present. No files changed.');
@@ -112,6 +122,11 @@ if (!fields.includes('cost_center')) {
   if (at<0) throw new Error('Missing is_active field in user list. No files changed.');
   fields.splice(at,0,'cost_center');
   app=once(app,oldProjection,".select('" + fields.join(', ') + "')",'User list projection');
+}
+
+if (process.argv.includes('--dry-run')) {
+  console.log('JSYNC COST CENTER PREFLIGHT PASSED: all source anchors found. No files changed.');
+  process.exit(0);
 }
 
 const stamp = new Date().toISOString().replace(/[:.]/g,'-');
