@@ -3,10 +3,18 @@ import JSYNCLogin from './login/JSYNCLogin'
 import { supabase } from './lib/supabase'
 import AddUser from './AddUser'
 import EditUser from './EditUser'
+import UserOrganizationAssignment from './UserOrganizationAssignment'
+import JSYNCUserAdminForm from './JSYNCUserAdminForm'
+// JAUHAR_STEP_47_3D_INLINE
+// JAUHAR_STEP_47_3B_USER_ORGANIZATION_UI
 import UserStatusButton from './UserStatusButton'
 import AuditTrail from './AuditTrail'
 import ResetPassword from './ResetPassword'
 import PaymentVoucher from './PaymentVoucher'
+import DelegationHub from './DelegationHub'
+import DelegationWorkspace from './DelegationWorkspace'
+// JAUHAR_STEP_46G_FINANCIAL_DELEGATION_WORKSPACE
+// JAUHAR_STEP_46D_SEPARATE_DELEGATION_MENU
 
 const css = `
   * { box-sizing: border-box; }
@@ -35,6 +43,9 @@ const css = `
   .nav-group-active { background: #21466f; }
   .nav-submenu { margin: 2px 0 16px 17px; padding-left: 12px; border-left: 2px solid #54759b; }
   .nav-subitem { font-size: 14px; margin: 4px 0; padding: 12px 13px; }
+  .nav-delegation-heading { display:flex; justify-content:space-between; align-items:center; font-weight:700; margin-top:5px; }
+  .nav-delegation-submenu { margin:3px 0 12px 10px; padding-left:12px; border-left:2px solid #7893b7; }
+  .nav-delegation-submenu .nav-subitem { font-size:13px; padding:10px 11px; }
   .nav-placeholder { color: #849cb9; cursor: default; }
   .nav-placeholder:hover { background: transparent; color: #849cb9; }
   .content { padding: 35px; flex: 1; min-width: 0; }
@@ -72,12 +83,13 @@ const css = `
 
 // Step 36: Department is profile metadata. Existing permissions stay unchanged.
 function displayRole(role) {
-  return role === 'manager' ? 'HOD / Manager' : String(role || '').replaceAll('_', ' ')
+  if(role === 'non_executive') return 'Non-Executive'
+return role === 'manager' ? 'HOD / Manager' : String(role || '').replaceAll('_', ' ')
 }
 
 function displayDepartment(role, department) {
   if (role === 'system_admin') return 'All Departments'
-  if (role === 'ceo' || role === 'bod') return '—'
+
   return department || 'Not Assigned'
 }
 
@@ -93,7 +105,12 @@ function App() {
   const [usersError, setUsersError] = useState('')
   const [activePage, setActivePage] = useState('dashboard')
   const [financeOpen, setFinanceOpen] = useState(true)
+  const [delegationOpen, setDelegationOpen] = useState(true)
+  const [manageDelegationTab, setManageDelegationTab] = useState('request')
+  const [voucherOpenRequest, setVoucherOpenRequest] = useState(null)
+  // JAUHAR_STEP_46H_SEPARATE_DELEGATED_REVIEW
   const [editingUser, setEditingUser] = useState(null)
+  const [organizationUser, setOrganizationUser] = useState(null)
   const [resetUser, setResetUser] = useState(null)
 
   useEffect(() => {
@@ -107,7 +124,7 @@ function App() {
 
         const { data, error: profileError } = await supabase
           .from('user_profiles')
-          .select('username, role, department, is_active')
+          .select('username, role, department, branch, subdepartment, staff_designation, is_active')
           .eq('id', user.id)
           .single()
 
@@ -134,7 +151,7 @@ function App() {
 
     const { data, error: queryError } = await supabase
       .from('user_profiles')
-      .select('id, username, role, department, is_active, created_at')
+      .select('id, username, role, department, branch, subdepartment, staff_designation, cost_center, is_active, created_at')
       .order('username')
 
     if (queryError) {
@@ -184,7 +201,7 @@ function App() {
       const { data: userProfile, error: profileError } =
         await supabase
           .from('user_profiles')
-          .select('username, role, department, is_active')
+          .select('username, role, department, branch, subdepartment, staff_designation, is_active')
           .eq('id', session.user.id)
           .single()
 
@@ -283,17 +300,24 @@ function App() {
             </button>
           )}
 
-          {/* FINANCE APPROVAL: MAIN MENU WITH SUBMENU */}
+          {profile.role === 'non_executive' && (
+      <button type="button" className="nav-item"
+        onClick={() => setActivePage('my_profile')}>
+        My Profile
+      </button>
+    )}
+    {profile.role !== 'non_executive' && (<>
+    {/* FINANCE APPROVAL: MAIN MENU WITH SUBMENU */}
           <button
             type="button"
             className={`nav-item nav-group-toggle ${
-              activePage === 'payment_voucher' ? 'nav-group-active' : ''
+              ['payment_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
             }`}
             aria-expanded={financeOpen}
             aria-controls="finance-approval-submenu"
             onClick={() => setFinanceOpen(open => !open)}
           >
-            <span>Finance Approval</span>
+            <span>Financial Approval</span>
             <span className="chevron" aria-hidden="true">
               {financeOpen ? '▼' : '▶'}
             </span>
@@ -314,10 +338,40 @@ function App() {
               >
                 Payment Voucher
               </button>
+              {/* Step 46G: one financial-only Delegation section, reusable when Budgeting launches. */}
+              <button type="button" className={`nav-item nav-subitem nav-delegation-heading ${
+                ['delegation_workspace','delegation_review','manage_delegation'].includes(activePage) ? 'nav-group-active' : ''}`}
+                aria-expanded={delegationOpen} aria-controls="finance-delegation-submenu"
+                onClick={() => setDelegationOpen(open => !open)}>
+                <span>Delegation</span>
+                <span aria-hidden="true">{delegationOpen ? '▾' : '▸'}</span>
+              </button>
+              {delegationOpen && <div id="finance-delegation-submenu" className="nav-delegation-submenu">
+                <button type="button"
+                  className={`nav-item nav-subitem ${activePage === 'delegation_workspace' ? 'nav-active' : ''}`}
+                  onClick={() => {
+                    setActivePage('delegation_workspace')
+                    setEditingUser(null)
+                    setResetUser(null)
+                  }}>
+                  Delegation Workspace
+                </button>
+                <button type="button"
+                  className={`nav-item nav-subitem ${activePage === 'manage_delegation' ? 'nav-active' : ''}`}
+                  onClick={() => {
+                    setManageDelegationTab('request')
+                    setActivePage('manage_delegation')
+                    setEditingUser(null)
+                    setResetUser(null)
+                  }}>
+                  Manage Delegation
+                </button>
+              </div>}
             </div>
           )}
 
-          {/* FUTURE FINANCE DASHBOARD (SEPARATE MAIN MODULE) */}
+          </>)}
+{/* FUTURE FINANCE DASHBOARD (SEPARATE MAIN MODULE) */}
           <div className="nav-item nav-placeholder" aria-disabled="true">
             Finance Dashboard — Soon
           </div>
@@ -342,8 +396,10 @@ function App() {
           <div className="topbar">
             <div>
               <h1>
-                {activePage === 'payment_voucher'
-                  ? 'Payment Voucher'
+                {activePage === 'delegation_review' ? 'Delegated PV Review'
+                  : activePage === 'delegation_workspace' ? 'Delegation Workspace'
+                  : activePage === 'manage_delegation' ? 'Manage Delegation'
+                  : activePage === 'payment_voucher' ? 'Payment Voucher'
                   : profile.role === 'system_admin' && activePage === 'users'
                     ? 'User Management'
                     : profile.role === 'system_admin' && activePage === 'audit'
@@ -356,15 +412,53 @@ function App() {
             <button className="btn" onClick={handleLogout}>Logout</button>
           </div>
 
-          {activePage === 'payment_voucher' ? (
-            <PaymentVoucher profile={profile} />
+          {profile.role === 'non_executive' ? (
+      <section className="panel">
+        <h2>My Profile</h2>
+        <p>Username: {profile.username}</p>
+        <p>Role: Non-Executive</p>
+        <p>Department: {profile.department || 'Not Assigned'}</p>
+        <p>Subdepartment: {profile.subdepartment || 'Not Assigned'}</p>
+        <p>Branch: {profile.branch || 'Not Assigned'}</p>
+        <p>Staff Designation: {profile.staff_designation || 'Not Assigned'}</p>
+      </section>
+    ) : activePage === 'payment_voucher' ? (
+            <PaymentVoucher profile={profile} openRequest={voucherOpenRequest}
+              onOpenRequestHandled={() => setVoucherOpenRequest(null)} />
+          ) : activePage === 'delegation_workspace' ? (
+            <DelegationWorkspace profile={profile}
+              onGoPaymentVoucher={() => setActivePage('payment_voucher')}
+              onOpenVoucher={id => {
+                setVoucherOpenRequest({id, key: Date.now()})
+                setActivePage('delegation_review')
+              }}
+              onManage={tab => {
+                setManageDelegationTab(tab || 'request')
+                setActivePage('manage_delegation')
+              }} />
+          ) : activePage === 'delegation_review' ? (
+            <PaymentVoucher profile={profile} reviewMode="delegated"
+              openRequest={voucherOpenRequest}
+              onReviewClose={() => {
+                setVoucherOpenRequest(null)
+                setActivePage('delegation_workspace')
+              }} />
+          ) : activePage === 'manage_delegation' ? (
+            <DelegationHub profile={profile} initialTab={manageDelegationTab} />
           ) : profile.role === 'system_admin' && activePage === 'audit' ? (
             <AuditTrail users={users} />
           ) : profile.role === 'system_admin' && activePage === 'users' ? (
             <>
               {/* User Management forms: show one at a time */}
-              {editingUser ? (
-                <EditUser
+              {organizationUser ? (
+                <JSYNCUserAdminForm organizationOnly
+                  key={organizationUser.id}
+                  user={users.find(u => u.id === organizationUser.id) || organizationUser}
+                  onSaved={async () => { await loadUsers(); setOrganizationUser(null) }}
+                  onCancel={() => setOrganizationUser(null)}
+                />
+              ) : editingUser ? (
+                <JSYNCUserAdminForm
                   key={editingUser.id}
                   user={editingUser}
                   onSaved={async () => {
@@ -381,7 +475,7 @@ function App() {
                 />
               ) : (
                 <section className="panel">
-                  <AddUser onCreated={loadUsers} />
+                  <JSYNCUserAdminForm onSaved={loadUsers} />
                 </section>
               )}
 
@@ -407,6 +501,9 @@ function App() {
                         <th>Username</th>
                         <th>Role</th>
                         <th>Department</th>
+                        <th>Branch</th>
+                        <th>Subdepartment</th>
+<th>Staff Designation</th>
                         <th>Status</th>
                         <th>Created At</th>
                         <th>Actions</th>
@@ -418,6 +515,9 @@ function App() {
                           <td><strong>{user.username}</strong></td>
                           <td>{displayRole(user.role)}</td>
                           <td>{displayDepartment(user.role, user.department)}</td>
+                          <td>{user.branch || 'Not Assigned'}</td>
+                          <td>{user.subdepartment || 'Not Assigned'}</td>
+<td>{user.staff_designation || 'Not Assigned'}</td>
                           <td>
                             <span className={`status ${user.is_active ? 'active' : 'disabled'}`}>
                               {user.is_active ? 'Active' : 'Disabled'}
@@ -446,6 +546,7 @@ function App() {
                                   className="btn"
                                   onClick={() => {
                                     setResetUser(null)
+                                    setOrganizationUser(null)
                                     setEditingUser(user)
                                     setActivePage('users')
                                   }}
@@ -453,6 +554,16 @@ function App() {
                                   Edit
                                 </button>
 
+                                <button type="button" className="btn"
+                                  style={{background:'#42637b'}}
+                                  onClick={() => {
+                                    setEditingUser(null)
+                                    setResetUser(null)
+                                    setOrganizationUser(user)
+                                    setActivePage('users')
+                                  }}>
+                                  Assign Branch / Subdepartment
+                                </button>
                                 <UserStatusButton
                                   user={user}
                                   onUpdated={loadUsers}
@@ -464,6 +575,7 @@ function App() {
                                   style={{ background: '#56657a' }}
                                   onClick={() => {
                                     setEditingUser(null)
+                                    setOrganizationUser(null)
                                     setResetUser(user)
                                     setActivePage('users')
                                   }}
@@ -478,7 +590,7 @@ function App() {
                       ))}
                       {!usersLoading && users.length === 0 && (
                         <tr>
-                          <td colSpan="6">
+                          <td colSpan="9">
                             {usersError ? 'Unable to load users.' : 'No users found.'}
                           </td>
                         </tr>
