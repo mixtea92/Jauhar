@@ -94,8 +94,8 @@ effect="""  // Step 51H: action-only notification numbers, read under current us
 """
 new_app=once(new_app,'  async function handleLogin(e) {',effect+'  async function handleLogin(e) {','notification effect')
 new_app=once(new_app,
-    "className={`nav-item nav-subitem ${\\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
-    "className={`nav-item nav-subitem jims-action-nav ${\\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
+    "className={`nav-item nav-subitem ${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
+    "className={`nav-item nav-subitem jims-action-nav ${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
     'PV nav class')
 new_app=once(new_app,
     "className={`nav-item nav-subitem ${activePage === 'payment_process' ? 'nav-active' : ''}`}",
