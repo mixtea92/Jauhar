@@ -118,14 +118,13 @@ pv=one(pv,
   "data.source_template_version !== REQUIRED_TEMPLATE_REVISION",
   "data.source_template_version !== form.template_version",
   'Confirm actual saved workbook revision')
-pv=one(pv,
-  "supabase.rpc('create_pv_draft_v4', {",
-  "supabase.rpc('create_pv_draft_v6', {",
-  'Use tested v6 secure wrapper for New PV')
-pv=one(pv,
-  "supabase.rpc('create_pv_draft_v5', {",
-  "supabase.rpc('create_pv_draft_v6', {",
-  'Use revision-aware v6') if "supabase.rpc('create_pv_draft_v5', {" in pv else pv
+old_create_rpc=(
+    "supabase.rpc('create_pv_draft_v5', {"
+    if "supabase.rpc('create_pv_draft_v5', {" in pv
+    else "supabase.rpc('create_pv_draft_v4', {"
+)
+pv=one(pv,old_create_rpc,"supabase.rpc('create_pv_draft_v6', {",
+       'Upgrade New PV creator to revision-aware v6')
 
 # Add a dedicated reader for new one-sheet PV (T-Digital) workbook.
 reader="""// Revision 1 official form: sheet 'PV (T-Digital)', cells E13..E23,
