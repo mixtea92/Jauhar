@@ -70,6 +70,8 @@ start=original.rfind(start_anchor,0,dashboard_pos)
 if start<0:
     stop('Cannot identify Payment Process Dashboard opening.')
 end=original.index(end_anchor,dashboard_pos)
+# Preserve the original suffix BEFORE recomputing offsets after import insertion.
+original_tail=original[end:]
 region=original[start:end]
 if region.count(start_anchor)<2 or region.count('JIMS_STEP_57B8_HISTORY_LAST')!=1:
     stop('Unexpected Step57B7/57B8 home layout. No files changed.')
@@ -145,7 +147,7 @@ if 'JIMS_STEP_57B8_HISTORY_LAST' in content:
     stop('Duplicate 57B8 home Payment History still present')
 if content.count('JIMS_STEP_57B9_UNIFIED_PAYMENT_PROCESS')!=1:
     stop('Unified board marker count wrong')
-if original[end:]!=content[content.index(end_anchor):]:
+if original_tail!=content[content.index(end_anchor):]:
     stop('Code after Payment Process HOME region changed unexpectedly')
 
 print('JIMS STEP 57B9 — '+('DRY RUN' if DRY else 'INSTALL'))
