@@ -335,6 +335,8 @@ export default function CashVoucher({profile}) {
         {['active','draft','pending_approval'].map(s=>
           <button key={s} type="button" style={smallButton} aria-pressed={filter===s} onClick={()=>setFilter(s)}>
             {s==='active'?'ACTIVE':s.replaceAll('_',' ').toUpperCase()}
+            {s==='pending_approval'&&isHOD&&myAttention>0&&
+              <span className="jims-inline-notification" style={{marginLeft:7}}>{myAttention}</span>}
           </button>)}
         <button type="button" disabled={loading} style={smallButton} onClick={reload}>Refresh</button>
       </div>
@@ -386,9 +388,9 @@ export default function CashVoucher({profile}) {
       </>}
       <section className="jims-cv-history jims-history-section" aria-label="CV History">
         <h3>CV History</h3>
-        <p className="muted">Closed and digitally signed Cash Vouchers. No further approval required.</p>
+        <p className="muted">Closed and digitally signed Cash Vouchers. Showing loaded history, up to the latest 500 CVs.</p>
         <details>
-          <summary>View Closed CV History ({historyRows.length} records)</summary>
+          <summary>View Closed CV History ({historyRows.length} loaded records)</summary>
           <div className="table-wrap" style={{marginTop:12}}>
             <table style={{minWidth:680}}>
               <thead><tr><th>CV Number</th><th>Claimant</th><th>Amount</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
