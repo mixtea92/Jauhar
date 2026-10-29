@@ -39,7 +39,6 @@ for marker in (
   'const [jimsV2FMCount,setJimsV2FMCount] = useState(null)',
   "const paymentLanding = dashboardSection === 'payment'",
   "aria-label=\"Payment Voucher tracking table\"",
-  "const modeChoiceAllowed",
   "jimsV2FMCount ?? '—'",
   "payment_initiated:'Payment Initiated'",
 ):
