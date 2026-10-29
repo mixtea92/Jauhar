@@ -103,9 +103,10 @@ new = one(
     'Default Full Payment state'
 )
 new = one(
-    new, '    setProofFile(null)',
+    new, '    setProofFile(null)\n    setReceiptFile(null)',
     "    setPaymentMode('full')\n"
-    "    setProofFile(null)",
+    "    setProofFile(null)\n"
+    "    setReceiptFile(null)",
     'Reset choice when switching vouchers'
 )
 new = one(
@@ -135,7 +136,7 @@ rpcs = (
 for name in rpcs:
     if old.count(name) != new.count(name):
         stop('Protected Full Payment RPC occurrence changed: ' + name)
-if new.count('JIMSPaymentModeSelector') != 2:
+if new.count('JIMSPaymentModeSelector') != 3:
     stop('Unexpected selector import/render count.')
 if old.count('supabase.rpc(') != new.count('supabase.rpc('):
     stop('Protected payment RPC calls changed.')
