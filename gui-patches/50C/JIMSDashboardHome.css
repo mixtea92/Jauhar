@@ -1,10 +1,10 @@
-/* JIMS Step 50C.1 — seamless premium shell and Home only.
+/* JIMS Step 50C.2 — subtle premium sidebar dividers and Home only.
    Never targets PaymentVoucher, CashVoucher, Delegation or login internals. */
 html:has(.jims-shell),body:has(.jims-shell){margin:0!important;background:#0b0c0e!important;color:#e7e7e5!important}
 #root:has(.jims-shell){display:block!important;width:100%!important;max-width:none!important;border:0!important;margin:0!important;min-height:100dvh!important;text-align:left!important;background:#0b0c0e!important;font-size:14px}
 .jims-shell{width:100%;min-height:100dvh;background:#0b0c0e;color:#e8e8e8;font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;align-items:stretch}
-.jims-shell .sidebar{width:242px;min-width:242px;background:#0b0c0e;color:#d0d0d0;border-right:0;padding:20px 13px 18px;position:sticky;top:0;height:100dvh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#373737 transparent}
-.jims-shell .jims-brand{height:115px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 6px 19px;border-bottom:0;position:relative;padding:8px 0 13px}
+.jims-shell .sidebar{width:242px;min-width:242px;background:#0b0c0e;color:#d0d0d0;border-right:1px solid rgba(208,170,98,.19);padding:20px 13px 18px;position:sticky;top:0;height:100dvh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#373737 transparent}
+.jims-shell .jims-brand{height:115px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 6px 19px;border-bottom:1px solid rgba(208,170,98,.16);position:relative;padding:8px 0 13px}
 .jims-brand-logo{display:block;max-width:194px;width:100%;max-height:92px;object-fit:contain}
 .jims-brand-text{display:none;color:#dabb75;text-align:center;line-height:1.1}
 .jims-brand--text .jims-brand-logo{display:none}
@@ -17,10 +17,10 @@ html:has(.jims-shell),body:has(.jims-shell){margin:0!important;background:#0b0c0
 .jims-shell .sidebar .nav-group-toggle{display:flex;align-items:center;justify-content:space-between;color:#e7e4dc;margin-top:14px;font-size:12.5px;font-weight:650}
 .jims-shell .sidebar .nav-group-toggle .chevron{color:#b59a61;font-size:11px}
 .jims-shell .sidebar .nav-group-active:not(.nav-active){background:#171719;color:#f0dbb1}
-.jims-shell .sidebar .nav-submenu{margin:5px 0 12px 12px;padding-left:12px;border-left:0}
+.jims-shell .sidebar .nav-submenu{margin:5px 0 12px 12px;padding-left:12px;border-left:1px solid rgba(208,170,98,.17)}
 .jims-shell .sidebar .nav-subitem{padding:10px 11px;font-size:12px}
 .jims-shell .sidebar .nav-delegation-heading{display:flex;align-items:center;justify-content:space-between}
-.jims-shell .sidebar .nav-delegation-submenu{margin:2px 0 8px 7px;padding-left:9px;border-left:0}
+.jims-shell .sidebar .nav-delegation-submenu{margin:2px 0 8px 7px;padding-left:9px;border-left:1px solid rgba(208,170,98,.12)}
 .jims-shell .sidebar .nav-placeholder{cursor:default;opacity:.48;padding:12px 13px}
 .jims-shell .sidebar .nav-placeholder:hover{background:transparent;color:#aaadb3}
 .jims-sidebar-footer{margin:26px 9px 0;padding-top:12px;border-top:0;display:flex;flex-direction:column;gap:4px;color:#9a9488;font-size:9px;letter-spacing:1px}
