@@ -58,11 +58,21 @@ if 'JIMS_STEP_57B9_UNIFIED_PAYMENT_PROCESS' in original:
 
 start_anchor="      {workspaceMode === 'home' && paymentLanding && ("
 end_anchor="      {workspaceMode === 'home' && !paymentLanding && ("
-if original.count(start_anchor)!=1 or original.count(end_anchor)!=1:
-    stop('Payment Process HOME markup anchors not unique.')
-start=original.index(start_anchor)
-end=original.index(end_anchor,start)
+# Step 57B7 has THREE home sections; two start with paymentLanding:
+#   1) original Payment Process Dashboard, 2) AP Finance Completion queue.
+# Step 57B8 adds the final Payment History after both.
+# Replace that contiguous payment-home region once, not each matching anchor.
+dashboard_marker='<h2>Payment Process Dashboard</h2>'
+if original.count(dashboard_marker)!=1 or original.count(end_anchor)!=1:
+    stop('Payment Process Dashboard / end boundary not unique.')
+dashboard_pos=original.index(dashboard_marker)
+start=original.rfind(start_anchor,0,dashboard_pos)
+if start<0:
+    stop('Cannot identify Payment Process Dashboard opening.')
+end=original.index(end_anchor,dashboard_pos)
 region=original[start:end]
+if region.count(start_anchor)<2 or region.count('JIMS_STEP_57B8_HISTORY_LAST')!=1:
+    stop('Unexpected Step57B7/57B8 home layout. No files changed.')
 for marker in (
     "Payment Process Dashboard",
     "jims-payment-history",
@@ -98,9 +108,13 @@ content=original.replace(
     import_anchor+"\nimport JIMSPaymentProcessBoard from './JIMSPaymentProcessBoard'",
     1
 )
-# Work with the modified content's exact HOME anchors.
-start=content.index(start_anchor)
-end=content.index(end_anchor,start)
+# Anchor on Payment Process Dashboard itself, not the second
+# paymentLanding block which mounts the AP Completion queue.
+dashboard_pos=content.index(dashboard_marker)
+start=content.rfind(start_anchor,0,dashboard_pos)
+end=content.index(end_anchor,dashboard_pos)
+if start<0 or end<=start:
+    stop('Cannot safely isolate Payment Process HOME in modified source')
 new_home="""      {/* JIMS_STEP_57B9_UNIFIED_PAYMENT_PROCESS:
           Pending Payment -> Full/Partial status -> one Payment History LAST. */}
       {workspaceMode === 'home' && paymentLanding && (
