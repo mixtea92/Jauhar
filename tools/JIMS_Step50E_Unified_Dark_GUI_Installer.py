@@ -51,7 +51,7 @@ except Exception as e:
     stop(f"GitHub 50E CSS not available; run git fetch origin {branch}. {e}")
 
 required = ["JIMS STEP 50E", ".jims-shell>.content", "canvas[style*=",
-            "JSYNC", "color-scheme:dark", "[style*=", "section.panel"]
+            "data-jsync-cv-signature-capture", "color-scheme:dark", "[style*=", "section.panel"]
 # JSYNC isn't a magic deployment identifier; it is used in existing signature selectors.
 for term in required:
     if term not in new_css:
