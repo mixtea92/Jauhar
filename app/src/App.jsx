@@ -11,10 +11,20 @@ import UserStatusButton from './UserStatusButton'
 import AuditTrail from './AuditTrail'
 import ResetPassword from './ResetPassword'
 import PaymentVoucher from './PaymentVoucher'
+import CashVoucher from './CashVoucher'
+// JSYNC_STEP_48C_CASH_VOUCHER_FULL_STACK
 import DelegationHub from './DelegationHub'
+import SystemAdminDelegationViewer from './SystemAdminDelegationViewer'
+import { canAccessPvManageDelegationPage } from './lib/jsyncAccess'
+// JAUHAR_STEP_47_7C_ADMIN_READONLY
 import DelegationWorkspace from './DelegationWorkspace'
 // JAUHAR_STEP_46G_FINANCIAL_DELEGATION_WORKSPACE
 // JAUHAR_STEP_46D_SEPARATE_DELEGATION_MENU
+
+// JAUHAR_STEP_47_7B_MANAGE_DELEGATION_FINANCE_CEO_BOD
+function canManagePvDelegation(profile) {
+  return canAccessPvManageDelegationPage(profile)
+}
 
 const css = `
   * { box-sizing: border-box; }
@@ -311,7 +321,7 @@ function App() {
           <button
             type="button"
             className={`nav-item nav-group-toggle ${
-              ['payment_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
+              ['payment_voucher', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
             }`}
             aria-expanded={financeOpen}
             aria-controls="finance-approval-submenu"
@@ -338,6 +348,18 @@ function App() {
               >
                 Payment Voucher
               </button>
+              {/* JSYNC_STEP_48A_CASH_VOUCHER_MENU */}
+              <button
+                type="button"
+                className={`nav-item nav-subitem ${activePage === 'cash_voucher' ? 'nav-active' : ''}`}
+                onClick={() => {
+                  setActivePage('cash_voucher')
+                  setEditingUser(null)
+                  setResetUser(null)
+                }}
+              >
+                Cash Voucher
+              </button>
               {/* Step 46G: one financial-only Delegation section, reusable when Budgeting launches. */}
               <button type="button" className={`nav-item nav-subitem nav-delegation-heading ${
                 ['delegation_workspace','delegation_review','manage_delegation'].includes(activePage) ? 'nav-group-active' : ''}`}
@@ -356,6 +378,7 @@ function App() {
                   }}>
                   Delegation Workspace
                 </button>
+                {canManagePvDelegation(profile) && (
                 <button type="button"
                   className={`nav-item nav-subitem ${activePage === 'manage_delegation' ? 'nav-active' : ''}`}
                   onClick={() => {
@@ -366,6 +389,7 @@ function App() {
                   }}>
                   Manage Delegation
                 </button>
+                )}
               </div>}
             </div>
           )}
@@ -400,6 +424,7 @@ function App() {
                   : activePage === 'delegation_workspace' ? 'Delegation Workspace'
                   : activePage === 'manage_delegation' ? 'Manage Delegation'
                   : activePage === 'payment_voucher' ? 'Payment Voucher'
+                  : activePage === 'cash_voucher' ? 'Cash Voucher'
                   : profile.role === 'system_admin' && activePage === 'users'
                     ? 'User Management'
                     : profile.role === 'system_admin' && activePage === 'audit'
@@ -433,6 +458,7 @@ function App() {
                 setActivePage('delegation_review')
               }}
               onManage={tab => {
+                if (!canManagePvDelegation(profile)) return
                 setManageDelegationTab(tab || 'request')
                 setActivePage('manage_delegation')
               }} />
@@ -443,8 +469,21 @@ function App() {
                 setVoucherOpenRequest(null)
                 setActivePage('delegation_workspace')
               }} />
+          ) : activePage === 'cash_voucher' ? (
+            <CashVoucher profile={profile} />
           ) : activePage === 'manage_delegation' ? (
-            <DelegationHub profile={profile} initialTab={manageDelegationTab} />
+            canManagePvDelegation(profile) ? (
+              profile.role === 'system_admin' ? (
+                <SystemAdminDelegationViewer profile={profile} />
+              ) : (
+                <DelegationHub profile={profile} initialTab={manageDelegationTab} />
+              )
+            ) : (
+              <section className="panel" role="alert">
+                <h2>Access Restricted</h2>
+                <p>PV Manage Delegation is restricted to Finance, CEO and BOD.</p>
+              </section>
+            )
           ) : profile.role === 'system_admin' && activePage === 'audit' ? (
             <AuditTrail users={users} />
           ) : profile.role === 'system_admin' && activePage === 'users' ? (

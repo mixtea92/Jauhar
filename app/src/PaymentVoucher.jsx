@@ -362,6 +362,8 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const nonFinanceExecutive = canCreate && profile?.department && profile.department !== 'Finance'
   const nonFinanceHOD = canManage && profile?.department && profile.department !== 'Finance'
   const isAPFinance = canCreate && profile?.department === 'Finance'
+  // JSYNC_FINANCE_ONLY_NEW_PV_V1: new vouchers only; legacy non-Finance PV actions stay unchanged.
+  const canRaisePV = isAPFinance && profile?.is_active === true
   // Payment Voucher always opens its OWN dashboard under Finance Approval.
   const [workspaceMode, setWorkspaceMode] = useState('home')
   const [listCategory, setListCategory] = useState('draft')
@@ -1900,6 +1902,10 @@ async function uploadInvoice(line, file) {
 
   // Switching modes discards unsaved form data ONLY after explicit confirmation.
   function changeMode(nextMode) {
+    if (nextMode === 'new' && !canRaisePV) {
+      setError('Only an active Finance Executive can raise a new Payment Voucher.')
+      return false
+    }
     if (loading || importing) return false
 
     const hasUnsavedInputs =
@@ -2057,6 +2063,10 @@ async function uploadInvoice(line, file) {
   async function handleSave(event) {
     event.preventDefault()
     if (!canCreate || loading || importing) return
+    if (workspaceMode === 'new' && !canRaisePV) {
+      setError('Only an active Finance Executive can raise a new Payment Voucher.')
+      return
+    }
     if (workspaceMode !== 'new' && workspaceMode !== 'edit') {
       setError('Choose New Payment Voucher or open an existing Draft before saving.')
       return
@@ -2353,7 +2363,7 @@ async function uploadInvoice(line, file) {
             </div>
             <p className="muted">Approved contains Pending Payment, Payment Initiated and Paid. Payment stages are mutually exclusive.</p>
             <div className="pv-actions">
-              {canCreate && (
+              {canRaisePV && (
                 <button type="button" className="btn" onClick={() => changeMode('new')}>
                   + New Payment Voucher
                 </button>
@@ -2368,7 +2378,7 @@ async function uploadInvoice(line, file) {
         </>
       )}
 
-      {canCreate && (workspaceMode === 'new' || workspaceMode === 'edit') && (
+      {canCreate && (workspaceMode === 'edit' || (workspaceMode === 'new' && canRaisePV)) && (
         <section className="panel">
           <div className="pv-actions" style={{ marginTop: 0, marginBottom: 16 }}>
             <span className="pv-mode-label">
@@ -2655,7 +2665,7 @@ async function uploadInvoice(line, file) {
         <div className="pv-actions" style={{marginTop:0}}>
           <button type="button" className="btn" style={{background:'#68788d'}}
             onClick={() => changeMode('home')}>← Payment Voucher Dashboard</button>
-          {canCreate && <button type="button" className="btn"
+          {canRaisePV && <button type="button" className="btn"
             onClick={() => changeMode('new')}>+ New Payment Voucher</button>}
         </div>
         {listCategory === 'draft' && (
