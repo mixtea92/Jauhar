@@ -47,7 +47,7 @@ newselector=remote('gui-patches/57B/JIMSPaymentModeSelector_Step57B3.jsx')
 workflow=remote('gui-patches/57B/JIMSInstallmentWorkflow.jsx')
 css=remote('gui-patches/57B/JIMSInstallmentWorkflow.css')
 for x in ('JIMSInstallmentWorkflow','jims_v2_create_payment_draft_v1',
-          'jims_v2_cancel_payment_draft_v1','canReview={canReview}'):
+          'jims_v2_cancel_payment_draft_v1','canFM={canReview}'):
     if x not in newselector:stop('Unexpected 57B3 selector: '+x)
 for x in ('jims_v2_submit_installment_v1','jims_v2_review_installment_v1',
           'jims_v2_complete_installment_v1',
