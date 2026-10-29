@@ -93,6 +93,19 @@ CREATE POLICY jims_v2_initiation_read ON storage.objects
    )
  );
 
+-- Document-scoped private receipt read for delegated FM reviewers.
+DROP POLICY IF EXISTS jims_v2_receipt_read ON storage.objects;
+CREATE POLICY jims_v2_receipt_read ON storage.objects
+ FOR SELECT TO authenticated USING (
+   bucket_id='jauhar-pv-receipts'
+   AND EXISTS (
+     SELECT 1 FROM public.jims_v2_payment_documents d
+     WHERE d.storage_path=storage.objects.name AND d.kind='final_receipt'
+       AND (public.jauhar_can_read_payment_proof_v1(d.voucher_id)
+          OR public.jauhar_can_view_delegation_docs_v1(d.voucher_id))
+   )
+ );
+
 -- Do not allow re-use of a proof across installments (registry storage_path UNIQUE).
 CREATE OR REPLACE FUNCTION public.jims_v2_submit_installment_v1(
  p_transaction_id uuid,p_storage_path text,p_expected_updated_at timestamptz
