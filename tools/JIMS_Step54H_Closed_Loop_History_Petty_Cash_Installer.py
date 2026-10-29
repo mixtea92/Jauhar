@@ -264,9 +264,17 @@ for critical in ("supabase.from('cash_vouchers')",'downloadSignedCVExcel','canSi
 app=replace_one(old_app,"import './JIMSPaymentSeparation.css'",
     "import './JIMSPaymentSeparation.css'\nimport './JIMSClosedLoopHistory.css'",
     'Dark-theme CSS import')
-app=replace_one(app,'                Cash Voucher\n              </button>',
-    '                Petty Cash\n              </button>',
-    'Financial Approval sidebar rename')
+if '                Cash Voucher\n              </button>' in app:
+    app=replace_one(app,'                Cash Voucher\n              </button>',
+        '                Petty Cash\n              </button>',
+        'Financial Approval sidebar rename')
+elif '                Cash Voucher\n                {jimsActionCounts.cv' in app:
+    app=replace_one(app,
+        '                Cash Voucher\n                {jimsActionCounts.cv',
+        '                Petty Cash\n                {jimsActionCounts.cv',
+        'Financial Approval sidebar notification label rename')
+else:
+    stop('Unrecognized Petty Cash sidebar layout; no files touched.')
 app=replace_one(app,"activePage === 'cash_voucher' ? 'Cash Voucher'",
     "activePage === 'cash_voucher' ? 'Petty Cash'",
     'Topbar Petty Cash heading')
