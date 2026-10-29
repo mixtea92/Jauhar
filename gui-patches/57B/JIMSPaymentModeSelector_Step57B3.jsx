@@ -150,7 +150,7 @@ export default function JIMSPaymentModeSelector({voucher,mode,onModeChange,onDra
             onChange={e=>setAmount(e.target.value)}/>
         </label>
         <div className="jims-pay-mode-projected"><span>Projected outstanding after settlement</span>
-          <strong>{loading||error?'—':money(valid?outstanding-cents/100:outstanding)}</strong>
+          <strong>{loading||error?'—':money(active?outstanding-Number(active.requested_amount):valid?outstanding-cents/100:outstanding)}</strong>
         </div>
       </div>
       {loading&&<p className="jims-pay-mode-note">Loading live payment ledger…</p>}
