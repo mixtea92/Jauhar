@@ -41,18 +41,25 @@ if '<PaymentTrackingPanel' not in original or '<JRPanel' not in original:
     fail('Protected payment/JR panels missing. No changes.')
 
 anchor_import="import ApprovalQueues from './ApprovalQueues'"
+anchor_home='      {workspaceMode === 'home' && (\n        <>\n          <section className="panel">'
 anchor_widget='          <ApprovalQueues profile={profile} onOpenVoucher={openVoucher} mode="actual" refreshKey={allDelegationRecords.length + allHandoverRecords.length} />'
 exactly_once(original,anchor_import,'Approved import')
+exactly_once(original,anchor_home,'Payment Voucher home top')
 exactly_once(original,anchor_widget,'Actual authority queue')
 
 patched=original.replace(anchor_import,
     anchor_import+"\nimport BODApprovalSummary from './BODApprovalSummary'",1)
-patched=patched.replace(anchor_widget,
-    """          {/* JIMS_STEP_57C4_BOD_SUMMARY — actual BOD only. Other roles unchanged. */}
-          {canApproveBOD ? (
+patched=patched.replace(anchor_home,
+    """      {workspaceMode === 'home' && (
+        <>
+          {/* JIMS_STEP_57C4_BOD_SUMMARY — BOD sees decisions FIRST, before PV dashboard. */}
+          {canApproveBOD && (
             <BODApprovalSummary profile={profile} onOpenVoucher={openVoucher}
               onDecisionRecorded={refreshPVData} />
-          ) : (
+          )}
+          <section className="panel">""",1)
+patched=patched.replace(anchor_widget,
+    """          {!canApproveBOD && (
             <ApprovalQueues profile={profile} onOpenVoucher={openVoucher}
               mode="actual" refreshKey={allDelegationRecords.length + allHandoverRecords.length} />
           )}""",1)
