@@ -12,6 +12,20 @@ ALTER TABLE public.payment_vouchers
   ADD CONSTRAINT jims_tier_policy_version_check
   CHECK (jims_tier_policy_version IS NULL OR jims_tier_policy_version = 'R1');
 
+-- Nobody may switch a voucher between legacy and Revision 1 after creation.
+CREATE FUNCTION public.jims_guard_tier_policy_version_v1()
+RETURNS trigger LANGUAGE plpgsql SET search_path TO ''
+AS $guard$
+BEGIN
+ IF NEW.jims_tier_policy_version IS DISTINCT FROM OLD.jims_tier_policy_version
+ THEN RAISE EXCEPTION 'PV tier policy version is immutable'; END IF;
+ RETURN NEW;
+END;
+$guard$;
+CREATE TRIGGER jims_guard_tier_policy_version_trg
+BEFORE UPDATE OF jims_tier_policy_version ON public.payment_vouchers
+FOR EACH ROW EXECUTE FUNCTION public.jims_guard_tier_policy_version_v1();
+
 -- New-policy category checks occur when a new draft is SUBMITTED, not when saved.
 -- Thus users can save incomplete drafts, but cannot submit a misclassified tier.
 CREATE FUNCTION public.jims_check_tier_rev1_on_submit()
