@@ -1,0 +1,338 @@
+/* JIMS Step 50D — unified FINANCIAL APPROVAL appearance only.
+   Applied ONLY to active financial pages via .jims-finance-theme on <main>.
+   Never changes PV/CV/delegation state, business rules, RPCs, data or Excel output.
+   Visual theme: graphite panels, readable ivory text, restrained amber accents.
+*/
+.jims-shell>.content.jims-finance-theme{
+  --jf-bg:#0b0c0e;
+  --jf-panel:#17191d;
+  --jf-raised:#202329;
+  --jf-input:#20242a;
+  --jf-text:#f1f0ec;
+  --jf-muted:#b0b7c1;
+  --jf-gold:#dfbc7a;
+  --jf-border:rgba(221,185,119,.19);
+  --jf-line:rgba(255,255,255,.085);
+  color:var(--jf-text);
+  background:var(--jf-bg);
+  color-scheme:dark;
+  font-size:14px;
+  line-height:1.55;
+}
+.jims-shell>.content.jims-finance-theme :is(.panel,section.panel) {
+  background:var(--jf-panel);
+  color:var(--jf-text);
+  border:1px solid var(--jf-border);
+  border-radius:15px;
+  padding:24px;
+  margin-bottom:22px;
+  box-shadow:0 10px 28px rgba(0,0,0,.12);
+  max-width:100%;
+}
+.jims-shell>.content.jims-finance-theme :is(.panel,.pv-section) :is(h1,h2,h3,h4),
+.jims-shell>.content.jims-finance-theme :is(.panel,.pv-section) strong {
+  color:var(--jf-text);
+}
+.jims-shell>.content.jims-finance-theme .panel h2 {
+  font-size:21px;
+  font-weight:720;
+  letter-spacing:-.35px;
+  line-height:1.35;
+  margin:0 0 9px;
+}
+.jims-shell>.content.jims-finance-theme .panel h3 {
+  color:#ebdcc0;
+  font-size:16px;
+  font-weight:690;
+}
+.jims-shell>.content.jims-finance-theme .panel-head {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:19px;
+}
+.jims-shell>.content.jims-finance-theme :is(.muted,.panel>p,.panel small) {
+  color:var(--jf-muted);
+}
+.jims-shell>.content.jims-finance-theme :is(.muted,.panel>p) {
+  line-height:1.6;
+}
+.jims-shell>.content.jims-finance-theme .panel>p+p {margin-top:7px;}
+.jims-shell>.content.jims-finance-theme .btn,
+.jims-shell>.content.jims-finance-theme a.btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:39px;
+  padding:9px 15px;
+  border:1px solid rgba(219,181,110,.34)!important;
+  border-radius:9px;
+  background:#33291b!important;
+  color:#f9dc9d!important;
+  font-weight:630;
+  font-size:12px;
+  text-decoration:none;
+  transition:background .16s,border-color .16s;
+}
+.jims-shell>.content.jims-finance-theme .btn:hover:not(:disabled),
+.jims-shell>.content.jims-finance-theme a.btn:hover {
+  background:#423522!important;
+  border-color:#d3ae6b!important;
+  color:#fff0c8!important;
+}
+.jims-shell>.content.jims-finance-theme :is(button,a,input,select,textarea,summary):focus-visible {
+  outline:2px solid #f5ca76;
+  outline-offset:3px;
+}
+.jims-shell>.content.jims-finance-theme button:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+/* Forms: dark but inputs distinct; never alter functional validation or values. */
+.jims-shell>.content.jims-finance-theme :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){
+  background:var(--jf-input)!important;
+  border:1px solid rgba(180,188,200,.30)!important;
+  color:#f2f3f4!important;
+  border-radius:9px;
+  color-scheme:dark;
+}
+.jims-shell>.content.jims-finance-theme :is(input,textarea)::placeholder {color:#a3a7af;opacity:1;}
+.jims-shell>.content.jims-finance-theme :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus {
+  border-color:rgba(235,194,116,.77)!important;
+  box-shadow:0 0 0 3px rgba(214,174,103,.13);
+}
+.jims-shell>.content.jims-finance-theme input:disabled,
+.jims-shell>.content.jims-finance-theme textarea:disabled {
+  opacity:.58;
+}
+.jims-shell>.content.jims-finance-theme input[type="checkbox"],
+.jims-shell>.content.jims-finance-theme input[type="radio"] {accent-color:#cdaa68;}
+.jims-shell>.content.jims-finance-theme :is(label,.pv-field label,.pv-list-filters label) {
+  color:#e1e2e5;
+}
+.jims-shell>.content.jims-finance-theme option {color:#f2f3f4;background:#20242a;}
+/* Tables and data queues need strong contrast and soft row separation. */
+.jims-shell>.content.jims-finance-theme .table-wrap{
+  max-width:100%;
+  overflow-x:auto;
+  border:1px solid rgba(221,185,119,.13);
+  border-radius:11px;
+  background:#181b1f;
+}
+.jims-shell>.content.jims-finance-theme :is(table,.pv-tracking-table){
+  border-collapse:collapse;
+  background:#181b1f;
+  color:#e8ebef;
+}
+.jims-shell>.content.jims-finance-theme th {
+  background:#282b31!important;
+  color:#e1c998!important;
+  border-bottom:1px solid rgba(221,185,119,.23);
+  font-size:11px;
+  letter-spacing:.02em;
+  font-weight:710;
+  white-space:normal;
+}
+.jims-shell>.content.jims-finance-theme td {
+  color:#eaebec;
+  background:#181b1f;
+  border-bottom:1px solid var(--jf-line);
+  vertical-align:middle;
+}
+.jims-shell>.content.jims-finance-theme tbody tr:hover td {background:#21252a;}
+.jims-shell>.content.jims-finance-theme td strong {color:#f4e2b8;}
+.jims-shell>.content.jims-finance-theme td :is(a,button:not(.btn)) {color:#e9c78d;}
+/* PV dashboard: real action figures and click handlers remain unchanged. */
+.jims-shell>.content.jims-finance-theme .pv-action-panel {
+  background:#11151a!important;
+  border:1px solid rgba(222,178,100,.30)!important;
+  border-radius:12px;
+  color:#f3f2ed;
+  padding:18px 20px;
+  margin-bottom:25px;
+}
+.jims-shell>.content.jims-finance-theme .pv-action-title {
+  color:#e5c58b;
+  font-size:16px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(230,191,117,.13);
+  margin-bottom:9px;
+}
+.jims-shell>.content.jims-finance-theme .pv-action-title strong{
+  color:#f2d08d;
+  background:#302617;
+  border-radius:8px;
+  padding:4px 11px;
+  font-variant-numeric:tabular-nums;
+}
+.jims-shell>.content.jims-finance-theme button.pv-action-link{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:9px;
+  background:#20242a!important;
+  color:#eceef1!important;
+  margin-top:8px;
+  padding:12px 15px;
+  line-height:1.5;
+  text-decoration:none!important;
+}
+.jims-shell>.content.jims-finance-theme button.pv-action-link strong {
+  color:#f4d08c;
+  flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.jims-shell>.content.jims-finance-theme button.pv-action-link:hover {
+  border-color:rgba(230,188,109,.44);
+  background:#2b2b27!important;
+}
+.jims-shell>.content.jims-finance-theme .pv-workflow-title {
+  color:#e8c991;
+  font-weight:710;
+  margin:19px 0 13px;
+}
+.jims-shell>.content.jims-finance-theme .pv-home-grid {
+  gap:13px;
+}
+.jims-shell>.content.jims-finance-theme button.pv-home-card,
+.jims-shell>.content.jims-finance-theme button.pv-mode-card {
+  background:#20242a!important;
+  color:#f1f1ed!important;
+  border:1px solid rgba(220,186,127,.22)!important;
+  border-radius:12px;
+  box-shadow:none;
+  padding:19px;
+  text-align:left;
+}
+.jims-shell>.content.jims-finance-theme button.pv-home-card:hover,
+.jims-shell>.content.jims-finance-theme button.pv-mode-card:hover {
+  background:#2a2b2b!important;
+  border-color:rgba(239,195,107,.53)!important;
+}
+.jims-shell>.content.jims-finance-theme button.pv-home-card strong {
+  color:#f0cb84;
+  font-size:32px;
+  font-variant-numeric:tabular-nums;
+}
+.jims-shell>.content.jims-finance-theme button.pv-home-card span,
+.jims-shell>.content.jims-finance-theme button.pv-mode-card strong {
+  color:#f3f2ed;
+}
+.jims-shell>.content.jims-finance-theme button.pv-home-card small,
+.jims-shell>.content.jims-finance-theme button.pv-mode-card span {
+  color:#b6bbc5;
+}
+.jims-shell>.content.jims-finance-theme .pv-mode-label {
+  background:#32291a;
+  color:#f6d79a;
+  border-radius:7px;
+  padding:6px 10px;
+}
+.jims-shell>.content.jims-finance-theme .pv-section,
+.jims-shell>.content.jims-finance-theme .pv-total-final {
+  background:#2e281b;
+  color:#f7db9d;
+  border-left-color:#cb9e54;
+  border-radius:7px;
+}
+.jims-shell>.content.jims-finance-theme .pv-lines th {background:#292b30!important;}
+.jims-shell>.content.jims-finance-theme .pv-total-row {
+  border-bottom:1px solid var(--jf-line);
+}
+.jims-shell>.content.jims-finance-theme .pv-notice {
+  background:#242b34!important;
+  color:#e0e7ee!important;
+  border:1px solid rgba(135,166,201,.32);
+  border-radius:10px;
+}
+.jims-shell>.content.jims-finance-theme .pv-success,
+.jims-shell>.content.jims-finance-theme [role="status"].pv-success {color:#93dab4!important;}
+.jims-shell>.content.jims-finance-theme .error,
+.jims-shell>.content.jims-finance-theme [role="alert"] {color:#ffb6a9;}
+.jims-shell>.content.jims-finance-theme .status.active,
+.jims-shell>.content.jims-finance-theme .pv-payment-label.paid {
+  background:#1a3529;
+  color:#a5e2bf;
+}
+.jims-shell>.content.jims-finance-theme .status.disabled,
+.jims-shell>.content.jims-finance-theme .pv-payment-label.unpaid {
+  background:#362a1f;
+  color:#f2c893;
+}
+/* Delegation/Cash Voucher use some inline light backgrounds in their own JSX.
+   Override only visual backgrounds on their card-like divs, not signature canvas.
+   Inline style borders need !important on exactly the affected elements. */
+.jims-shell>.content.jims-finance-theme div[style*="background: rgb(255, 255, 255)"],
+.jims-shell>.content.jims-finance-theme div[style*="background: rgb(242, 246, 252)"],
+.jims-shell>.content.jims-finance-theme div[style*="background: rgb(243, 246, 251)"] {
+  background:#22262d!important;
+  color:#eceef1!important;
+  border-color:rgba(221,185,119,.22)!important;
+}
+.jims-shell>.content.jims-finance-theme div[style*="border: 1px solid rgb(213, 226, 240)"] {
+  background:#22262d!important;
+  color:#eceef1!important;
+  border-color:rgba(221,185,119,.22)!important;
+}
+.jims-shell>.content.jims-finance-theme div[style*="border: 1px solid rgb(154, 123, 60)"],
+.jims-shell>.content.jims-finance-theme section[style*="border: 1px solid rgb(129, 112, 76)"]{
+  background:#202329!important;
+  border-color:rgba(221,185,119,.28)!important;
+}
+.jims-shell>.content.jims-finance-theme div[style*="border: 1px solid rgb(164, 138, 83)"]{
+  background:#22262d!important;
+  border-color:rgba(221,185,119,.30)!important;
+}
+.jims-shell>.content.jims-finance-theme .jsync-delegation-workspace span[style*="background: rgb(232, 238, 247)"] {
+  background:#30281b!important;
+  color:#f1d398!important;
+}
+.jims-shell>.content.jims-finance-theme h2[style*="color: rgb(36, 48, 71)"]{
+  color:#f2efea!important;
+}
+.jims-shell>.content.jims-finance-theme :is(p,span)[style*="color: rgb(100, 116, 139)"]{
+  color:#b5bdc8!important;
+}
+.jims-shell>.content.jims-finance-theme strong[style*="color: rgb(25, 116, 71)"]{
+  color:#99e2ba!important;
+}
+.jims-shell>.content.jims-finance-theme [style*="border: 1px dashed rgb(184, 198, 214)"] {
+  border-color:rgba(219,185,119,.35)!important;
+  color:#cbd0d8!important;
+}
+.jims-shell>.content.jims-finance-theme canvas {
+  /* CV digital signature pad intentionally stays white for pen visibility */
+  color-scheme:light;
+}
+.jims-shell>.content.jims-finance-theme :is(details,pre){
+  color:#e0e6ed;
+}
+.jims-shell>.content.jims-finance-theme pre{
+  background:#121519;
+  border:1px solid var(--jf-line);
+  padding:12px;
+  border-radius:9px;
+  max-width:100%;
+  overflow:auto;
+}
+.jims-shell>.content.jims-finance-theme details{
+  border-bottom:1px solid var(--jf-line);
+  padding:8px 0;
+}
+.jims-shell>.content.jims-finance-theme summary{cursor:pointer;color:#e9d4ab;}
+@media(max-width:900px){
+  .jims-shell>.content.jims-finance-theme .panel{padding:18px;}
+  .jims-shell>.content.jims-finance-theme .pv-home-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:600px){
+  .jims-shell>.content.jims-finance-theme .panel{padding:15px;}
+  .jims-shell>.content.jims-finance-theme .pv-home-grid{grid-template-columns:1fr;}
+  .jims-shell>.content.jims-finance-theme .pv-action-panel{padding:13px;}
+  .jims-shell>.content.jims-finance-theme .panel-head{align-items:stretch;}
+  .jims-shell>.content.jims-finance-theme .panel-head .btn{width:100%;}
+}
