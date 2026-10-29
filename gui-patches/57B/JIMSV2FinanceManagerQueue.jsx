@@ -39,7 +39,7 @@ export default function JIMSV2FinanceManagerQueue({onOpenVoucher,onCountChange})
     }
   },[reload])
 
-  return <section className="panel jims-v2-fm-queue" aria-label="Partial Payment Finance Manager Review">
+  return <section className="panel jims-v2-fm-queue" id="jims-v2-fm-review-queue" aria-label="Partial Payment Finance Manager Review">
     <div className="panel-head">
       <div>
         <h2>Partial Payment — Finance Manager Review</h2>
