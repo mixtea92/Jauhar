@@ -45,6 +45,16 @@ s=one(s,
                 <strong>{jimsCompletionSnapshot?.completionCount ?? '—'} →</strong>
               </button>""")
 s=one(s,
+"dashboardCounts.pending_payment + dashboardCounts.needs_payment_completion",
+"""(jimsCompletionSnapshot
+                  ? Math.max(0,dashboardCounts.pending_payment
+                      -jimsCompletionSnapshot.partialInitiated
+                      -jimsCompletionSnapshot.partialApproved)
+                    +jimsCompletionSnapshot.completionCount
+                    +Math.max(0,dashboardCounts.needs_payment_completion
+                      -jimsCompletionSnapshot.v1Approved)
+                  : '—')""")
+s=one(s,
 "              { id:'paid', label:'Paid', hint:'Final PDF receipt and transaction details' }",
 "              { id:'payment_completion', label:'Payment Completion', hint:'AP Finance: upload mandatory final PDF' }")
 s=one(s,
@@ -55,6 +65,18 @@ s=one(s,
                 disabled={card.id === 'payment_completion' && !isAPFinance}>
                 <strong>{card.id === 'payment_completion'
                   ? (jimsCompletionSnapshot?.completionCount ?? '—')
+                  : card.id === 'pending_payment' && isAPFinance
+                    ? (jimsCompletionSnapshot && dashboardCounts
+                      ? Math.max(0,dashboardCounts.pending_payment
+                          -jimsCompletionSnapshot.partialInitiated
+                          -jimsCompletionSnapshot.partialApproved) : '—')
+                  : card.id === 'payment_initiated'
+                    ? (isAPFinance
+                      ? (jimsCompletionSnapshot && dashboardCounts
+                        ? dashboardCounts.pending_initiation_review
+                          +jimsCompletionSnapshot.partialInitiated : '—')
+                      : (dashboardCounts?.pending_initiation_review ?? 0)
+                        +(jimsV2FMCount ?? 0))
                   : dashboardCounts?.[card.id] ?? '—'}</strong>""")
 s=one(s,
 "          <p className=\"muted\">Existing Full Payment V1 workflow remains unchanged. Partial Payment V2 will be integrated separately.</p>",
