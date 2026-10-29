@@ -101,15 +101,16 @@ export default function JIMSPaymentProcessBoard({profile,onOpenVoucher}){
           transactionId:t.id
         }))
         if(v.payment_status==='paid')return
+        // Financial balance state is visible even while the NEXT installment
+        // is initiated or in completion; these are different dimensions.
+        if(paidCents>0&&remaining>0)out.partial_outstanding.push(base)
         const approval=items.find(t=>t.status==='approved'&&t.review_decision==='approved')
         const initiated=items.find(t=>t.status==='initiated'&&t.review_decision==='pending')
         if(approval){
           out.partial_completion.push({...base,installment_no:approval.installment_no,installmentAmount:approval.requested_amount})
         }else if(initiated){
           out.partial_initiated.push({...base,installment_no:initiated.installment_no,installmentAmount:initiated.requested_amount})
-        }else if(paidCents>0){
-          out.partial_outstanding.push(base)
-        }else{
+        }else if(paidCents===0){
           // A draft / returned proof remains at the common Pending Payment stage.
           out.pending.push(base)
         }
