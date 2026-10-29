@@ -89,10 +89,13 @@ new_app = exactly(new_app,
     "import './JIMSUnifiedDarkV1.css'",
     "import './JIMSUnifiedDarkV1.css'\nimport './JIMSPaymentSeparation.css'",
     "Navigation CSS import")
-new_app = exactly(new_app,
-    "['payment_voucher', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation']",
-    "['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation']",
-    "Financial group active state")
+# The same route list occurs in BOTH the Finance sidebar active-state
+# and 50D's scoped dark theme <main>. Include payment_process in both places.
+old_pages = "['payment_voucher', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation']"
+new_pages = "['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation']"
+if new_app.count(old_pages) != 2:
+    stop("Expected Finance sidebar and dark-theme scope route lists (2 occurrences).")
+new_app = new_app.replace(old_pages, new_pages)
 new_app = exactly(new_app,
     "              {/* JSYNC_STEP_48A_CASH_VOUCHER_MENU */}",
     """              {/* 51UI: payment dashboard, same existing PV approval/payment engine */}
