@@ -130,16 +130,16 @@ app=one(app,'  async function handleLogin(e) {',effect+'  async function handleL
 
 # Preserve button routes, order, and click handlers; only add a flex class.
 app=one(app,
- "className={\`nav-item nav-subitem \${activePage === 'payment_process' ? 'nav-active' : ''}\`}",
- "className={\`nav-item nav-subitem jims-action-nav \${activePage === 'payment_process' ? 'nav-active' : ''}\`}",
+ "className={`nav-item nav-subitem ${activePage === 'payment_process' ? 'nav-active' : ''}`}",
+ "className={`nav-item nav-subitem jims-action-nav ${activePage === 'payment_process' ? 'nav-active' : ''}`}",
  'Payment Process sidebar layout')
 app=one(app,
- "className={\`nav-item nav-subitem \${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }\`}",
- "className={\`nav-item nav-subitem jims-action-nav \${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }\`}",
+ "className={`nav-item nav-subitem ${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
+ "className={`nav-item nav-subitem jims-action-nav ${\n                  activePage === 'payment_voucher' ? 'nav-active' : ''\n                }`}",
  'Payment Voucher sidebar layout')
 app=one(app,
- "className={\`nav-item nav-subitem \${activePage === 'cash_voucher' ? 'nav-active' : ''}\`}",
- "className={\`nav-item nav-subitem jims-action-nav \${activePage === 'cash_voucher' ? 'nav-active' : ''}\`}",
+ "className={`nav-item nav-subitem ${activePage === 'cash_voucher' ? 'nav-active' : ''}`}",
+ "className={`nav-item nav-subitem jims-action-nav ${activePage === 'cash_voucher' ? 'nav-active' : ''}`}",
  'Petty Cash sidebar layout')
 
 for title,key in (('Payment Process','payment'),('Payment Voucher','pv'),('Petty Cash','cv')):
