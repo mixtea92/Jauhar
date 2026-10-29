@@ -98,7 +98,7 @@ changes = [
     ),
     (
         "{(workspaceMode === 'edit' || newPvValidated) ? (",
-        "{(workspaceMode === 'edit' || workspaceMode === 'new') ? (",
+        "{(workspaceMode === 'edit' || workspaceMode === 'new') && (",
         'Unlock New PV form immediately',
     ),
     (
@@ -127,6 +127,19 @@ changes = [
 
 for before, after, label in changes:
     new = replace_one(new, before, after, label)
+
+# Exact JSX guard: the form-lock 'else' was removed, therefore the
+# opening must use logical AND (&&), not a dangling ternary (?).
+form_gate = "{(workspaceMode === 'edit' || workspaceMode === 'new') && ("
+form_close = "          </form>\n          )}"
+if new.count(form_gate) != 1 or new.count(form_close) != 1:
+    stop('Manual PV form JSX gate malformed; no files changed.')
+if "{(workspaceMode === 'edit' || workspaceMode === 'new') ? (" in new:
+    stop('Dangling JSX ternary detected; no files changed.')
+if "New PV form locked." in new:
+    stop('Old compulsory Excel form lock remains; no files changed.')
+if "template_version: REQUIRED_TEMPLATE_REVISION" not in new:
+    stop('Manual entry template revision not initialized; no files changed.')
 
 def rpc_lines(source):
     return sorted(line.strip() for line in source.splitlines() if '.rpc(' in line)
