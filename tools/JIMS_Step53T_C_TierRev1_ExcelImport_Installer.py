@@ -7,7 +7,7 @@ Backs up, builds, rolls back atomically upon any failure.
 """
 from pathlib import Path
 from datetime import datetime,timezone
-import subprocess,sys
+import subprocess,sys,tempfile
 
 ROOT=Path('/workspaces/Jauhar')
 BRANCH='jsync-gui-revamp-20261029'
@@ -269,6 +269,31 @@ for protected in ('<PaymentTrackingPanel','<JRPanel','async function handleSave(
         fail('Protected PV handler changed: '+protected)
 if 'isJRFinalCEO(' not in pv or 'parseRevisionOneWorkbook(sheet)' not in pv:
     fail('Revision 1 patch incomplete.')
+
+# Syntax-validation during DRY RUN: catch JSX errors before touching live files.
+# React Vite commonly includes @babel/parser through the plugin-react toolchain.
+parser=ROOT/'app/node_modules/@babel/parser'
+if parser.is_dir():
+    with tempfile.TemporaryDirectory(prefix='jims_53t_preview_') as temp:
+        temp=Path(temp)
+        preview_pv=temp/'PaymentVoucher.jsx'
+        preview_jr=temp/'JRPanel.jsx'
+        preview_pv.write_text(pv)
+        preview_jr.write_text(jr)
+        parse_js="""const fs=require('fs');const parser=require('@babel/parser');
+for(const f of process.argv.slice(1)){
+  const code=fs.readFileSync(f,'utf8');
+  parser.parse(code,{sourceType:'module',plugins:['jsx']});
+}
+console.log('JSX syntax check PASS');
+"""
+        result=subprocess.run(['node','-e',parse_js,str(preview_pv),str(preview_jr)],
+             cwd=ROOT/'app',text=True,capture_output=True)
+        if result.returncode!=0:
+            fail('Preflight JSX parser failed: '+(result.stderr or result.stdout)[-1800:])
+        print(result.stdout.strip())
+else:
+    print('NOTE: @babel/parser unavailable; installation uses Vite build + rollback.')
 
 print('JIMS STEP 53T-C — '+('DRY RUN' if DRY else 'INSTALL'))
 print('New Tier labels and approval hints: T06 CEO, T07 BOD. Legacy PV authority retained.')
