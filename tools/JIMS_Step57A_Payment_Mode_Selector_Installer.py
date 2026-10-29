@@ -136,7 +136,7 @@ rpcs = (
 for name in rpcs:
     if old.count(name) != new.count(name):
         stop('Protected Full Payment RPC occurrence changed: ' + name)
-if new.count('JIMSPaymentModeSelector') != 3:
+if new.count('JIMSPaymentModeSelector') != 4:
     stop('Unexpected selector import/render count.')
 if old.count('supabase.rpc(') != new.count('supabase.rpc('):
     stop('Protected payment RPC calls changed.')
