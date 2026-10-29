@@ -94,10 +94,9 @@ for marker in [
 
 # Payment tracking MUST remain byte-identical: no writes touch TRACKING.
 # Also ensure the approval/payment RPC call set inside PV is unchanged.
-import re
-rpc_pattern = r"\.rpc\(\s*['\\\"]([^'\\\"]+)['\\\"]"
-if sorted(re.findall(rpc_pattern, old_pv)) != sorted(re.findall(rpc_pattern, new_pv)):
-    stop("PV RPC call set changed unexpectedly. No files changed.")
+pv_rpc_lines = lambda src: sorted(line.strip() for line in src.splitlines() if ".rpc(" in line)
+if pv_rpc_lines(old_pv) != pv_rpc_lines(new_pv):
+    stop("PV RPC call lines changed unexpectedly. No files changed.")
 
 new_app = old_app
 new_app = exactly(new_app,
