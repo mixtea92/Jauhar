@@ -121,6 +121,41 @@ export default function JIMSPaymentProcessBoard({profile,onOpenVoucher}){
     return out
   },[vouchers,ledger])
 
+  // JIMS STEP 57C1: sums are calculated in integer cents to avoid
+  // floating-point drift and double counting between Full/Partial payments.
+  // Pending Payment Amount = common Pending Payment stage only.
+  // Left to Pay = ALL approved unpaid balances (including initiated / FM-approved).
+  const financialSummary=useMemo(()=>{
+    const parentById=new Map(vouchers.map(v=>[v.id,v]))
+    const partialSettled=new Map()
+    for(const t of ledger){
+      const parent=parentById.get(t.voucher_id)
+      if(parent?.payment_mode!=='partial'||t.status!=='paid')continue
+      partialSettled.set(t.voucher_id,
+        (partialSettled.get(t.voucher_id)||0)+cents(t.settled_amount))
+    }
+    let fullPaidCents=0
+    let partialPaidCents=0
+    let leftToPayCents=0
+    for(const v of vouchers){
+      const approved=Math.max(0,cents(v.amount))
+      if(v.payment_mode==='partial'){
+        const settled=partialSettled.get(v.id)||0
+        partialPaidCents+=settled
+        leftToPayCents+=Math.max(0,approved-settled)
+      }else if(v.payment_mode==='full'){
+        if(v.payment_status==='paid')fullPaidCents+=approved
+        else leftToPayCents+=approved
+      }
+    }
+    const pendingCents=groups.pending.reduce((sum,v)=>
+      sum+Math.max(0,cents(v.remaining)),0)
+    return {
+      pending:pendingCents/100,fullPaid:fullPaidCents/100,
+      partialPaid:partialPaidCents/100,leftToPay:leftToPayCents/100
+    }
+  },[vouchers,ledger,groups])
+
   const allGroups=useMemo(()=>[{
     id:'pending',title:'Pending Payment',hint:'Fully Approved PVs awaiting initial payment or resubmission'
   },...categories],[])
@@ -146,6 +181,33 @@ export default function JIMSPaymentProcessBoard({profile,onOpenVoucher}){
   }
 
   return <section className="panel jims-payment-board" aria-label="Payment Process">
+    {/* JIMS_STEP_57C1_AMOUNT_BAR_FIRST — TOP of Payment Process, before the title */}
+    <div className="jims-pb-money-summary" role="group" aria-label="Payment Amount Summary">
+      <div className="jims-pb-money-main">
+        <div>
+          <span className="jims-pb-money-label">Pending Payment Amount</span>
+          <small>Approved vouchers awaiting initiation or resubmission</small>
+        </div>
+        <strong>{loading||error?'—':money(financialSummary.pending)}</strong>
+      </div>
+      <div className="jims-pb-money-grid">
+        <div className="jims-pb-money-tile">
+          <span>Paid Amount</span>
+          <strong>{loading||error?'—':money(financialSummary.fullPaid)}</strong>
+          <small>Completed Full Payments only</small>
+        </div>
+        <div className="jims-pb-money-tile">
+          <span>Partial Amount Paid</span>
+          <strong>{loading||error?'—':money(financialSummary.partialPaid)}</strong>
+          <small>Settled partial installments only</small>
+        </div>
+        <div className="jims-pb-money-tile jims-pb-money-outstanding">
+          <span>Left to Pay</span>
+          <strong>{loading||error?'—':money(financialSummary.leftToPay)}</strong>
+          <small>Total outstanding across all approved PVs</small>
+        </div>
+      </div>
+    </div>
     <div className="panel-head">
       <div><h2>Payment Process Dashboard</h2>
         <p className="muted">Pending Payment → Full / Partial workflows → One Payment History</p>
