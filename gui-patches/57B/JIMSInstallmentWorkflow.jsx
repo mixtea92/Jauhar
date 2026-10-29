@@ -34,7 +34,9 @@ export default function JIMSInstallmentWorkflow({
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
   const [signed,setSigned]=useState({})
-  const isMobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)
+  const isMobile=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ||
+    (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1) ||
+    window.matchMedia('(max-width: 767px)').matches
   const active=useMemo(()=>ledger.find(t=>['draft','initiated','returned','approved'].includes(t.status)),[ledger])
 
   useEffect(()=>{
