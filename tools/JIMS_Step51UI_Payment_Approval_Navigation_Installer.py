@@ -97,7 +97,7 @@ new_app = exactly(new_app,
     "              {/* JSYNC_STEP_48A_CASH_VOUCHER_MENU */}",
     """              {/* 51UI: payment dashboard, same existing PV approval/payment engine */}
               <button type="button"
-                className={\`nav-item nav-subitem \${activePage === 'payment_process' ? 'nav-active' : ''}\`}
+                className={`nav-item nav-subitem ${activePage === 'payment_process' ? 'nav-active' : ''}`}
                 onClick={() => {
                   setActivePage('payment_process')
                   setEditingUser(null)
