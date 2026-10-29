@@ -1,0 +1,33 @@
+/* JIMS Step 57C4: BOD-only black/gold approval summary */
+.jims-bod-summary{border-color:#695631}
+.jims-bod-heading{display:flex;gap:15px;justify-content:space-between;align-items:flex-start;margin-bottom:15px}
+.jims-bod-heading h2{color:#edce8d;margin:4px 0 5px}
+.jims-bod-eyebrow{font-size:11px;font-weight:750;letter-spacing:1px;color:#d1b477}
+.jims-bod-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:15px}
+.jims-bod-stats>div{padding:15px;background:#242425;border:1px solid #6b5737;border-radius:10px;display:grid;gap:6px}
+.jims-bod-stats small{color:#c4b8a2}
+.jims-bod-stats strong{color:#edca82;font-size:clamp(20px,2.3vw,28px);font-variant-numeric:tabular-nums}
+.jims-bod-scroll{max-width:100%;overflow-x:auto}
+.jims-bod-table{min-width:1060px;width:100%;border-collapse:collapse}
+.jims-bod-table th{color:#debf84;white-space:nowrap}
+.jims-bod-table td,.jims-bod-table th{padding:12px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #4a4238}
+.jims-bod-table td{font-size:13px;line-height:1.45}
+.jims-bod-number{color:#edc987;overflow-wrap:anywhere}
+.jims-bod-muted{font-size:12px;color:#adadaf;margin-top:4px}
+.jims-bod-amount{font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:800;color:#f0c886}
+.jims-bod-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.jims-bod-actions button,.jims-bod-reason button{cursor:pointer;border-radius:7px;padding:8px 10px;border:1px solid #7b6f59;font-size:12px;font-weight:700}
+.jims-bod-actions button:disabled,.jims-bod-reason button:disabled{opacity:.5;cursor:not-allowed}
+.jims-bod-view{background:#35373b;color:#f3f3f3}
+.jims-bod-approve,.jims-bod-confirm{background:#206440!important;color:#fff!important;border-color:#387b54!important}
+.jims-bod-return{background:#614a1e;color:#ffe7af}
+.jims-bod-reject{background:#672d2d;color:#fff}
+.jims-bod-warning{color:#f4c57b;font-size:11px;max-width:250px;margin-top:7px}
+.jims-bod-reason{display:grid;gap:8px;margin-top:10px;padding:12px;border:1px solid #806a47;border-radius:8px;max-width:300px}
+.jims-bod-reason label{font-size:12px;color:#f4dda9}
+.jims-bod-reason textarea{box-sizing:border-box;width:100%;border:1px solid #676767;background:#1d1f21;border-radius:6px;padding:8px;color:#fff}
+.jims-bod-reason>div{display:flex;gap:8px}
+.jims-bod-cancel{background:#525252;color:#fff}
+.jims-bod-empty{text-align:center!important;padding:24px!important}
+.jims-bod-footnote{color:#aaa;font-size:12px;margin-top:12px}
+@media(max-width:720px){.jims-bod-heading{flex-wrap:wrap}.jims-bod-stats{grid-template-columns:1fr}}
