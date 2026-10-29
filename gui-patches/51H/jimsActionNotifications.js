@@ -14,7 +14,7 @@ const done = result => Number.isSafeInteger(result) && result>0 ? result : 0
 
 export async function fetchJIMSActionNotifications(profile) {
   const unknown = {pv:null,payment:null,cv:null}
-  if(!profile?.is_active || profile.role==='non_executive' || profile.role==='system_admin') {
+  if(profile?.is_active === false || profile?.role==='non_executive' || profile?.role==='system_admin') {
     return {pv:0,payment:0,cv:0}
   }
 
