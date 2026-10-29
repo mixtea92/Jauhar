@@ -14,6 +14,7 @@ BRANCH = "jsync-gui-revamp-20261029"
 PRE = f"origin/{BRANCH}:"
 APP = ROOT / "app/src/App.jsx"
 PV = ROOT / "app/src/PaymentVoucher.jsx"
+TRACKING = ROOT / "app/src/payment/PaymentTrackingPanel.jsx"
 HOME = ROOT / "app/src/JIMSDashboardHome.jsx"
 CSS = ROOT / "app/src/JIMSPaymentSeparation.css"
 DRY = "--dry-run" in sys.argv
@@ -38,7 +39,7 @@ def remote(path):
 
 if git("branch", "--show-current").strip() != BRANCH:
     stop("Wrong Codespaces branch. Must be " + BRANCH)
-for f in (APP, PV, HOME):
+for f in (APP, PV, TRACKING, HOME):
     if not f.is_file():
         stop("Missing protected local source: " + str(f))
 if CSS.exists():
@@ -72,17 +73,31 @@ for marker in ["page:'payment_process'", "onNavigate('payment_process')"]:
 if "jims-actions-grid" not in new_css:
     stop("Navigation CSS is incomplete.")
 
-# Strictly constrain functional source edits to UI presentation. Verify that
-# the original module still contains core approved RPC references.
-protected = [
-    "'initiate_pv_payment_v1'", "'review_pv_payment_initiation_v1'",
-    "'complete_pv_payment_v1'", "'create_pv_draft_v4'",
+# Verify protected business functions in the CORRECT owner component.
+# Payment Voucher implements approval, while payment execution RPCs live in
+# payment/PaymentTrackingPanel.jsx (which this installer NEVER modifies).
+protected_pv = [
+    "'create_pv_draft_v4'",
     "<PaymentTrackingPanel", "async function submitAndVerify()",
     "async function openVoucher(voucherId)"
 ]
-for marker in protected:
-    if marker not in new_pv or marker not in old_pv:
-        stop("Protected PV source missing: " + marker)
+for marker in protected_pv:
+    if marker not in old_pv or marker not in new_pv:
+        stop("Protected PaymentVoucher source missing: " + marker)
+tracking_source = TRACKING.read_text()
+for marker in [
+    "'initiate_pv_payment_v1'", "'review_pv_payment_initiation_v1'",
+    "'complete_pv_payment_v1'"
+]:
+    if marker not in tracking_source:
+        stop("Protected PaymentTrackingPanel source missing: " + marker)
+
+# Payment tracking MUST remain byte-identical: no writes touch TRACKING.
+# Also ensure the approval/payment RPC call set inside PV is unchanged.
+import re
+rpc_pattern = r"\.rpc\(\s*['\\\"]([^'\\\"]+)['\\\"]"
+if sorted(re.findall(rpc_pattern, old_pv)) != sorted(re.findall(rpc_pattern, new_pv)):
+    stop("PV RPC call set changed unexpectedly. No files changed.")
 
 new_app = old_app
 new_app = exactly(new_app,
