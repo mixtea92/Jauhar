@@ -120,6 +120,10 @@ for source,label in reversed(removals):
             stop('Overview heading reconstruction anchor missing')
         reconstructed=reconstructed.replace(anchor,anchor+source,1)
 
+# Prove there were no modifications other than the exact six visible fragments.
+if reconstructed != old_home:
+    stop('Text-only round-trip guard failed; protected dashboard content differs')
+
 # We verify unchanged invariants directly; one final exact whitelist diff
 # makes this safe even when local 51UI cards/labels were customized.
 for token in (
