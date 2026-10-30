@@ -87,3 +87,14 @@
  .jims-cal-toolbar{flex-wrap:wrap}
  .jims-cal-toolbar-note{width:100%;text-align:left}
 }
+
+
+/* JIMS_STEP57D55_UAT_PREVIEW — shown only when Vite DEV is true; NO financial writes */
+.jims-cal-uat-preview{margin:0 0 18px;border:1px dashed rgba(198,161,92,.65);
+  padding:13px 16px;border-radius:12px;background:rgba(198,161,92,.075)}
+.jims-cal-uat-top{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.jims-cal-uat-top small{font-size:12px;opacity:.76}
+.jims-cal-uat-preview p{margin:10px 0 0;color:#e3be72;font-size:12px;line-height:1.5;font-weight:700}
+.jims-cal-demo-tag{font-size:10px;letter-spacing:.04em;color:#181818;background:#e7b657;
+  border-radius:5px;padding:3px 7px;font-weight:800}
+.jims-cal-demo-label{font-size:12px;font-weight:700;color:#e7b657;white-space:nowrap}
