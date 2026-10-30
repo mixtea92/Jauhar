@@ -5,7 +5,7 @@
 */
 @media (max-width:800px) {
   /* The sidebar is now an overlay, rather than a 270px-tall stacked header. */
-  .jims-shell .sidebar {
+  html.jims-57d6c2-ready .jims-shell .sidebar {
     position:fixed!important;
     inset:0 auto 0 0!important;
     z-index:2202!important;
@@ -27,7 +27,7 @@
     transition:transform .22s ease, visibility .22s ease;
     box-shadow:8px 0 30px rgba(0,0,0,.20);
   }
-  html.jims-57d6c2-mobile-open .jims-shell .sidebar {
+  html.jims-57d6c2-ready.jims-57d6c2-mobile-open .jims-shell .sidebar {
     transform:translateX(0);
     visibility:visible;
     pointer-events:auto;
@@ -130,5 +130,5 @@
   }
 }
 @media (max-width:800px) and (prefers-reduced-motion:reduce) {
-  .jims-shell .sidebar {transition:none}
+  html.jims-57d6c2-ready .jims-shell .sidebar {transition:none}
 }
