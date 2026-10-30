@@ -357,7 +357,7 @@ export default function CashVoucher({profile}) {
     {notice&&<p className="pv-success" role="status">{notice}</p>}
     {mode==='home'&&<>
       {pcNumberStatus&&<p className="muted" style={{margin:'12px 0'}}>
-        <strong>New PC Number:</strong> PC/{pcNumberStatus.revision}/{pcNumberStatus.period_mmyy}/0001…
+        <strong>New PC Number:</strong> PC/{pcNumberStatus.revision}/{pcNumberStatus.period_mmyy}/NNNN
         {' '}Auto-generated; monthly sequence reset, not manually editable. Historical CV numbers preserved.
       </p>}
       {isAdmin&&pcNumberStatus&&<section style={{border:'1px solid #907235',borderRadius:9,padding:12,margin:'12px 0'}}>
