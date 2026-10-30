@@ -116,15 +116,31 @@ route_add=""") : activePage === 'payment_calendar' ? (
             ) : activePage === 'payment_voucher' ? ("""
 new=new[:route.start()]+route_add+new[route.end():]
 
-# Anchor again on the same PV label; newly inserted page title/route may shift offsets.
-m=list(re.finditer(r'(?m)^[ \t]*Payment Voucher[ \t]*$',new))
+# Locate the OUTER access gate surrounding the Payment Voucher button.
+# In JIMS 57C/57D, the button is inside:
+#   {jimsAPModuleAccess(profile) && (
+#     <button ...>Payment Voucher</button>
+#   )}
+# Inserting a sibling between the gate and <button> breaks JSX. Insert BEFORE
+# the entire guarded block, rather than inside that conditional expression.
+m=list(re.finditer(r'(?m)^[ \\t]*Payment Voucher[ \\t]*$',new))
 if len(m)!=1:stop('PV sidebar label became ambiguous')
 button_start=new.rfind('<button',max(0,m[0].start()-1600),m[0].start())
 if button_start<0:stop('Could not relocate PV sidebar button')
-indent=re.search(r'(?m)^([ \t]*)<button',new[button_start:button_start+8])
-line_start=new.rfind('\n',0,button_start)+1
-indent=new[line_start:button_start]
-if indent.strip():stop('Unexpected sidebar button indentation')
+access_rx=re.compile(r'(?m)^([ \\t]*)\\{jimsAPModuleAccess\\(profile\\)\\s*&&\\s*\\(\\s*$')
+gate_hits=[]
+for guard in access_rx.finditer(new,max(0,button_start-900),button_start):
+    between=new[guard.end():button_start]
+    # Permit whitespace and existing JSX comments only; reject nested markup.
+    between=re.sub(r'\\{/\\*.*?\\*/\\}', '',between,flags=re.S)
+    if not between.strip():gate_hits.append(guard)
+if len(gate_hits)!=1:
+    stop('Cannot safely locate outer jimsAPModuleAccess wrapper above PV button ('+
+         str(len(gate_hits))+' matches). Do not install inside JSX.')
+guard=gate_hits[0]
+line_start=new.rfind('\\n',0,guard.start())+1
+indent=new[line_start:guard.start()]
+if indent.strip():stop('Unexpected outer PV access gate indentation')
 # JSX braces must be literal; NEVER use Python str.format on this markup.
 # Prefix existing sidebar indentation line-by-line instead of escaping braces.
 menu_lines=[
