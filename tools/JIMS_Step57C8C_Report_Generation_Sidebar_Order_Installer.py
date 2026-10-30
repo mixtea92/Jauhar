@@ -67,7 +67,7 @@ for term in (
     'jimsAPExcelAccess(profile)',
     'jimsOwnerExportAllowed',
     'JIMSHistoryExports profile={profile}',
-    'setActivePage(\\'history_exports\\')',
+    "setActivePage('history_exports')",
     '<PaymentVoucher', '<CashVoucher',
 ):
     if old.count(term)!=new.count(term):
