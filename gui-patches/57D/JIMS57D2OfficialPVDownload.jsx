@@ -188,7 +188,12 @@ export default function JIMS57D2OfficialPVDownload({voucher}){
         import('pdfmake/build/pdfmake'),
         import('pdfmake/build/vfs_fonts')
       ])
-      pdfMake.vfs=fonts.default?.pdfMake?.vfs||fonts.pdfMake?.vfs||fonts.default||fonts
+      const vfs=fonts.default?.pdfMake?.vfs||fonts.pdfMake?.vfs||fonts.default||fonts
+      if(typeof pdfMake.addVirtualFileSystem==='function'){
+        pdfMake.addVirtualFileSystem(vfs)
+      }else{
+        pdfMake.vfs=vfs
+      }
       pdfMake.createPdf(definition).download(filename(voucher.pv_number)+'_Official_PV.pdf')
     }catch(e){
       setError(e?.message||'Unable to generate official PDF')
