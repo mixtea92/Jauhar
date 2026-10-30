@@ -199,13 +199,19 @@ if "JIMS_STEP_57C5SN_APPROVAL_BADGE" in app_new:
     stop("Badge duplicate detected before patch.")
 if "jimsCanSeeMyApprovals" not in app_new:
     stop("Role guard missing from My Approvals sidebar.")
-react_import = "import { useCallback, useEffect, useState } from 'react'"
-exactly_one(app_new, react_import, "React hooks import")
-app_new = app_new.replace(
-    react_import,
-    "import { useCallback, useEffect, useRef, useState } from 'react'",
-    1
-)
+react_rx = re.compile(r"(?m)^import[ \t]*\{([^}]*)\}[ \t]*from[ \t]*['\"]react['\"];?[ \t]*$")
+react_hits = list(react_rx.finditer(app_new))
+if len(react_hits) != 1:
+    stop("React hooks import missing/ambiguous. Nothing changed.")
+react_match = react_hits[0]
+react_hooks = [v.strip() for v in react_match.group(1).split(",") if v.strip()]
+if not all(v in react_hooks for v in ("useCallback", "useEffect", "useState")):
+    stop("Expected React hook names are absent from App.")
+if "useRef" not in react_hooks:
+    react_hooks.append("useRef")
+    app_new = app_new[:react_match.start()] + (
+        "import { " + ", ".join(react_hooks) + " } from 'react'"
+    ) + app_new[react_match.end():]
 state_anchor = "  const [activePage, setActivePage] = useState('dashboard')"
 exactly_one(app_new, state_anchor, "My Approvals badge state")
 badge_logic = """
@@ -258,24 +264,42 @@ badge_logic = """
       activePage, refreshMyApprovalBadge])
 """
 app_new = app_new.replace(state_anchor, state_anchor + badge_logic, 1)
-nav_anchor = "              My Approvals\n            </button>"
-exactly_one(app_new, nav_anchor, "My Approvals sidebar label")
-app_new = app_new.replace(nav_anchor, """              <span>My Approvals</span>
-              {myApprovalBadge !== null && myApprovalBadge > 0 && (
-                <span className="jims-my-approval-badge"
-                  aria-label={myApprovalBadge + ' pending approvals'}>
-                  {myApprovalBadge >= 100 ? '99+' : myApprovalBadge}
-                </span>
-              )}
-            </button>""", 1)
-summary_anchor = """              <JIMSApproverSummary
-                profile={profile}
-                onOpenVoucher={id => {"""
-exactly_one(app_new, summary_anchor, "Standalone approval dashboard component")
-app_new = app_new.replace(summary_anchor, """              <JIMSApproverSummary
-                profile={profile}
-                onDecisionRecorded={refreshMyApprovalBadge}
-                onOpenVoucher={id => {""", 1)
+# Accept indentation/format changes introduced by other app GUI patches.
+nav_rx = re.compile(r"(?m)^([ \t]*)My Approvals(\r?\n)([ \t]*)</button>")
+nav_hits = list(nav_rx.finditer(app_new))
+if len(nav_hits) != 1:
+    stop("My Approvals sidebar label missing/ambiguous: " + str(len(nav_hits)))
+nav_match = nav_hits[0]
+indent, linebreak, close_indent = nav_match.groups()
+nav_markup = (
+    indent + "<span>My Approvals</span>" + linebreak +
+    indent + "{myApprovalBadge !== null && myApprovalBadge > 0 && (" + linebreak +
+    indent + "  <span className=\"jims-my-approval-badge\"" + linebreak +
+    indent + "    aria-label={myApprovalBadge + ' pending approvals'}>" + linebreak +
+    indent + "    {myApprovalBadge >= 100 ? '99+' : myApprovalBadge}" + linebreak +
+    indent + "  </span>" + linebreak +
+    indent + ")}" + linebreak +
+    close_indent + "</button>"
+)
+app_new = app_new[:nav_match.start()] + nav_markup + app_new[nav_match.end():]
+
+summary_rx = re.compile(
+    r"(?m)^([ \t]*)<JIMSApproverSummary\r?\n"
+    r"([ \t]*)profile=\{profile\}\r?\n"
+    r"([ \t]*)onOpenVoucher=\{id => \{"
+)
+summary_hits = list(summary_rx.finditer(app_new))
+if len(summary_hits) != 1:
+    stop("Standalone approval dashboard component missing/ambiguous: " + str(len(summary_hits)))
+s_match = summary_hits[0]
+child_indent = s_match.group(3)
+replacement = s_match.group(0).replace(
+    "onOpenVoucher={id => {",
+    "onDecisionRecorded={refreshMyApprovalBadge}\n" +
+       child_indent + "onOpenVoucher={id => {",
+    1
+)
+app_new = app_new[:s_match.start()] + replacement + app_new[s_match.end():]
 css_anchor = "  .nav-active { background: #28517d; color: white; font-weight: 700; }"
 exactly_one(app_new, css_anchor, "Nav style anchor")
 app_new = app_new.replace(css_anchor, css_anchor + """
