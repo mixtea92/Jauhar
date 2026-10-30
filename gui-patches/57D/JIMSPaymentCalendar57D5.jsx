@@ -11,6 +11,15 @@ const amount=n=>'RM '+Number(n||0).toLocaleString('en-MY',{
 const pad=n=>String(n).padStart(2,'0')
 const iso=(y,m,d)=>y+'-'+pad(m+1)+'-'+pad(d)
 const fmt=date=>date?String(date).slice(0,10).split('-').reverse().join('/'):'Not set'
+// JIMS_STEP57D5B_DATE_RANGE: current KL day -> month end; overdue is never range-limited.
+const monthEnd=date=>{
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date||''))return ''
+  const y=Number(date.slice(0,4)),m=Number(date.slice(5,7))
+  return iso(y,m-1,new Date(Date.UTC(y,m,0)).getUTCDate())
+}
+const dueInRange=(date,start,end)=>Boolean(
+  date&&start&&end&&start<=end&&date>=start&&date<=end
+)
 const week=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
 const monthName=(year,month)=>new Intl.DateTimeFormat('en-MY',{month:'long',year:'numeric',
   timeZone:'UTC'}).format(new Date(Date.UTC(year,month,1)))
@@ -34,6 +43,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
   const [month,setMonth]=useState(null)
   const [selectedDay,setSelectedDay]=useState(null)
   const [branch,setBranch]=useState('')
+  const [dueRange,setDueRange]=useState({from:'',to:'',custom:false})
   const [showOverdue,setShowOverdue]=useState(false)
   const [showUnplanned,setShowUnplanned]=useState(false)
   const [selectedPV,setSelectedPV]=useState(null)
@@ -52,6 +62,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
         if(!/^\d{4}-\d{2}-\d{2}$/.test(today))
           throw new Error('Calendar current date invalid')
         setFeed(data)
+        setDueRange(r=>r.custom?r:{from:today,to:monthEnd(today),custom:false})
         setMonth(m=>m??today.slice(0,7))
         setSelectedDay(d=>d??today)
         setLoading(false)
@@ -75,9 +86,16 @@ export default function JIMSPaymentCalendar57D5({profile}){
     .sort((a,b)=>String(a.current_due_date).localeCompare(String(b.current_due_date))||
       String(a.pv_number).localeCompare(String(b.pv_number))),[visible])
   const missing=useMemo(()=>visible.filter(r=>r.calendar_status==='missing_due'),[visible])
-  const upcoming=visible.filter(r=>r.calendar_status==='upcoming')
-  const dueToday=visible.filter(r=>r.calendar_status==='due_today')
+  const rangeValid=Boolean(dueRange.from&&dueRange.to&&dueRange.from<=dueRange.to)
+  const inSelectedRange=date=>rangeValid&&dueInRange(date,dueRange.from,dueRange.to)
+  // Calendar/summaries use the selected period; overdue remains ALL historical
+  // unpaid obligation dates, regardless of date filter, month or FM schedule.
+  const upcoming=visible.filter(r=>r.calendar_status==='upcoming'&&
+    inSelectedRange(r.current_due_date))
+  const dueToday=visible.filter(r=>r.calendar_status==='due_today'&&
+    inSelectedRange(r.current_due_date))
   const withinMonth=visible.filter(r=>r.current_due_date?.startsWith(month||'')&&
+    inSelectedRange(r.current_due_date)&&
     ['upcoming','due_today','paid'].includes(r.calendar_status))
   const byDay=useMemo(()=>{
     const map=new Map()
@@ -90,16 +108,30 @@ export default function JIMSPaymentCalendar57D5({profile}){
   },[withinMonth])
   const selectedRows=(byDay.get(selectedDay)||[]).sort((a,b)=>
     String(a.pv_number).localeCompare(String(b.pv_number)))
+  // Month arrows are explicit month filters: full target month, except
+  // Current Month resets to KL today -> end of month.
   const changeMonth=offset=>{
-    let d=new Date(Date.UTC(year,mIndex+offset,1))
-    const value=iso(d.getUTCFullYear(),d.getUTCMonth(),1).slice(0,7)
-    setMonth(value)
-    setSelectedDay(null)
+    const d=new Date(Date.UTC(year,mIndex+offset,1))
+    const first=iso(d.getUTCFullYear(),d.getUTCMonth(),1)
+    setDueRange({from:first,to:monthEnd(first),custom:true})
+    setMonth(first.slice(0,7))
+    setSelectedDay(first)
   }
   const resetToday=()=>{
     if(!today)return
+    setDueRange({from:today,to:monthEnd(today),custom:false})
     setMonth(today.slice(0,7))
     setSelectedDay(today)
+  }
+  const updateStart=value=>{
+    setDueRange(r=>({...r,from:value,custom:true}))
+    if(/^\d{4}-\d{2}-\d{2}$/.test(value)){
+      setMonth(value.slice(0,7))
+      setSelectedDay(value)
+    }
+  }
+  const updateEnd=value=>{
+    setDueRange(r=>({...r,to:value,custom:true}))
   }
   const openPlanning=record=>setSelectedPV(record)
   const closePlanning=()=>{setSelectedPV(null);reload()}
@@ -141,6 +173,33 @@ export default function JIMSPaymentCalendar57D5({profile}){
     {error&&<p className="error" role="alert">{error}</p>}
     {loading&&!feed&&<p className="muted">Loading calendar...</p>}
     {feed&&<>
+      <section className="jims-cal-range" aria-label="Supplier Due Date Range Filter">
+        <div className="jims-cal-range-title">
+          <strong>Due Date Range</strong>
+          <small>Default: today to month end</small>
+        </div>
+        <div className="jims-cal-range-inputs">
+          <label htmlFor="jims-cal-range-from">From
+            <input id="jims-cal-range-from" type="date" value={dueRange.from}
+              onChange={e=>updateStart(e.target.value)}/>
+          </label>
+          <label htmlFor="jims-cal-range-to">To
+            <input id="jims-cal-range-to" type="date" value={dueRange.to}
+              onChange={e=>updateEnd(e.target.value)}/>
+          </label>
+          <button type="button" className="jims-cal-reset btn" onClick={resetToday}>
+            Current Month
+          </button>
+        </div>
+        {rangeValid?
+          <p className="jims-cal-range-note">
+            Showing due dates {fmt(dueRange.from)} – {fmt(dueRange.to)}.
+            <strong> Overdue is always included, even outside this date range.</strong>
+          </p>:
+          <p className="jims-cal-range-error" role="alert">
+            Select a valid range: From must be on or before To. Overdue remains visible.
+          </p>}
+      </section>
       <div className="jims-cal-stats">
         <div className="jims-cal-stat"><span>Upcoming</span><b>{countStatus(upcoming)}</b>
           <small>{amount(sumCents(upcoming))}</small></div>
@@ -157,7 +216,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
           <h3>{monthName(year,mIndex)}</h3>
           <button type="button" aria-label="Next month" onClick={()=>changeMonth(1)}>›</button>
         </div>
-        <button type="button" className="jims-cal-today-btn" onClick={resetToday}>Today</button>
+        <span className="jims-cal-toolbar-note">Month arrows switch the due-date range</span>
       </div>
       <div className="jims-cal-scroll">
         <div className="jims-cal-grid" role="grid" aria-label={monthName(year,mIndex)}>
@@ -165,14 +224,17 @@ export default function JIMSPaymentCalendar57D5({profile}){
           {calDays.map((day,index)=>{
             if(!day)return <div className="jims-cal-empty" key={'empty'+index}/>;
             const entries=byDay.get(day.key)||[]
+            const outside=!inSelectedRange(day.key)
             const upcomingN=entries.filter(r=>r.calendar_status==='upcoming').length
             const todayN=entries.filter(r=>r.calendar_status==='due_today').length
             const paidN=entries.filter(r=>r.calendar_status==='paid').length
             return <button key={day.key} role="gridcell" type="button"
-              aria-label={day.key+' '+entries.length+' voucher(s)'}
+              aria-label={day.key+(outside?' outside date range': ' '+entries.length+' voucher(s)')}
               aria-selected={selectedDay===day.key}
+              disabled={outside}
               className={'jims-cal-day'+(selectedDay===day.key?' jims-cal-selected':'')+
-                (day.key===today?' jims-cal-current':'')}
+                (day.key===today?' jims-cal-current':'')+
+                (outside?' jims-cal-outside':'')}
               onClick={()=>setSelectedDay(day.key)}>
               <span className="jims-cal-day-number">{day.day}</span>
               <span className="jims-cal-indicators">
@@ -189,7 +251,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
         <span><i className="jims-cal-dot green"/>Upcoming</span>
         <span><i className="jims-cal-dot yellow"/>Due Today</span>
         <span><i className="jims-cal-dot subdued"/>Paid</span>
-        <span className="jims-cal-legend-note">Overdue payments listed below, not on calendar</span>
+        <span className="jims-cal-legend-note">Overdue payments always shown below, regardless of date filter</span>
       </div>
       <section className="jims-cal-details">
         <h3>{selectedDay?'Due on '+fmt(selectedDay):'Select a date'}</h3>
@@ -198,7 +260,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
       </section>
       <details className="jims-cal-expand" open={showOverdue}
         onToggle={e=>setShowOverdue(e.currentTarget.open)}>
-        <summary><span>Overdue Payments</span><strong>{countStatus(overdue)} · {amount(sumCents(overdue))}</strong></summary>
+        <summary><span>Overdue Payments · All Dates</span><strong>{countStatus(overdue)} · {amount(sumCents(overdue))}</strong></summary>
         <div className="jims-cal-expand-content">
           {overdue.length===0?<p className="muted">No overdue payments.</p>:overdue.map(recordCard)}
         </div>
