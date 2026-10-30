@@ -172,10 +172,11 @@ export default function JIMSPaymentPlanning57D3({voucher,profile,transactions=[]
               <input style={input} value={reason} maxLength={500}
                 onChange={e=>setReason(e.target.value)}/>
             </label>}
+            {canFM&&data.due&&!data.due.fm_validated_at&&<p style={{color:'#dfb95f'}}>Validate the supplier Due Date above before approving a payment schedule.</p>}
             {schedule&&data.due?.current_due_date&&schedule>data.due.current_due_date&&
               <p style={{color:'#dfb95f'}}>Scheduled date exceeds contractual due date.
                 The PV will still be flagged overdue until settled.</p>}
-            <button type="button" className="btn" style={{marginTop:10}} disabled={busy||!data.due||!schedule||
+            <button type="button" className="btn" style={{marginTop:10}} disabled={busy||!data.due||!schedule||(canFM&&!data.due.fm_validated_at)||
               (canFM&&((selected?.approved_date&&selected.approved_date!==schedule)||
                 (schedule>data.due.current_due_date))&&reason.trim().length<8)}
               onClick={()=>save(canAP?'jims_57d3_propose_schedule_v1':'jims_57d3_manager_schedule_v1',
