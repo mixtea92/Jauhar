@@ -45,8 +45,7 @@ if any(x in component for x in ('.insert(','.update(','.delete(','.upload(')):
 # Existing JIMS PaymentVoucher.jsx commonly starts with long step/version comments.
 # Import declarations are valid after those comments. Do not impose a 300-char
 # header limit or rewrite/remove the user's accumulated GUI customizations.
-import re
-if not re.search(r'(?m)^\\s*import\\s+', old):
+if not any(line.lstrip().startswith('import ') for line in old.splitlines()):
     stop('PV React module has no import declarations; inspect before patching')
 if 'export default' not in old or 'supabase' not in old:
     stop('PV module baseline missing React component or Supabase client')
