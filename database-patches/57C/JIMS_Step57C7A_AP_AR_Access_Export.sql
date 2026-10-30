@@ -4,7 +4,7 @@
 -- Finance AR / Strategic Finance have no AP module rights.
 -- HOD, Finance Manager, CEO, BOD stage approvals remain within existing authority.
 -- User org assignment via existing user admin UI ONLY.
-CREATE OR REPLACE FUNCTION private.jims_finance_non_ap_user_v1()
+CREATE OR REPLACE FUNCTION public.jims_finance_non_ap_user_v1()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
 AS $$
   SELECT EXISTS(
@@ -15,9 +15,10 @@ AS $$
      AND p.subdepartment NOT IN ('Accounts Payable','Accounting')
   );
 $$;
-REVOKE ALL ON FUNCTION private.jims_finance_non_ap_user_v1() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.jims_finance_non_ap_user_v1() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.jims_finance_non_ap_user_v1() TO authenticated;
 
-CREATE OR REPLACE FUNCTION private.jims_finance_non_ap_fm_v1()
+CREATE OR REPLACE FUNCTION public.jims_finance_non_ap_fm_v1()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
 AS $$
   SELECT EXISTS(
@@ -28,7 +29,8 @@ AS $$
      AND p.subdepartment NOT IN ('Accounts Payable','Accounting')
   );
 $$;
-REVOKE ALL ON FUNCTION private.jims_finance_non_ap_fm_v1() FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON FUNCTION public.jims_finance_non_ap_fm_v1() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.jims_finance_non_ap_fm_v1() TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.jims_can_export_ap_history_v1()
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=''
@@ -51,8 +53,8 @@ DROP POLICY IF EXISTS jims_57c7_ap_finance_segmentation ON public.payment_vouche
 CREATE POLICY jims_57c7_ap_finance_segmentation ON public.payment_vouchers
 AS RESTRICTIVE FOR SELECT TO authenticated
 USING (
-  NOT private.jims_finance_non_ap_user_v1()
-  OR (private.jims_finance_non_ap_fm_v1()
+  NOT public.jims_finance_non_ap_user_v1()
+  OR (public.jims_finance_non_ap_fm_v1()
       AND status IN ('pending_finance_manager','pending_manager'))
 );
 
@@ -60,8 +62,8 @@ DROP POLICY IF EXISTS jims_57c7_ap_cv_finance_segmentation ON public.cash_vouche
 CREATE POLICY jims_57c7_ap_cv_finance_segmentation ON public.cash_vouchers
 AS RESTRICTIVE FOR SELECT TO authenticated
 USING (
-  NOT private.jims_finance_non_ap_user_v1()
-  OR (private.jims_finance_non_ap_fm_v1()
+  NOT public.jims_finance_non_ap_user_v1()
+  OR (public.jims_finance_non_ap_fm_v1()
       AND status='pending_approval')
 );
 
@@ -71,7 +73,7 @@ USING (
 DROP POLICY IF EXISTS jims_57c7_ap_txn_finance_segmentation ON public.pv_payment_transactions;
 CREATE POLICY jims_57c7_ap_txn_finance_segmentation
 ON public.pv_payment_transactions AS RESTRICTIVE FOR SELECT TO authenticated
-USING (NOT private.jims_finance_non_ap_user_v1());
+USING (NOT public.jims_finance_non_ap_user_v1());
 
 -- Block AR/Strategic Finance from creating AP vouchers even through older
 -- SECURITY DEFINER APIs. Leave Finance Manager approval status changes untouched.
@@ -79,7 +81,7 @@ CREATE OR REPLACE FUNCTION private.jims_57c7_ap_creation_guard_v1()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $$
 BEGIN
-  IF private.jims_finance_non_ap_user_v1() THEN
+  IF public.jims_finance_non_ap_user_v1() THEN
     RAISE EXCEPTION 'Only Accounts Payable / Accounting may create AP records'
       USING ERRCODE='42501';
   END IF;
