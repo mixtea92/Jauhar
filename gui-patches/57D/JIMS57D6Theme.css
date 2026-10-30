@@ -1,8 +1,8 @@
-/* JIMS_STEP57D6A_LIGHT_DARK — scoped, reversible light-mode overlay.
+/* JIMS_STEP57D6B_LIGHT_DARK — scoped, reversible light-mode overlay.
    Original JIMS black/gold dark design remains the default. No login styling. */
 .jims-57d6-theme-toggle {
-  position:fixed; right:18px; bottom:18px; z-index:50;
   display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  flex:0 0 auto; margin-left:auto;
   padding:10px 16px; border:1px solid #aa8646; border-radius:999px;
   background:#22252b; color:#f6e8cf;
   box-shadow:0 5px 18px rgba(0,0,0,.22);
@@ -11,6 +11,10 @@
   transition:transform .15s,background .15s,box-shadow .15s;
 }
 .jims-57d6-theme-toggle:hover {transform:translateY(-2px);background:#30343b}
+.jims-57d6-theme-toggle--floating {
+  position:fixed;right:18px;bottom:18px;z-index:50;margin-left:0;
+}
+.topbar .jims-57d6-theme-toggle {order:10}
 .jims-57d6-theme-toggle:focus-visible {outline:3px solid #d9ad57;outline-offset:3px}
 .jims-57d6-theme-icon {font-size:18px;line-height:1}
 :root.jims-57d6-light {color-scheme:light;--jims-bg:#f6f3eb;--jims-surface:#fffdf9;
@@ -95,12 +99,52 @@
 :root.jims-57d6-light .jims-57d6-theme-toggle:hover {background:#f3e7d0}
 @media(max-width:650px) {
   .jims-57d6-theme-toggle {
-    right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
     padding:9px 12px;font-size:11px;min-height:39px;
+  }
+  .jims-57d6-theme-toggle--floating {
+    right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
   }
   :root.jims-57d6-light .topbar {flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce) {
   .jims-57d6-theme-toggle {transition:none}
   .jims-57d6-theme-toggle:hover {transform:none}
+}
+
+
+/* Step 57D6A PV surfaces: apply cream/gold in light mode, not legacy navy. */
+:root.jims-57d6-light .pv-home-card,
+:root.jims-57d6-light .pv-mode-card {
+  background:#fffdf9;color:#292b2c;border-color:#dccaac;
+  box-shadow:0 3px 13px rgba(88,66,27,.07);
+}
+:root.jims-57d6-light .pv-home-card:hover,
+:root.jims-57d6-light .pv-mode-card:hover {
+  background:#f7eedf;border-color:#a9803b;
+}
+:root.jims-57d6-light .pv-home-card strong,
+:root.jims-57d6-light .pv-mode-card strong,
+:root.jims-57d6-light .pv-workflow-title {color:#765216}
+:root.jims-57d6-light .pv-home-card small,
+:root.jims-57d6-light .pv-mode-card span {color:#66645f}
+:root.jims-57d6-light .pv-mode-label {
+  color:#795619;background:#f4e7ca;border:1px solid #dbbf8c;
+}
+:root.jims-57d6-light .pv-action-link {
+  background:transparent;color:#3b352b;border-color:#e4d6bc;
+}
+:root.jims-57d6-light .pv-action-link:hover {color:#956824}
+:root.jims-57d6-light .pv-list-filters input,
+:root.jims-57d6-light .pv-list-filters select {
+  background:#fffdf9;color:#2e3033;border:1px solid #cbb992;color-scheme:light;
+}
+:root.jims-57d6-light .pv-list-filters label {color:#565048}
+:root.jims-57d6-light .pv-payment-label {
+  background:#f1eadc;color:#555044;
+}
+:root.jims-57d6-light .pv-payment-label.paid {
+  background:#e4f6e8;color:#1b6e40;
+}
+:root.jims-57d6-light .pv-payment-label.unpaid {
+  background:#f9eecf;color:#805b00;
 }
