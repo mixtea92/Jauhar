@@ -1,0 +1,21 @@
+/* JIMS_STEP57D6C6_PAGE_CONTENT_MINIMAL
+   Compact voucher overview cards after removing redundant explanatory captions.
+   Scoped to page CONTENT only. No sidebar, topbar, login, actions or data.
+*/
+.jims-shell>.content .pv-home-grid .pv-home-card {
+  min-height:104px;
+  padding:15px 17px;
+  gap:5px;
+}
+.jims-shell>.content .pv-home-grid .pv-home-card strong {
+  line-height:1.15;
+}
+.jims-shell>.content .pv-home-grid .pv-home-card span {
+  line-height:1.35;
+}
+@media (max-width:540px) {
+  .jims-shell>.content .pv-home-grid .pv-home-card {
+    min-height:88px;
+    padding:12px;
+  }
+}
