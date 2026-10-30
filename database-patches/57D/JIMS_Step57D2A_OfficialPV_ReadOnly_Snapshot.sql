@@ -16,6 +16,7 @@ declare
   v_lines jsonb;
   v_approvals jsonb;
   v_payments jsonb;
+  v_payment_events jsonb;
   v_paid numeric(18,2);
   v_outstanding numeric(18,2);
   v_due jsonb;
@@ -98,6 +99,22 @@ begin
   left join public.user_profiles completer on completer.id=t.completed_by
   where t.voucher_id=v.id;
 
+
+  -- Actual payment lifecycle: chronological events, separate from decisions.
+  -- Do not expose raw audit JSON or private storage paths in the official PDF.
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'action',ev.action,'actor',coalesce(u.username,'Unknown'),
+    'occurred_at',ev.created_at,
+    'remark',coalesce(ev.details->>'remarks',ev.details->>'reason')
+  ) order by ev.created_at,ev.id),'[]'::jsonb)
+  into v_payment_events
+  from public.pv_audit_events ev
+  left join public.user_profiles u on u.id=ev.actor_id
+  where ev.voucher_id=v.id
+    and (ev.action like 'payment_%'
+         or ev.action like 'jims_v2_installment_%'
+         or ev.action='executive_payment_remarks_updated');
+
   if v.payment_mode='partial' then
     select coalesce(sum(coalesce(t.settled_amount,0)),0)::numeric(18,2)
       into v_paid from public.pv_payment_transactions t
@@ -172,6 +189,7 @@ begin
     'invoice_lines',v_lines,
     'approval_history',v_approvals,
     'payment_transactions',v_payments,
+    'payment_events',v_payment_events,
     'financial_summary',jsonb_build_object(
       'approved_amount',v.amount,'settled_paid_amount',v_paid,
       'outstanding_amount',v_outstanding,'currency','MYR'
