@@ -1,0 +1,89 @@
+/* JIMS_STEP57D6C4_MOBILE_DASHBOARD_ACTIONS
+   Dashboard-home action shortcuts only. Mobile readability/touch UX.
+   Keep same buttons, handlers, navigation, role guards, text and badges.
+   Desktop, login, topbar, sidebar, all Finance modules unchanged.
+*/
+@media (max-width:540px) {
+  .jims-shell .jims-dashboard .jims-actions-grid {
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:10px;
+    margin-bottom:20px;
+    min-width:0;
+  }
+  .jims-shell .jims-dashboard .jims-action-card {
+    display:grid;
+    grid-template-columns:42px minmax(0,1fr);
+    grid-template-rows:auto auto auto;
+    align-content:center;
+    align-items:start;
+    column-gap:12px;
+    row-gap:4px;
+    width:100%;
+    min-width:0;
+    min-height:106px;
+    padding:13px 14px;
+    text-align:left;
+    overflow-wrap:break-word;
+  }
+  .jims-shell .jims-dashboard .jims-action-card-top {
+    grid-column:1;
+    grid-row:1 / 4;
+    display:flex;
+    align-items:flex-start;
+    justify-content:flex-start;
+    margin:0;
+  }
+  .jims-shell .jims-dashboard .jims-action-card-top > svg {
+    display:none;
+  }
+  .jims-shell .jims-dashboard .jims-action-icon {
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+  }
+  .jims-shell .jims-dashboard .jims-action-title {
+    grid-column:2;
+    grid-row:1;
+    min-width:0;
+    font-size:14px;
+    line-height:1.35;
+  }
+  .jims-shell .jims-dashboard .jims-action-desc {
+    grid-column:2;
+    grid-row:2;
+    min-width:0;
+    margin:0;
+    max-width:none;
+    font-size:11.5px;
+    line-height:1.45;
+  }
+  .jims-shell .jims-dashboard .jims-action-tag {
+    grid-column:2;
+    grid-row:3;
+    min-width:0;
+    margin:0;
+    padding-top:4px;
+    font-size:10px;
+    letter-spacing:.7px;
+    line-height:1.35;
+  }
+  .jims-shell .jims-dashboard .jims-section-title {
+    margin:18px 0 12px;
+  }
+  .jims-shell .jims-dashboard .jims-home-columns {
+    gap:12px;
+    min-width:0;
+  }
+  .jims-shell .jims-dashboard .jims-home-panel {
+    min-width:0;
+    padding:15px;
+  }
+  .jims-shell .jims-dashboard .jims-link-row {
+    min-width:0;
+    min-height:52px;
+  }
+  .jims-shell .jims-dashboard .jims-link-copy {
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+}
