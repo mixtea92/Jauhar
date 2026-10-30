@@ -42,9 +42,14 @@ for need in ('jims_57d4_check_draft_v1','p_exclude_pv','p_invoice_references'):
 if any(x in component for x in ('.insert(','.update(','.delete(','.upload(')):
     stop('Draft warning cannot mutate financial data')
 
-import_anchor="import "
-if not old.startswith(import_anchor) and import_anchor not in old[:300]:
-    stop('Unexpected PV module import section')
+# Existing JIMS PaymentVoucher.jsx commonly starts with long step/version comments.
+# Import declarations are valid after those comments. Do not impose a 300-char
+# header limit or rewrite/remove the user's accumulated GUI customizations.
+import re
+if not re.search(r'(?m)^\\s*import\\s+', old):
+    stop('PV React module has no import declarations; inspect before patching')
+if 'export default' not in old or 'supabase' not in old:
+    stop('PV module baseline missing React component or Supabase client')
 new="import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'\n"+old
 
 # The draft form has ONE invoice line table and ONE total summary.
