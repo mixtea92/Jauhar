@@ -141,7 +141,7 @@ menu_lines=[
     '  </button>',
     ')}',
 ]
-menu='\\n'.join(indent+line for line in menu_lines)+'\\n'
+menu='\n'.join(indent+line for line in menu_lines)+'\n'
 new=new[:line_start]+menu+new[line_start:]
 new="import JIMSPaymentCalendar57D5 from './JIMSPaymentCalendar57D5'\n"+new
 
