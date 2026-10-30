@@ -147,7 +147,7 @@ BEGIN
  LEFT JOIN storage.objects o ON o.bucket_id=u.bucket AND o.name=u.storage_path;
 
  WITH scoped_pv AS (
-   SELECT v.id,v.pv_number,v.financial_tier,v.created_at,
+   SELECT v.id,v.pv_number,v.financial_tier,v.created_at,v.payment_status,
       coalesce(m.branch_code,v.branch_department) branch
    FROM public.payment_vouchers v
    LEFT JOIN private.jims_financial_metadata_v1 m ON m.source_type='payment_voucher' AND m.source_id=v.id
@@ -158,7 +158,8 @@ BEGIN
  )
  SELECT coalesce(jsonb_agg(jsonb_build_object(
     'pv_number',v.pv_number,'tier',v.financial_tier,'branch',v.branch,
-    'pv_created_at',v.created_at,'approval_round',r.approval_round,
+    'pv_created_at',v.created_at,'payment_status',v.payment_status,
+    'approval_round',r.approval_round,
     'decision_tier',r.decision_tier,'meeting_reference',r.meeting_reference,
     'meeting_date',r.meeting_date,'jr_document_id',r.jr_document_id,
     'recorded_at',r.created_at
