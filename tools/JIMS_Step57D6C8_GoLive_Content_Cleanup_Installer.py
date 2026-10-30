@@ -40,7 +40,7 @@ EXACT={
   ('<p className="muted">Checklist only. Actual PDF/image supporting-document upload to private storage will follow in a separate step.</p>',''),
   ('<p className="muted">Excel signatures/names do not confer approval. Approval must occur in JAUHAR, in sequence.</p>',''),
   ('<span className="muted">Ten rows come from the official Excel; extra rows are allowed.</span>',''),
-  ('<p className="muted">View-only access. No approval or payment action is assigned.</p>',''),
+  ('<p className="muted">View-only access. No approval or payment action is assigned.</p>','<p className="muted">Read-only</p>'),
   ('<p className="muted">Existing Payment Voucher — Read Only</p>',''),
   ('<p className="muted">Check current-round Finance Manager and CEO approvals.</p>',''),
   ('<p className="muted">Check the approved HOD action, all invoices and JR if required.</p>',''),
@@ -65,7 +65,7 @@ EXACT={
   ('<p>Each selected CV receives a separate approval record and digital signature. Both stages must be signed before CLOSED.</p>',''),
   ('<p>Enter the same fields as the official XLSX. No new payment is made. Entries must fit the original 10-row printed form.</p>',''),
   ('<p style={{fontSize:12}}>The official claimant declaration, approval boxes, acknowledgment, logo and print layout stay in the original Excel. HOD signatures are captured digitally during approval.</p>',''),
-  ('<p>To approve, return to the dashboard, select this CV in the HOD verification section and draw your digital signature.</p>',''),
+  ('<p>To approve, return to the dashboard, select this CV in the HOD verification section and draw your digital signature.</p>','<p>Approve via HOD Verification.</p>'),
   ('<p>Payment Method (G17:I17): <strong>Cash (Petty Cash)</strong></p>',''),
   ('<small>Original one-page Excel print layout. HOD digital signature, username and approval date appear in the existing signature blocks. For PDF, open the signed Excel in Microsoft Excel and choose Save as PDF.</small>','<small>PDF: Save signed Excel as PDF.</small>'),
  ],
@@ -88,7 +88,7 @@ EXACT={
  ],
  'JIMSPettyCash57D1E.jsx':[
   ('<small>Auto-generated · Monthly reset · Not editable</small>',''),
-  ('<small>Revision settings: System Admin only</small>',''),
+  ('<small>Revision settings: System Admin only</small>','null'),
   ('<p style={{fontSize:12,margin:\'10px 0 0\'}}>Number assigned on Save Draft.</p>',''),
   ('<p style={{fontSize:12,margin:\'10px 0 0\'}}>Petty Cash number is issued automatically upon the first Save Draft, and is read-only. Historical CV numbers remain unchanged.</p>',''),
  ],
@@ -156,11 +156,11 @@ EXACT={
  ],
  'AddUser.jsx':[
   ('<p className="muted">\n        Create a staff account and assign its access role and department.\n      </p>',''),
-  ('<p className="muted">\n          CEO and BOD accounts do not require a department.\n        </p>',''),
+  ('<p className="muted">\n          CEO and BOD accounts do not require a department.\n        </p>','null'),
  ],
  'EditUser.jsx':[
   ('<p className="muted">\n        Update staff username, role and department. CEO and BOD do not require a department.\n      </p>',''),
-  ('<p className="muted">Department: Not applicable to CEO / BOD.</p>',''),
+  ('<p className="muted">Department: Not applicable to CEO / BOD.</p>','null'),
  ],
  'ResetPassword.jsx':[
   ('<p className="muted">\n        Set a new password for {user.username}.\n      </p>',''),
