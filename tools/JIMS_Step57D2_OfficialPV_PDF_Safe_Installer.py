@@ -64,13 +64,14 @@ if any(x in component for x in ('.insert(','.update(','.upsert(','.delete(','.up
 
 anchor='<div className="pv-section">PAYMENT VOUCHER DETAILS</div>'
 once(old,anchor,'PV detail placement')
+# These anchors exist in every supported JIMS PV baseline. Newer steps may
+# live in standalone modules; protect their occurrences without requiring them.
 for token in (
-  'pv_approval_actions','pv_payment_transactions','PaymentTrackingPanel',
+  'pv_approval_actions','PaymentTrackingPanel',
   'supabase.rpc(', 'payment_vouchers','setViewingVoucher',
   'pv_invoice_documents','approvalHistory','refreshApprovalHistory',
-  'JIMS_STEP57D4_Duplicate_Invoice_UI', 'jims_57d4_preflight_submit_v1',
   'onClick={submitAndVerify}', 'onClick={closeVoucherOverview}',
-  'payment_mode','payment_status','viewLines','jauhar_my_active_delegations_v1'
+  'payment_status','viewLines','jauhar_my_active_delegations_v1'
 ):
     if token not in old:stop('Expected existing PV feature missing '+token)
 
