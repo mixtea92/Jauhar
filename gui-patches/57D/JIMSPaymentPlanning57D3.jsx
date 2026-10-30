@@ -4,13 +4,17 @@ import {supabase} from './lib/supabase'
 // JIMS STEP 57D3 — Obligation / schedule management; no change to PV approvals or payments.
 // Server-side RPCs check actual JIMS roles; button visibility is not authorization.
 const input={width:'100%',padding:'9px 11px',border:'1px solid #9f8c5a',borderRadius:8,
-  background:'var(--jims-card-bg,transparent)',color:'inherit',colorScheme:'dark'}
+  background:'var(--jims-card-bg,transparent)',color:'inherit'}
 const fmt=d=>d?String(d).split('-').reverse().join('/'):'Not recorded'
 const fmtAt=d=>d?new Intl.DateTimeFormat('en-MY',{
   timeZone:'Asia/Kuala_Lumpur',dateStyle:'medium',timeStyle:'short'
 }).format(new Date(d)):'—'
-const todayMY=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kuala_Lumpur',
-  year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+const todayMY=()=>{
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',
+    year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const part=t=>parts.find(x=>x.type===t)?.value||'';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
 const delay=(date,now)=>date&&now>date
 
 export default function JIMSPaymentPlanning57D3({voucher,profile,transactions=[],initialTransactionId=null,onClose}){
