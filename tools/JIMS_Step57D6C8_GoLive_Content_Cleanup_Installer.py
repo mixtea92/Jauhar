@@ -1,345 +1,308 @@
 #!/usr/bin/env python3
-"""JIMS 57D6C8 — GO-LIVE CONTENT CLEANUP, ALL INSTALLED WORKSPACE PAGES.
+"""JIMS 57D6C8 REVISED — go-live minimal copy, RESTORE ACTION CLARITY.
 
-Only explicitly approved, presentation-only static JSX fragments are removed
-or shortened. Existing code, conditions, roles, data, approvals, navigation,
-Sidebar, login, notifications and mobile upload restrictions are unchanged.
-
-Include: PV New/Edit/List/History, Payment Process, Calendar/Planning, PC,
-Delegation, Approvals, Reports, User Admin, JR and installed submodules.
-Write an audit of remaining long visible copy and launch-warning candidates.
-Run --dry-run first. Full backup, JSX parse, npm build and rollback on failure.
+Rule: do NOT remove button/card explanations (Draft, Submitted, Add User etc.).
+Keep ALL warnings, mandatory input rules, payment/approval distinctions,
+security explanations and statuses. Remove only shortlisted redundant
+marketing/developer prose. Restore hints lost in prior 57D6C5/C6/C7 patches.
+Scan all installed JSX pages for remaining long copy and launch risks.
+Pure GUI copy + new scoped CSS; no handlers, routes, Supabase or business rules.
+Supports --dry-run and --audit-only; full backup, parser and build rollback.
 """
 from pathlib import Path
-from datetime import datetime,timezone
-import subprocess, sys, tempfile, re, json
+from datetime import datetime, timezone
+import subprocess
+import sys
+import tempfile
+import re
+import json
 
 ROOT=Path('/workspaces/Jauhar')
 SRC=ROOT/'app/src'
 APP=ROOT/'app'
+MAIN=SRC/'main.jsx'
 BRANCH='jsync-gui-revamp-20261029'
+CSS=SRC/'JIMS57D6C8ContextRestored.css'
+REMOTE='gui-patches/57D/JIMS57D6C8ContextRestored.css'
+CSS_IMPORT="import './JIMS57D6C8ContextRestored.css'"
+CSS_MARKER='JIMS_STEP57D6C8_CONTEXT_RESTORED'
 DRY='--dry-run' in sys.argv
-AUDIT='--audit-only' in sys.argv
-def stop(s): sys.exit('STOP: '+str(s)+' — no project source changed.')
-def git(*args):return subprocess.check_output(['git',*args],cwd=ROOT,text=True)
-if git('branch','--show-current').strip()!=BRANCH:stop('Expected branch '+BRANCH)
-if not (SRC/'App.jsx').is_file():stop('JIMS app missing')
-MARK='JIMS_57D6C8_MINIMAL_GO_LIVE'
-REPORT='57D6C8_GoLive_Copy_Audit.txt'
+AUDIT_ONLY='--audit-only' in sys.argv
 
-# Exact visible-only JSX nodes / captions. Each is OPTIONAL because earlier
-# checkpoints, especially 57D6C5/C6/C7, may already have removed it.
-# No warnings, validity requirements, real monetary/status fields or inputs.
-EXACT={
- 'PaymentVoucher.jsx': [
-  ('<p className="muted">Counters reflect vouchers visible to your login. Select a card to open its filtered list.</p>',''),
-  ('<p className="muted">Effective Date (template): 01-Nov-2026 · PV numbers are assigned by JAUHAR upon saving.</p>',''),
-  ('<p className="muted">Acting authority only · Return to Delegation Workspace after reviewing.</p>',''),
-  ('<small>{card.hint}</small>',''),
-  ('<p className="muted">Approved contains Pending Payment, Payment Initiated and Paid. Payment stages are mutually exclusive.</p>',''),
-  ('<p className="muted">Checklist only. Actual PDF/image supporting-document upload to private storage will follow in a separate step.</p>',''),
-  ('<p className="muted">Excel signatures/names do not confer approval. Approval must occur in JAUHAR, in sequence.</p>',''),
-  ('<span className="muted">Ten rows come from the official Excel; extra rows are allowed.</span>',''),
-  ('<p className="muted">View-only access. No approval or payment action is assigned.</p>','<p className="muted">Read-only</p>'),
-  ('<p className="muted">Existing Payment Voucher — Read Only</p>',''),
-  ('<p className="muted">Check current-round Finance Manager and CEO approvals.</p>',''),
-  ('<p className="muted">Check the approved HOD action, all invoices and JR if required.</p>',''),
-  ('<p>Closed-loop PVs only. Fully Approved but unpaid PVs remain in Payment Process.</p>',''),
-  ('<small>Full payment recorded with final bank receipt</small>',''),
-  ('<small>Approval ended without payment</small>',''),
-  ('<p>Payment executions with final receipt. Not included in active initiation or verification queues.</p>',''),
-  ('<small>View payment records and receipt details</small>',''),
-  ('<p className="muted">New PV requires a valid official Excel upload. Existing Draft edits do not require another upload.</p>',''),
-  ('<span>NEW PAYMENT VOUCHER</span>','<span>NEW PV</span>'),
-  ('Back to Payment Voucher Dashboard</button>','Back</button>'),
-  ('value="Pending approval workflow" disabled','value="Pending" disabled'),
+def stop(reason):
+    sys.exit('STOP: '+str(reason)+' — app source unchanged.')
+def git(*args):
+    return subprocess.check_output(['git',*args],cwd=ROOT,text=True)
+
+if git('branch','--show-current').strip()!=BRANCH:
+    stop('Wrong branch; expected '+BRANCH)
+if not MAIN.exists() or not (SRC/'App.jsx').exists():
+    stop('Missing JIMS app')
+if CSS.exists() or CSS_IMPORT in MAIN.read_text(encoding='utf-8'):
+    stop('57D6C8 may already be installed; do not overwrite')
+original_main=MAIN.read_text(encoding='utf-8')
+anchors=[
+    "import './JIMS57D6C7ZeroRedundantCopy.css'",
+    "import './JIMS57D6C6PageContentMinimal.css'",
+    "import './JIMS57D6C5MinimalButtonCopy.css'",
+    "import './JIMS57D6C4MobileDashboardActions.css'",
+]
+found=[x for x in anchors if x in original_main]
+if not found:stop('Earlier mobile GUI stylesheet import missing')
+anchor=found[0]
+if original_main.count(anchor)!=1:stop('Ambiguous existing GUI stylesheet import')
+
+# STRICT whitelist of text that adds no operational decision-making information.
+# No action-card hint, no field instruction, no warning, no approval/payment rule.
+CUT={
+ 'PaymentVoucher.jsx':[
+   '<p className="muted">Counters reflect vouchers visible to your login. Select a card to open its filtered list.</p>',
  ],
- 'CashVoucher.jsx': [
-  ('<h2 style={{marginBottom:5}}>Cash Voucher (Petty Cash)</h2>','<h2 style={{marginBottom:5}}>Petty Cash</h2>'),
-  ('<h2 style={{marginBottom:5}}>Petty Cash (Petty Cash)</h2>','<h2 style={{marginBottom:5}}>Petty Cash</h2>'),
-  ('<h3>Cash Voucher Records</h3>','<h3>Petty Cash Records</h3>'),
-  ("<h3>{editingId?'Edit Cash Voucher Draft':'New Cash Voucher'}</h3>","<h3>{editingId?'Edit Petty Cash Draft':'New Petty Cash'}</h3>"),
-  ('<p style={{marginTop:0}}>Two HOD approvals required.</p>',''),
-  ('<p style={{marginTop:0}}>Post-disbursement recording, dual HOD approval with digital signatures, then CLOSED.</p>',''),
-  ('<p>Original workbook, unchanged: PC (Digital), PC (Manual), List Expenses Category; A4 portrait one-page print areas.</p>',''),
-  ('<p>Each selected CV receives a separate approval record and digital signature. Both stages must be signed before CLOSED.</p>',''),
-  ('<p>Enter the same fields as the official XLSX. No new payment is made. Entries must fit the original 10-row printed form.</p>',''),
-  ('<p style={{fontSize:12}}>The official claimant declaration, approval boxes, acknowledgment, logo and print layout stay in the original Excel. HOD signatures are captured digitally during approval.</p>',''),
-  ('<p>To approve, return to the dashboard, select this CV in the HOD verification section and draw your digital signature.</p>','<p>Approve via HOD Verification.</p>'),
-  ('<p>Payment Method (G17:I17): <strong>Cash (Petty Cash)</strong></p>',''),
-  ('<small>Original one-page Excel print layout. HOD digital signature, username and approval date appear in the existing signature blocks. For PDF, open the signed Excel in Microsoft Excel and choose Save as PDF.</small>','<small>PDF: Save signed Excel as PDF.</small>'),
- ],
- 'JIMSPaymentProcessBoard.jsx': [
-  ('<small>{item.hint}</small>',''),
-  ('<small>Approved vouchers awaiting initiation or resubmission</small>',''),
-  ('<small>Completed Full Payments only</small>',''),
-  ('<small>Settled partial installments only</small>',''),
-  ('<small>Total outstanding across all approved PVs</small>',''),
-  ('<h2>Payment Process Dashboard</h2>','<h2>Payment Process</h2>'),
-  ('<p className="muted">Pending Payment → Full / Partial workflows → One Payment History</p>',''),
-  ('<h3>Full Payment Status</h3>','<h3>Full Payment</h3>'),
-  ('<h3>Partial Payment Status</h3>','<h3>Partial Payment</h3>'),
+ 'JIMSPaymentProcessBoard.jsx':[
+   '<p className="muted">Pending Payment → Full / Partial workflows → One Payment History</p>',
  ],
  'JIMSPaymentCalendar57D5.jsx':[
-  ('<p>Supplier due dates · All branches</p>',''),
-  ('<small>Default: today to month end</small>',''),
-  ('<span className="jims-cal-toolbar-note">Month arrows switch the due-date range</span>',''),
-  ('<small>Needs payment planning</small>',''),
- ],
- 'JIMSPettyCash57D1E.jsx':[
-  ('<small>Auto-generated · Monthly reset · Not editable</small>',''),
-  ('<small>Revision settings: System Admin only</small>','null'),
-  ('<p style={{fontSize:12,margin:\'10px 0 0\'}}>Number assigned on Save Draft.</p>',''),
-  ('<p style={{fontSize:12,margin:\'10px 0 0\'}}>Petty Cash number is issued automatically upon the first Save Draft, and is read-only. Historical CV numbers remain unchanged.</p>',''),
- ],
- 'DelegationWorkspace.jsx':[
-  ('<p className="muted">All delegated financial approvals in one place. Your own approval authority stays in Payment Voucher.</p>',''),
-  ('<span className="muted">{m.hint}</span>',''),
-  ('<p className="muted">Only authority that has passed independent authorization, valid dates and database permission checks is actionable. Acting decisions use your real login in the audit trail.</p>',''),
-  ('<p className="muted">Approve / Return / Reject only where the delegated permission allows. Open a PV to make a decision.</p>',''),
-  ('<p className="muted">Request, authorize, revoke, track expiry, and review delegation history.</p>',''),
-  ('<p className="muted" style={{marginTop:14}}>Showing up to 300 actionable Payment Vouchers, as returned by the authorization RPC. Budget delegation will be integrated after the Budget Dashboard is developed.</p>',''),
+   '<span className="jims-cal-toolbar-note">Month arrows switch the due-date range</span>',
+   '<p>Supplier due dates · All branches</p>',
  ],
  'DelegationHub.jsx':[
-  ('<p className="muted">Separate from Payment Voucher · independent authorization · full audit trail</p>',''),
+   '<p className="muted">Separate from Payment Voucher · independent authorization · full audit trail</p>',
  ],
- 'JSYNCDelegationUnifiedOverview.jsx':[
-  ('<p style={muted}>Your current independently-authorized approval authority. The matching pending PVs are in Delegated PV Inbox directly below.</p>',''),
-  ('<p style={muted}>Delegation / handover history from the existing authorized dashboard. PV-level approval history is a separate audit control.</p>',''),
-  ('<p style={muted}>For the transferred PV, use Payment Voucher to open and edit. Original created_by remains unchanged. The receiving Executive must not be allowed to delete the draft; that backend rule requires separate verification.</p>',''),
- ],
- 'ApprovalQueues.jsx':[
-  ('<p className="muted">Own approval authority and delegated authority are always shown separately.</p>',''),
-  ('<p className="muted" style={{marginTop:12}}>Shows up to 300 actionable PVs. Use Payment Voucher\'s full list for historical tracking.</p>',''),
- ],
- 'JIMSApproverSummary.jsx':[
-  ('<p className="muted">Review here, or choose View Details for invoices, JR and approval history.</p>',''),
- ],
- 'BODApprovalSummary.jsx':[
-  ('<p className="muted">Key facts first. View Details is optional; approval safeguards remain enforced.</p>',''),
- ],
- 'JIMSHistoryExports.jsx':[
-  ('<p className="muted">Accounts Payable and Accounting only. Contains no approval decision history.</p>',''),
- ],
- 'JIMSReportGenerationSingleCenter.jsx':[
-  ('<p className="muted">Select reports and supporting documents to download. Original files remain private.</p>',''),
-  ('<p className="muted">This approval-history download is separate from AP reports and can only be generated by the designated System Owner.</p>',''),
+ 'CashVoucher.jsx':[
+   '<p>Original workbook, unchanged: PC (Digital), PC (Manual), List Expenses Category; A4 portrait one-page print areas.</p>',
  ],
  'JIMS_Report_Generation_Single_Center.jsx':[
-  ('<p className="muted">Select reports and supporting documents to download. Original files remain private.</p>',''),
-  ('<p className="muted">This approval-history download is separate from AP reports and can only be generated by the designated System Owner.</p>',''),
-  ('<p className="muted">JR meeting evidence is exported as recorded meeting reference/date in Excel, not an invented minutes PDF.</p>',''),
+   '<p className="muted">Select reports and supporting documents to download. Original files remain private.</p>',
  ],
- 'JIMSPaymentPlanning57D3.jsx':[
-  ('<p className="muted">Step 57D3 · Supplier Due Date is the contractual obligation.\n        FM-approved schedule is a separate plan, not a replacement due date.</p>','<p className="muted">Supplier due date and FM schedule are separate.</p>'),
-  ('<small className="muted" style={{display:\'block\',marginTop:13}}>\n        Stored by role-checked Supabase RPCs. KPI-ready history is captured automatically.\n        This feature does not mark a PV paid or change approval authority.\n      </small>',''),
- ],
- 'JIMSPaymentCompletionQueue.jsx':[
-  ('<p className="muted">FM approved. AP Finance records the actual transaction and uploads a mandatory final bank receipt PDF before marking Paid.</p>',''),
-  ('<p className="muted">Each partial installment requires its own final receipt PDF. The PV is Fully Paid only after the complete approved amount has been settled.</p>',''),
- ],
- 'JIMSV2FinanceManagerQueue.jsx':[
-  ('<p className="muted">Mandatory initiation proofs awaiting your current approval authority.</p>',''),
- ],
- 'JIMSPaymentModeSelector.jsx':[
-  ('<small>STEP 57B.2 · PAYMENT PROCESS</small>',''),
-  ('<small>Existing full-payment workflow.</small>',''),
-  ('<small>Manage installment drafts and outstanding balance.</small>',''),
- ],
- 'JIMSPaymentModeSelector_Step57B3.jsx':[
-  ('<small>STEP 57B.2 · PAYMENT PROCESS</small>',''),
-  ('<small>Existing full-payment workflow.</small>',''),
-  ('<small>Manage installment drafts and outstanding balance.</small>',''),
- ],
- 'JSYNCUserAdminForm.jsx':[
-  ('<p className="muted">\n        Department required. Subdepartment, Branch and\n        Staff Designation and Cost Center optional.\n      </p>',''),
- ],
- 'AddUser.jsx':[
-  ('<p className="muted">\n        Create a staff account and assign its access role and department.\n      </p>',''),
-  ('<p className="muted">\n          CEO and BOD accounts do not require a department.\n        </p>','null'),
- ],
- 'EditUser.jsx':[
-  ('<p className="muted">\n        Update staff username, role and department. CEO and BOD do not require a department.\n      </p>',''),
-  ('<p className="muted">Department: Not applicable to CEO / BOD.</p>','null'),
- ],
- 'ResetPassword.jsx':[
-  ('<p className="muted">\n        Set a new password for {user.username}.\n      </p>',''),
- ],
- 'UserOrganizationAssignment.jsx':[
-  ('<p className="muted">System Admin only. This changes organization metadata, not roles, existing PVs or approval authority.</p>',''),
-  ('<p className="muted">Organization details only.</p>',''),
- ],
- 'AuditTrail.jsx':[
-  ('<p className="muted">\n            Latest 100 user management activities\n          </p>',''),
- ],
- 'SystemAdminDelegationViewer.jsx':[
-  ('<p>System Admin may view all delegation records and audit events. No operational actions are available.</p>',''),
-  ('<p>Read-only.</p>',''),
- ],
- 'PVDelegationHistory.jsx':[
-  ('<p className="muted" style={{margin:\'6px 0\'}}>Part of this PV Approval History · recorded real actors and authorizers.</p>',''),
+}
+# Shorten only non-alert non-action display text while retaining the key rule.
+SHORTEN={
+ 'CashVoucher.jsx':[
+   ('<h2 style={{marginBottom:5}}>Cash Voucher (Petty Cash)</h2>',
+    '<h2 style={{marginBottom:5}}>Petty Cash</h2>'),
+   ('<h2 style={{marginBottom:5}}>Petty Cash (Petty Cash)</h2>',
+    '<h2 style={{marginBottom:5}}>Petty Cash</h2>'),
+   ('<p style={{marginTop:0}}>Post-disbursement recording, dual HOD approval with digital signatures, then CLOSED.</p>',
+    '<p style={{marginTop:0}}>Post-disbursement record · HOD + Finance HOD approval.</p>'),
+   ('<p>Each selected CV receives a separate approval record and digital signature. Both stages must be signed before CLOSED.</p>',
+    '<p>HOD + Finance HOD signatures required.</p>'),
  ],
 }
 
-# More local variants from recent actual in-app UAT screenshots. Static
-# text nodes only; never regex-remove arbitrary paragraphs or dynamic JSX.
-REGEX={
-'PaymentVoucher.jsx':[
- (r'<p className="muted">\s*New PV: fill the form manually or upload the official Excel for auto-fill\.[^<{}\n]*</p>',''),
- (r'<p className="muted">\s*For Rev1 Excel, use[^<{}\n]{0,240}</p>','<p className="muted">Rev1 Excel: PV (T-Digital), Tier L10.</p>'),
- (r'<p className="muted">\s*Checklist only\. Actual PDF/image supporting-document upload[^<{}\n]{0,240}</p>',''),
- (r'<span className="pv-mode-label">\s*\{workspaceMode === .edit. \? .EDIT EXISTING DRAFT. : .NEW PAYMENT VOUCHER.\}\s*</span>',''),
- (r'<p className="muted">\s*New PV requires[^<{}\n]{0,200}</p>',''),
- ],
-'CashVoucher.jsx':[
- (r'<p[^>]*>\s*Closed records after both HOD signatures\.[^<{}\n]{0,220}</p>',''),
- (r'<small[^>]*>\s*Auto-generated · Monthly reset · Not editable\s*</small>',''),
- ],
-'JIMSPettyCash57D1E.jsx':[
- (r'<p[^>]*>\s*Department is taken from the existing Petty Cash form\.[^<{}\n]{0,260}</p>','<p>Select Sub-Department and Cost Center.</p>'),
- ],
-'JIMSPaymentCalendar57D5.jsx':[
- (r'<span className="jims-cal-legend-note">Overdue payments always shown below, regardless of date filter</span>',''),
- ],
+source_files=sorted(p for p in SRC.rglob('*.jsx')
+    if 'node_modules' not in p.parts and
+    'login' not in p.parts and p.name not in ('App.jsx','main.jsx','JSYNCLogin.jsx'))
+before_files={}
+after_files={}
+log=[]
+
+def literal_once_or_skip(body,old,new,filename):
+    count=body.count(old)
+    if count>1:stop(filename+' ambiguous copy anchor: '+repr(old[:70]))
+    if count==1:return body.replace(old,new,1),1
+    return body,0
+
+def restore_dashboard_home(body):
+    n=0
+    # 57D6C5 removed the helpful subtitle beneath clickable action cards.
+    subtitle='    <span className="jims-action-desc">{subtitle}</span>\n'
+    title='    <strong className="jims-action-title">{title}</strong>\n'
+    if subtitle not in body and title in body:
+        body,k=literal_once_or_skip(body,title,title+subtitle,'JIMSDashboardHome.jsx')
+        n+=k
+    # 57D6C5 also removed the context beneath Financial Workspace shortcuts.
+    missing='<span className="jims-link-copy"><strong>{title}</strong></span>'
+    full='<span className="jims-link-copy"><strong>{title}</strong><small>{desc}</small></span>'
+    body,k=literal_once_or_skip(body,missing,full,'JIMSDashboardHome.jsx')
+    n+=k
+    return body,n
+
+def restore_pv_home(body):
+    # Only matches button cards where the description is already absent.
+    pattern=r'(<span>\{card\.label\} ↗</span>)(\s*)(</button>)'
+    matches=list(re.finditer(pattern,body))
+    if len(matches)>2:stop('PaymentVoucher.jsx: unexpected card loop count')
+    def insert(m):
+        return m.group(1)+'\n                  <small>{card.hint}</small>'+m.group(2)+m.group(3)
+    body,n=re.subn(pattern,insert,body)
+    return body,n
+
+def restore_process_cards(body):
+    # Keep the short explanation of each payable status category.
+    pattern=r'(<span className="jims-pb-card-name">\{item.title\}</span>)(\s*)(</button>)'
+    matches=list(re.finditer(pattern,body))
+    if len(matches)>1:stop('PaymentProcessBoard: unexpected card markup')
+    return re.subn(pattern,
+        lambda m:m.group(1)+'\n      <small>{item.hint}</small>'+m.group(2)+m.group(3),body)
+
+def restore_delegation_cards(body):
+    pattern=r'(<span style=\{\{fontWeight:700,display:\x27block\x27,margin:\x276px 0\x27\}\}>\{m.label\} ↗</span>)(\s*)(</button>)'
+    matches=list(re.finditer(pattern,body))
+    if len(matches)>1:stop('DelegationWorkspace: unexpected button markup')
+    return re.subn(pattern,lambda m:m.group(1)+'\n          <span className="muted">{m.hint}</span>'+m.group(2)+m.group(3),body)
+
+def restore_pv_history(body):
+    n=0
+    entries=[
+     ('Paid · Closed Loop','Full payment recorded with final bank receipt'),
+     ('Rejected Permanently','Approval ended without payment'),
+    ]
+    for title,desc in entries:
+        pat=r'(<strong>'+re.escape(title)+r'</strong>)(\s*)(<em>)'
+        if len(re.findall(pat,body))>1:
+            stop('Ambiguous history card for '+title)
+        body,count=re.subn(pat,lambda m:m.group(1)+'\n                <small>'+desc+'</small>'+m.group(2)+m.group(3),body)
+        n+=count
+    return body,n
+
+def restore_amount_clarifiers(body):
+    # Interpretations of money totals are important, not marketing filler.
+    n=0
+    for target,note in [
+        ('money(financialSummary.fullPaid)','Completed Full Payments only'),
+        ('money(financialSummary.partialPaid)','Settled partial installments only'),
+        ('money(financialSummary.leftToPay)','Total outstanding across all approved PVs'),
+    ]:
+        pattern=r'(<strong>\{loading\|\|error\?\x27—\x27:'+re.escape(target)+r'\}</strong>)(\s*)(</div>)'
+        if len(re.findall(pattern,body))>1:
+            stop('Ambiguous payment total card '+target)
+        body,c=re.subn(pattern,lambda m:m.group(1)+'\n          <small>'+note+'</small>'+m.group(2)+m.group(3),body)
+        n+=c
+    return body,n
+
+RESTORE={
+ 'JIMSDashboardHome.jsx':restore_dashboard_home,
+ 'PaymentVoucher.jsx':lambda b: (lambda a,n1:(lambda c,n2:(c,n1+n2))(*restore_pv_history(a)))(*restore_pv_home(b)),
+ 'JIMSPaymentProcessBoard.jsx':lambda b: (lambda a,n1:(lambda c,n2:(c,n1+n2))(*restore_amount_clarifiers(a)))(*restore_process_cards(b)),
+ 'DelegationWorkspace.jsx':restore_delegation_cards,
 }
 
-# Guard against modifying information that could affect correct payment,
-# authorization, audit or security. These are audit flags, NOT auto-deletions.
-LAUNCH_SIGNALS=[
- 'preview only','temporarily disabled','upcoming step','upcoming document',
- 'drafts only at step','will be integrated','pilot','legacy full payment',
- 'future integration','not installed','step 36.4','step 46f sql',
- 'backend not ready'
+# Verify no operational code or warning has been removed; the only restored
+# markup may add <span>/<small> but cannot change button counts or callbacks.
+PROTECTED=[
+ '<button','</button>', '<input', '<select','<textarea',
+ 'onClick=', 'onChange=', 'onSubmit=', 'disabled=',
+ 'role="alert"', "role='alert'", 'role="status"',
+ 'supabase.', '.rpc(', 'payment_status',
+ 'financial_tier', 'onNavigate(', 'openCategory(', 'useState('
 ]
-SECURITY_TOKENS=[
- 'supabase.', '.rpc(', 'onClick=', 'onChange=', 'onSubmit=',
- '<button', '</button>', '<input', '<select', '<textarea',
- 'aria-label=', 'payment_status', 'financial_tier'
-]
-def enumerate_jsx():
-    return sorted([p for p in SRC.rglob('*.jsx')
-      if p.name not in ('App.jsx','main.jsx','JSYNCLogin.jsx') and
-      'login' not in p.parts and 'node_modules' not in p.parts])
-files=enumerate_jsx()
-original={}
-changed={}
-change_log=[]
-skipped=[]
-for path in files:
+for path in source_files:
     old=path.read_text(encoding='utf-8')
     new=old
-    edits=0
-    for before,after in EXACT.get(path.name,[]):
-        occurrences=new.count(before)
-        if occurrences>8:
-            stop(path.name+': excessive repeated literal '+repr(before[:60]))
-        if occurrences:
-            new=new.replace(before,after)
-            edits+=occurrences
-    for pattern,replacement in REGEX.get(path.name,[]):
-        candidate,n=re.subn(pattern,replacement,new,flags=re.MULTILINE)
-        if n>2:
-            stop(path.name+': regex affected '+str(n)+' fragments '+pattern[:60])
-        if n:
-            new=candidate
-            edits+=n
+    removed=0
+    restored=0
+    for x in CUT.get(path.name,[]):
+        new,k=literal_once_or_skip(new,x,'',path.name)
+        removed+=k
+    for old_text,new_text in SHORTEN.get(path.name,[]):
+        new,k=literal_once_or_skip(new,old_text,new_text,path.name)
+        removed+=k
+    if path.name in RESTORE:
+        new,restored=RESTORE[path.name](new)
     if new!=old:
-        for token in SECURITY_TOKENS:
-            # Exception: the PV decorative mode-label (not a button, state,
-            # business variable, input or listener) is intentionally removed.
-            if new.count(token)!=old.count(token):
-                stop(path.name+': protected token count changed: '+token)
-        original[path]=old
-        changed[path]=new
-        change_log.append((path.name,edits))
-    else:skipped.append(path.name)
+        for token in PROTECTED:
+            if old.count(token)!=new.count(token):
+                stop(path.name+' protected code marker changed: '+token)
+        before_files[path]=old
+        after_files[path]=new
+    if removed or restored:
+        log.append((path.name,removed,restored))
 
-if not changed:stop('No matching approved copy found; installation is already clean or local structure differs')
+if not after_files:stop('No matching safe edits/context restoration; check current local files')
 
-# Additive, deterministic audit for every installed JSX, not only those edited.
-def audit_lines(data):
-    results=[]
-    tag=re.compile(r'<(p|small|span)\b[^>]{0,180}>([^<{}]{105,600})</\1>',re.S)
-    for path,body in data.items():
-        for m in tag.finditer(body):
-            content=' '.join(m.group(2).split())
-            if not content or re.search(r'role=["\'](alert|status)',m.group(0)):continue
-            line=body[:m.start()].count('\n')+1
-            results.append((path.name,line,content[:180]))
-    return results
+new_main=original_main.replace(anchor,anchor+'\n'+CSS_IMPORT,1)
+if new_main.replace(anchor+'\n'+CSS_IMPORT,anchor,1)!=original_main:
+    stop('main.jsx addition not reversible')
+try:styles=git('show','origin/'+BRANCH+':'+REMOTE)
+except subprocess.CalledProcessError:
+    stop('57D6C8 stylesheet not found on remote; git fetch origin '+BRANCH)
+if styles.count(CSS_MARKER)!=1:
+    stop('Restore-context stylesheet marker missing')
 
-content_after={p:changed.get(p,p.read_text(encoding='utf-8')) for p in files}
-long_paragraphs=audit_lines(content_after)
+# Scan ALL installed component JSX files for developer/test phrases.
+audit_after={p:after_files.get(p,p.read_text(encoding='utf-8')) for p in source_files}
+launch_phrases=[
+ 'preview only','temporarily disabled','upcoming step','upcoming document',
+ 'pilot','drafts only at step','will be integrated','not installed',
+ 'step 36.4','step 46f sql','future integration'
+]
 launch_flags=[]
-for p,body in content_after.items():
-    for n,s in enumerate(body.splitlines(),1):
-        s2=s.lower()
-        if any(flag in s2 for flag in LAUNCH_SIGNALS) and not s.lstrip().startswith(('//','*')):
-            launch_flags.append((p.name,n,s.strip()[:220]))
+for p,body in audit_after.items():
+    for i,line in enumerate(body.splitlines(),1):
+        s=line.strip()
+        if s.startswith(('//','*')):continue
+        if any(flag in s.lower() for flag in launch_phrases):
+            launch_flags.append((str(p.relative_to(SRC)),i,s[:200]))
 
-# Preflight parse EVERY changed JSX BEFORE touching the repo.
-with tempfile.TemporaryDirectory(prefix='jims_57d6c8_preflight_') as td:
-    tmp=Path(td)
-    candidates=[]
-    for i,(p,body) in enumerate(changed.items()):
-        f=tmp/(str(i)+'_'+p.name)
-        f.write_text(body,encoding='utf-8')
-        candidates.append(str(f))
-    node=(
-      "const fs=require('node:fs');"
-      "import('vite').then(async v=>{"
-      "for(const file of process.argv.slice(1))"
-      "await v.transformWithOxc(fs.readFileSync(file,'utf8'),file);"
-      "console.log('JIMS 57D6C8 JSX PARSER PASS: '+process.argv.slice(1).length+' files');"
-      "}).catch(e=>{console.error(e.stack||e);process.exit(1)});"
+# All planned JSX candidates are syntax checked in-memory before file writes.
+with tempfile.TemporaryDirectory(prefix='jims_57d6c8_review_') as td:
+    directory=Path(td)
+    transformed=[]
+    for index,(p,s) in enumerate(after_files.items()):
+        target=directory/(str(index)+'_'+p.name)
+        target.write_text(s,encoding='utf-8')
+        transformed.append(str(target))
+    main_candidate=directory/'main.jsx'
+    main_candidate.write_text(new_main,encoding='utf-8')
+    transformed.append(str(main_candidate))
+    css_candidate=directory/CSS.name
+    css_candidate.write_text(styles,encoding='utf-8')
+    js=(
+       "const fs=require('node:fs');"
+       "Promise.all([import('vite'),import('postcss')]).then(async([v,p])=>{"
+       "for(const f of process.argv.slice(1,-1))"
+       "await v.transformWithOxc(fs.readFileSync(f,'utf8'),f);"
+       "const css=p.default.parse(fs.readFileSync(process.argv.at(-1),'utf8'));"
+       "let n=0;css.walkRules(rule=>{n++;"
+       "if(rule.selector.split(',').some(s=>"
+       "!s.trim().startsWith('.jims-shell')))throw Error('Unscoped CSS');"
+       "});if(n<5)throw Error('Incomplete CSS');"
+       "console.log('JIMS 57D6C8 JSX + CSS PARSER PASS');"
+       "}).catch(e=>{console.error(e.stack||e);process.exit(1)});"
     )
-    test=subprocess.run(['node','-e',node,*candidates],cwd=APP,
-        capture_output=True,text=True)
-    if test.returncode:
-        stop('JSX validation failed: '+(test.stderr or test.stdout)[-2000:])
-    print(test.stdout.strip())
+    checked=subprocess.run(['node','-e',js,*transformed,str(css_candidate)],
+       cwd=APP,capture_output=True,text=True)
+    if checked.returncode:
+        stop('JSX parser preflight failed: '+(checked.stderr or checked.stdout)[-2000:])
+    print(checked.stdout.strip())
 
-print('JIMS 57D6C8 GUI-ONLY COPY SAFETY PASS')
-print('Inspected '+str(len(files))+' installed JSX pages/subpages (excluding protected shell/login)')
-print('Proposed copy-only edits: '+str(sum(n for _,n in change_log)))
-for filename,count in change_log:print('  '+filename+': '+str(count))
-print('Remaining long static copy candidates: '+str(len(long_paragraphs)))
-print('Potential launch flags requiring real review: '+str(len(launch_flags)))
-print('No sidebar, login, finance business logic, payment workflow or database changes.')
-
-if DRY or AUDIT:
-    for fname,line,copy in long_paragraphs[:30]:
-        print('REVIEW COPY '+fname+':'+str(line)+' '+copy)
-    for fname,line,copy in launch_flags[:30]:
-        print('GO-LIVE FLAG '+fname+':'+str(line)+' '+copy)
-    print('JIMS 57D6C8 '+('AUDIT ONLY' if AUDIT else 'DRY RUN')+' PASS — no application files modified.')
+print('JIMS 57D6C8 BUTTON CONTEXT + WARNINGS SAFETY PASS')
+print('Inspected '+str(len(source_files))+' installed JSX pages/subpages.')
+for f,r,k in log:
+    print(f+': '+str(r)+' filler removals/shortenings; '+str(k)+' help labels restored')
+print('Go-live review flags (NOT HIDDEN): '+str(len(launch_flags)))
+print('Sidebar, warnings, controls, access, workflow and Supabase untouched.')
+if DRY or AUDIT_ONLY:
+    for f,line,s in launch_flags[:20]:
+        print('GO-LIVE REVIEW '+f+':'+str(line)+' '+s)
+    print('JIMS 57D6C8 '+('AUDIT ONLY' if AUDIT_ONLY else 'DRY RUN')+' PASS — no application files modified.')
     sys.exit(0)
 
 backup=APP/'gui-backups'/('57D6C8_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
 backup.mkdir(parents=True,exist_ok=False)
-for p,body in original.items():
-    relative=p.relative_to(SRC)
-    dest=backup/relative
-    dest.parent.mkdir(parents=True,exist_ok=True)
-    dest.write_text(body,encoding='utf-8')
-audit=[
- MARK,'Installed JSX inspected: '+str(len(files)),
- 'Copy fragments removed or shortened: '+str(sum(n for _,n in change_log)),
- 'Modified files: '+str(len(changed)),
- 'Exact edits: '+json.dumps(change_log),
- 'REMAINING LONG STATIC COPY — MANUAL REVIEW'
+for p,content in [*before_files.items(),(MAIN,original_main)]:
+    target=backup/p.relative_to(SRC)
+    target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_text(content,encoding='utf-8')
+report=[
+ 'JIMS 57D6C8 GO-LIVE COPY AUDIT',
+ 'Reviewed JSX files: '+str(len(source_files)),
+ 'Button help restored; warnings and rules retained',
+ 'Changes (file, removed, restored): '+json.dumps(log),
+ 'REVIEW GO-LIVE BLOCKERS (content left visible):',
 ]
-audit+=['{}:{} {}'.format(*item) for item in long_paragraphs]
-audit+=['','GO-LIVE FLAGS — MUST CHECK ACTUAL FEATURE READINESS']
-audit+=['{}:{} {}'.format(*item) for item in launch_flags]
-(backup/REPORT).write_text('\n'.join(audit)+'\n',encoding='utf-8')
-
+report+=['{}:{} {}'.format(*entry) for entry in launch_flags]
+(backup/'57D6C8_GoLive_Copy_Audit.txt').write_text('\n'.join(report)+'\n',encoding='utf-8')
 try:
-    for p,new in changed.items():p.write_text(new,encoding='utf-8')
+    for p,content in after_files.items():
+        p.write_text(content,encoding='utf-8')
+    MAIN.write_text(new_main,encoding='utf-8')
+    CSS.write_text(styles,encoding='utf-8')
     subprocess.run(['npm','run','build'],cwd=APP,check=True)
     print('JIMS 57D6C8 BUILD PASS')
-    print('Full backup and remaining-copy/go-live audit:',backup)
-    print('This is GUI COPY CLEANUP, not production-release clearance.')
-except Exception as error:
-    for p,body in original.items():p.write_text(body,encoding='utf-8')
-    sys.exit('STOP: Build failed — all original JSX files restored: '+str(error))
+    print('Backup/audit:',backup)
+except Exception as exc:
+    for p,content in before_files.items():p.write_text(content,encoding='utf-8')
+    MAIN.write_text(original_main,encoding='utf-8')
+    CSS.unlink(missing_ok=True)
+    sys.exit('STOP: Build failed; all original files restored: '+str(exc))
