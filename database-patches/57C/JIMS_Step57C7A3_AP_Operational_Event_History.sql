@@ -73,7 +73,7 @@ BEGIN
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'pv_number',v.pv_number,'action',a.action,
     'actor',coalesce(p.username,'Account unavailable'),
-    'event_time',a.created_at,'details',a.details
+    'event_time',a.created_at,'details',(coalesce(a.details,'{}'::jsonb) - 'proof_path' - 'receipt_path' - 'storage_path' - 'signature_png')
   ) ORDER BY a.created_at,a.id),'[]'::jsonb)
   INTO v_pv_events
   FROM public.pv_audit_events a
@@ -93,7 +93,7 @@ BEGIN
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
     'cv_number',v.cv_number,'action',a.action,
     'actor',coalesce(p.username,'Account unavailable'),
-    'event_time',a.created_at,'details',a.details
+    'event_time',a.created_at,'details',(coalesce(a.details,'{}'::jsonb) - 'proof_path' - 'receipt_path' - 'storage_path' - 'signature_png')
   ) ORDER BY a.created_at,a.id),'[]'::jsonb)
   INTO v_pc_events FROM public.cash_voucher_audit_events a
   JOIN public.cash_vouchers v ON v.id=a.voucher_id
