@@ -177,7 +177,7 @@ export default function JIMSHistoryExports({profile}){
   const scopedFiles=useMemo(()=>((manifest?.files)||[]).filter(r=>
     (!tier||r.tier===tier)&&(!paymentStatus||r.payment_status===paymentStatus)),[manifest,tier,paymentStatus])
   const scopedMeetings=useMemo(()=>((manifest?.meeting_records)||[]).filter(r=>
-    !tier||r.tier===tier),[manifest,tier])
+    (!tier||r.tier===tier)&&(!paymentStatus||r.payment_status===paymentStatus)),[manifest,tier,paymentStatus])
   const selectedEvidence=useMemo(()=>
     scopedFiles.filter(r=>selectedDocs.includes(r.kind)),[scopedFiles,selectedDocs])
 
@@ -261,7 +261,8 @@ export default function JIMSHistoryExports({profile}){
       const files=current.files.filter(r=>selectedDocs.includes(r.kind)&&
         (!tier||r.tier===tier)&&(!paymentStatus||r.payment_status===paymentStatus))
       const meetings=selectedDocs.includes('jr_meeting')?
-        current.meeting_records.filter(r=>!tier||r.tier===tier):[]
+        current.meeting_records.filter(r=>(!tier||r.tier===tier)&&
+          (!paymentStatus||r.payment_status===paymentStatus)):[]
       if(!files.length&&!meetings.length)throw new Error('No matching documents or meeting records.')
       const totalBytes=files.reduce((n,r)=>n+Number(r.size_bytes||0),0)
       if(files.length>maxFileCount || totalBytes>maxZipBytes)
@@ -272,6 +273,7 @@ export default function JIMSHistoryExports({profile}){
       const JSZip=(await import('jszip')).default
       const zip=new JSZip()
       const list=[]
+      let actualBytes=0
       for(let i=0;i<files.length;i++){
         const f=files[i]
         const folder=safeFolder(f.pv_number)+'/'+safeFolder(f.kind)+'/'
@@ -280,6 +282,8 @@ export default function JIMSHistoryExports({profile}){
         const {data:blob,error:e}=await supabase.storage.from(f.bucket).download(f.storage_path)
         if(e||!blob)throw new Error('Cannot access '+f.pv_number+' / '+f.kind+
           '. Authorization or storage failed: '+(e?.message||'Unknown error'))
+        actualBytes+=blob.size
+        if(actualBytes>maxZipBytes)throw new Error('Downloaded evidence exceeds 100 MB. Apply a tighter filter.')
         zip.file(target,blob)
         list.push({...f,archive_path:target})
       }
