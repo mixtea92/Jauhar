@@ -1,0 +1,136 @@
+/* JIMS_STEP57D6C1_SIDEBAR_ONLY — visual/navigation polish only.
+   No changes to router, auth/RLS, counts, approval/payment logic or upload.
+   Applies to both locked dark and approved cream/light themes.
+   The existing logo, sidebar width, navigation order (except My Approvals
+   relocation through guarded JSX), and responsive behavior are preserved.
+*/
+.jims-shell .sidebar {
+  --jims-nav-gold:#d6b470;
+  --jims-nav-divider:rgba(203,166,94,.20);
+}
+.jims-shell .sidebar button.jims-57d6c1-row {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+  min-height:42px;
+  text-align:left;
+  line-height:1.4;
+  letter-spacing:.01em;
+}
+.jims-shell .sidebar button.jims-57d6c1-row::before {
+  content:'';
+  display:block;
+  flex:0 0 17px;
+  width:17px;
+  height:17px;
+  background-color:currentColor;
+  -webkit-mask-image:var(--jims-57d6c1-icon);
+  mask-image:var(--jims-57d6c1-icon);
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  -webkit-mask-size:contain;
+  mask-size:contain;
+  opacity:.87;
+}
+.jims-shell .sidebar button.jims-57d6c1-row:focus-visible {
+  outline:2px solid var(--jims-nav-gold);
+  outline-offset:2px;
+}
+.jims-shell .sidebar .jims-nav-notification,
+.jims-shell .sidebar .jims-my-approval-badge {
+  margin-left:auto;
+  flex:0 0 auto;
+  min-width:22px;
+  font-variant-numeric:tabular-nums;
+  text-align:center;
+}
+.jims-shell .sidebar button.jims-57d6c1-approvals > span:first-of-type {
+  flex:1 1 auto;
+  min-width:0;
+}
+.jims-shell .sidebar button.jims-57d6c1-group {
+  margin-top:12px;
+  border-top:1px solid var(--jims-nav-divider);
+  padding-top:15px;
+  min-height:50px;
+  font-weight:700;
+}
+.jims-shell .sidebar button.jims-57d6c1-group > .chevron {
+  margin-left:auto;
+  flex:0 0 auto;
+}
+.jims-shell .sidebar #finance-approval-submenu {
+  margin-top:5px;
+  padding-left:12px;
+  border-left-color:var(--jims-nav-divider);
+}
+.jims-shell .sidebar #finance-delegation-submenu {
+  padding-left:12px;
+  border-left-color:var(--jims-nav-divider);
+}
+.jims-shell .sidebar button.jims-57d6c1-delegation {
+  border-top:1px solid var(--jims-nav-divider);
+  border-radius:0;
+  margin-top:12px;
+  padding-top:13px;
+}
+.jims-shell .sidebar button.jims-57d6c1-delegation span:last-child {
+  margin-left:auto;
+}
+.jims-shell .sidebar button.jims-57d6c1-report {
+  margin-top:16px;
+  border-top:1px solid var(--jims-nav-divider);
+  padding-top:14px;
+  border-radius:0;
+}
+.jims-shell .sidebar button.jims-57d6c1-approvals {
+  margin-top:18px;
+  padding-top:16px;
+  min-height:54px;
+  border-top:1px solid var(--jims-nav-divider);
+  font-weight:650;
+}
+.jims-shell .sidebar .jims-57d6c1-soon {
+  display:none!important; /* Placeholder only: not a navigation action */
+}
+.jims-shell .sidebar .jims-57d6c1-group.nav-active,
+.jims-shell .sidebar .jims-57d6c1-approvals.nav-active {
+  color:var(--jims-nav-gold);
+}
+@media(max-width:800px) {
+  .jims-shell .sidebar button.jims-57d6c1-row {
+    min-height:44px;
+  }
+  .jims-shell .sidebar button.jims-57d6c1-approvals {
+    min-height:48px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .jims-shell .sidebar button.jims-57d6c1-row {transition:none}
+}
+/* Light-mode contrast, without touching the locked dark palette. */
+html.jims-57d6-light .jims-shell .sidebar {
+  --jims-nav-gold:#966921;
+  --jims-nav-divider:rgba(152,111,48,.25);
+}
+html.jims-57d6-light .jims-shell .sidebar button.jims-57d6c1-row:focus-visible {
+  outline-color:#9a7539;
+}
+.jims-shell .sidebar .jims-57d6c1-dashboard {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%227%22%20height%3D%229%22%20rx%3D%221.5%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%223%22%20width%3D%227%22%20height%3D%225%22%20rx%3D%221.5%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2212%22%20width%3D%227%22%20height%3D%229%22%20rx%3D%221.5%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%2216%22%20width%3D%227%22%20height%3D%225%22%20rx%3D%221.5%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-finance {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%226%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M3%2010h18M7%206V4h10v2%22%2F%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2216%22%20r%3D%221%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-process {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%207h16l-3-3m3%203-3%203M20%2017H4l3-3m-3%203%203%203%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-calendar {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%203v4m10-4v4M3%2010h18m-14%204h3m4%200h3m-10%204h3%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-pv {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%203h9l4%204v14H6zM15%203v5h4M9%2012h7M9%2016h7%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-cash {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%226%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M3%2010h18M7%2014h4m6-1v5m-2-2h4%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-delegation {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%223%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%229%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22M2%2020v-2c0-2.5%202.5-4%206-4s6%201.5%206%204v2m0-5c2.8-.5%207%200%207%204v1%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-workspace {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%208%2012%203l9%205v11l-9%203-9-3zM3%208l9%204%209-4m-9%204v10%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-manage {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%207h14M5%2012h14M5%2017h14%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%227%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%2215%22%20cy%3D%2212%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%2211%22%20cy%3D%2217%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-report {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%2020V4m0%2016h17M8%2016v-5m5%205V7m5%209V4%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-approvals {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203h8l2%203v15H6V6zM9%2012l2%202%204-4M9%2018h6%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-users {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%229%22%20cy%3D%228%22%20r%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2020v-2c0-3%202.5-5%206-5s6%202%206%205v2m1-14c2.5%200%204%201.5%204%204s-1.5%204-4%204m1%202c2.5.2%204%201.6%204%204v1%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-audit {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%202%208%204v6c0%205-3%208-8%2010-5-2-8-5-8-10V6zM9%2012l2%202%204-4%22%2F%3E%3C%2Fsvg%3E")}
+.jims-shell .sidebar .jims-57d6c1-profile {--jims-57d6c1-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M4%2021v-2c0-4%203-6%208-6s8%202%208%206v2%22%2F%3E%3C%2Fsvg%3E")}
