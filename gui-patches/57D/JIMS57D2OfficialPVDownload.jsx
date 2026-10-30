@@ -16,7 +16,7 @@ const stamp=x=>{
 const titleCase=x=>value(x).replaceAll('_',' ').replace(/\b[a-z]/g,c=>c.toUpperCase()).replace(/\b(?:Ceo|Bod|Hod|Fm|Ap)\b/g,part=>part.toUpperCase())
 const cell=(x,bold=false)=>({text:value(x),bold,fontSize:8,margin:[1,3,1,3]})
 const pair=(label,text)=>[cell(label,true),cell(text)]
-const section=text=>({text,style:'section',margin:[0,16,0,7],headlineLevel:1})
+const section=text=>({text,style:'section',margin:[0,16,0,7]})
 const filename=x=>value(x).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,110)
 const grid=(body,widths=['29%','71%'])=>({
   table:{widths,body},layout:'lightHorizontalLines',margin:[0,2,0,6]
@@ -103,9 +103,7 @@ export function officialPVDocDefinition(report){
   ]
   return {
     pageSize:'A4',pageMargins:[34,43,34,46],
-    // JIMS_STEP57D2C_KEEP_HEADING_WITH_CONTENT: avoid orphan section titles.
-    pageBreakBefore:(node,followingNodesOnPage)=>
-      node.headlineLevel===1&&followingNodesOnPage.length===0,
+    // JIMS_STEP57D2D_FIXED_APPROVAL_PAGEBREAK: deterministic appendix page.
     info:{title:'JAUHAR Official PV '+value(v.pv_number),
       author:'JAUHAR Integrated Management System',
       subject:'Read-only Payment Voucher approval and settlement history'},
@@ -163,7 +161,9 @@ export function officialPVDocDefinition(report){
         pair('Contractual Supplier Due Date',ymd(due.supplier_due_date)),
         pair('FM Approved Schedule',ymd(due.fm_schedule))
       ]),
-      section('ACTUAL APPROVAL HISTORY — ALL ROUNDS'),
+      // New page for the decision audit section; heading and table stay together.
+      {...section('ACTUAL APPROVAL HISTORY — ALL ROUNDS'),
+        pageBreak:'before',margin:[0,0,0,7]},
       {table:{headerRows:1,widths:[31,66,50,77,85,'*'],
         body:noRecords(approvalsBody,6,'No approval actions recorded')},
         layout:{fillColor:i=>i===0?'#f2ebdf':null,
