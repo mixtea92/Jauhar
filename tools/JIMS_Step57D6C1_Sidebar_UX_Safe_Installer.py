@@ -223,12 +223,6 @@ if new_app.count('jims-57d6c1-row')!=14:
     stop('Number of decorated sidebar buttons not as expected')
 if new_app.count('Finance Workspace')!=1:
     stop('Finance Workspace visual label not unique')
-if not(new_app.index('JIMS_STEP_55L_ORDER')<
-       new_app.index('JIMS_STEP57D5_CALENDAR_SIDEBAR')<
-       new_app.index("setActivePage('payment_voucher')")<
-       new_app.index('JIMS_STEP_57C5SN_APPROVAL_BADGE') or True):
-    # Exact ordering is checked below within the sidebar itself.
-    stop('Unexpected Finance order')
 if not (sidebar.index('Payment Process')<sidebar.index('Payment Calendar')
         <sidebar.index('Payment Voucher')<sidebar.index('Petty Cash')):
     stop('Locked four-item Finance menu order changed')
