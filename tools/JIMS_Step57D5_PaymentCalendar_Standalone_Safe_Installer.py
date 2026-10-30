@@ -7,7 +7,7 @@ Creates 2 standalone assets. Payment Process/Payment Voucher/Payment Planning/PC
 """
 from pathlib import Path
 from datetime import datetime,timezone
-import subprocess,re,sys
+import subprocess,re,sys,tempfile
 
 ROOT=Path('/workspaces/Jauhar')
 APP_ROOT=ROOT/'app'
@@ -181,6 +181,31 @@ menu_pos=new.find('JIMS_STEP57D5_CALENDAR_SIDEBAR')
 pv_pos=new.find('Payment Voucher',menu_pos)
 if not(0<=new.find('Payment Process',new.find('finance-approval-submenu'))<menu_pos<pv_pos):
     stop('Calendar sidebar must appear after Process and before Payment Voucher')
+
+# Syntax-parse the candidate JSX BEFORE any local files are touched.
+# This catches broken conditional wrappers even when structural anchor checks pass.
+parser=APP_ROOT/'node_modules/@babel/parser'
+if not parser.is_dir():
+    stop('JSX parser not found in app/node_modules/@babel/parser. Cannot safely verify App.jsx.')
+with tempfile.TemporaryDirectory(prefix='jims_57d5_jsx_') as td:
+    temp=Path(td)
+    app_candidate=temp/'App.jsx'
+    calendar_candidate=temp/'JIMSPaymentCalendar57D5.jsx'
+    app_candidate.write_text(new,encoding='utf-8')
+    calendar_candidate.write_text(widget,encoding='utf-8')
+    checker=(
+      "const fs=require('fs'),parser=require('@babel/parser');"
+      "for(const f of process.argv.slice(1)){"
+      "parser.parse(fs.readFileSync(f,'utf8'),{sourceType:'module',plugins:['jsx']});}"
+      "console.log('JIMS 57D5 JSX PARSER PASS');"
+    )
+    verify=subprocess.run(
+      ['node','-e',checker,str(app_candidate),str(calendar_candidate)],
+      cwd=APP_ROOT,capture_output=True,text=True
+    )
+    if verify.returncode!=0:
+        stop('Pre-install JSX syntax check failed: '+(verify.stderr or verify.stdout)[-1300:])
+    print(verify.stdout.strip())
 
 print('57D5 Standalone Calendar + Sidebar Position PASS')
 print('Sidebar: Payment Process > Payment Calendar > Payment Voucher > Petty Cash')
