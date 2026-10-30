@@ -64,9 +64,6 @@ if "jims-57d6-light" not in old_theme:
 
 component=source('JIMS57D6C2MobileNav.jsx')
 css=source('JIMS57D6C2MobileNav.css')
-checks={
-  'Mobile media query': BREAKPOINT if False else '(max-width: 800px)',
-}
 for marker in (
     'const BREAKPOINT =',
     "const READY_CLASS = 'jims-57d6c2-ready'",
