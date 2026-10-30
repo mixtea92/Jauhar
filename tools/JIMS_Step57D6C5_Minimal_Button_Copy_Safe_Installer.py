@@ -105,10 +105,10 @@ for source,label in reversed(removals):
             stop('Action tag reconstruction anchor missing')
         reconstructed=reconstructed.replace(tag,source+tag,1)
     elif source.startswith('<span className="jims-section-note"'):
-        anchor='    </div>\n    <div className="jims-actions-grid">'
+        anchor='      \n    </div>\n    <div className="jims-actions-grid">'
         if reconstructed.count(anchor)!=1:
             stop('Section note reconstruction anchor missing')
-        reconstructed=reconstructed.replace(anchor,'      '+source+'\n'+anchor,1)
+        reconstructed=reconstructed.replace(anchor,'      '+source+'\n    </div>\n    <div className="jims-actions-grid">',1)
     elif source.startswith('<p>Shortcuts'):
         anchor='<h3>Action Required</h3>'
         if reconstructed.count(anchor)!=1:
