@@ -1,0 +1,106 @@
+/* JIMS_STEP57D6A_LIGHT_DARK — scoped, reversible light-mode overlay.
+   Original JIMS black/gold dark design remains the default. No login styling. */
+.jims-57d6-theme-toggle {
+  position:fixed; right:18px; bottom:18px; z-index:50;
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  padding:10px 16px; border:1px solid #aa8646; border-radius:999px;
+  background:#22252b; color:#f6e8cf;
+  box-shadow:0 5px 18px rgba(0,0,0,.22);
+  font:600 12px/1.25 system-ui,-apple-system,sans-serif;
+  cursor:pointer; width:auto; min-height:40px; white-space:nowrap;
+  transition:transform .15s,background .15s,box-shadow .15s;
+}
+.jims-57d6-theme-toggle:hover {transform:translateY(-2px);background:#30343b}
+.jims-57d6-theme-toggle:focus-visible {outline:3px solid #d9ad57;outline-offset:3px}
+.jims-57d6-theme-icon {font-size:18px;line-height:1}
+:root.jims-57d6-light {color-scheme:light;--jims-bg:#f6f3eb;--jims-surface:#fffdf9;
+  --jims-ink:#292b2c;--jims-soft:#62676d;--jims-border:#e5dac5;--jims-gold:#a47b33;}
+:root.jims-57d6-light body {background:#f6f3eb;color:#292b2c}
+:root.jims-57d6-light #root {background:#f6f3eb;color:#292b2c}
+:root.jims-57d6-light .layout {background:#f6f3eb;color:#292b2c}
+:root.jims-57d6-light .content {background:#f6f3eb;color:#292b2c}
+:root.jims-57d6-light .sidebar {
+  background:#202329;color:#f7f0e4;border-right:1px solid rgba(170,132,65,.35);
+}
+:root.jims-57d6-light .sidebar .nav-item {color:#e6dfd2}
+:root.jims-57d6-light .sidebar .nav-item:hover,
+:root.jims-57d6-light .sidebar .nav-active {background:#39352b;color:#f6d99a}
+:root.jims-57d6-light .sidebar .sidebar-title {color:#d9ad57}
+:root.jims-57d6-light .sidebar .sidebar-sub {color:#c3b9a6}
+:root.jims-57d6-light .topbar {
+  background:#fffdf9;color:#292b2c;border:1px solid #e5dac5;
+  border-radius:12px;padding:10px 14px;
+}
+:root.jims-57d6-light .topbar p,
+:root.jims-57d6-light .muted {color:#64676b}
+:root.jims-57d6-light .topbar h1,
+:root.jims-57d6-light .content h1,
+:root.jims-57d6-light .content h2,
+:root.jims-57d6-light .content h3 {color:#292b2c}
+:root.jims-57d6-light .card,
+:root.jims-57d6-light .panel {
+  background:#fffdf9;color:#292b2c;border-color:#e5dac5;
+}
+:root.jims-57d6-light .content .table-wrap {border-color:#e5dac5}
+:root.jims-57d6-light .content table th {background:#f1eadc;color:#4d483e}
+:root.jims-57d6-light .content table td {border-color:#e9e1d3;color:#343638}
+:root.jims-57d6-light .content input:not([type='checkbox']):not([type='radio']),
+:root.jims-57d6-light .content select,
+:root.jims-57d6-light .content textarea {
+  color:#25282c;background:#fffdf9;border-color:#cfc3ad;
+}
+:root.jims-57d6-light .content .pv-section {
+  background:#f6ebce;color:#5e491f;border-left-color:#b18a41;
+}
+:root.jims-57d6-light .content .pv-action-panel {
+  background:#fffcf5;border-color:#e6d6a4;color:#34312b;
+}
+/* Standalone Payment Calendar retains its existing date-range and overdue logic.
+   Only the visual surface and contrast differ in light mode. */
+:root.jims-57d6-light .jims-cal-page {
+  color:#292b2c;
+  --jims-cal-gold:#ae8136;
+  --jims-cal-outline:rgba(159,121,52,.37);
+  --jims-cal-fill:rgba(202,166,101,.11);
+}
+:root.jims-57d6-light .jims-cal-header p,
+:root.jims-57d6-light .jims-cal-footnote,
+:root.jims-57d6-light .jims-cal-legend {color:#66625e}
+:root.jims-57d6-light .jims-cal-header-actions select,
+:root.jims-57d6-light .jims-cal-range-inputs input[type=date] {
+  color:#292b2c;color-scheme:light;background:#fffdf9;border-color:#bb9b66;
+}
+:root.jims-57d6-light .jims-cal-dayname {background:#e8ddc9;color:#514a3e}
+:root.jims-57d6-light .jims-cal-day,
+:root.jims-57d6-light .jims-cal-empty {background:#fffdf9;color:#272a2d}
+:root.jims-57d6-light .jims-cal-day:hover {background:#f5eedf}
+:root.jims-57d6-light .jims-cal-selected {
+  background:#f3e3c2!important;
+  box-shadow:inset 0 0 0 2px #ad8336;
+}
+:root.jims-57d6-light .jims-cal-day small {color:#796d5e}
+:root.jims-57d6-light .jims-cal-day:disabled,
+:root.jims-57d6-light .jims-cal-outside {background:#e9e6df;opacity:.48}
+:root.jims-57d6-light .jims-cal-day:disabled:hover {background:#e9e6df}
+:root.jims-57d6-light .jims-cal-range-note strong {color:#88611a}
+:root.jims-57d6-light .jims-cal-upcoming {color:#14623c;border-color:#418b69}
+:root.jims-57d6-light .jims-cal-due_today {color:#805500;border-color:#bb9a36}
+:root.jims-57d6-light .jims-cal-overdue,
+:root.jims-57d6-light .jims-cal-range-error {color:#b32d25}
+:root.jims-57d6-light .jims-cal-missing_due {color:#866020}
+:root.jims-57d6-light .jims-57d6-theme-toggle {
+  background:#fffdf9;color:#5d4824;border-color:#b58b48;
+  box-shadow:0 5px 18px rgba(54,44,26,.14);
+}
+:root.jims-57d6-light .jims-57d6-theme-toggle:hover {background:#f3e7d0}
+@media(max-width:650px) {
+  .jims-57d6-theme-toggle {
+    right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    padding:9px 12px;font-size:11px;min-height:39px;
+  }
+  :root.jims-57d6-light .topbar {flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce) {
+  .jims-57d6-theme-toggle {transition:none}
+  .jims-57d6-theme-toggle:hover {transform:none}
+}
