@@ -31,7 +31,7 @@ const COLUMNS = {
     ['payment_date','Payment Date'],['created_at','Created'],['initiated_at','Initiated'],
     ['reviewed_at','Reviewed'],['completed_at','Completed'],['voided_at','Voided'],['void_reason','Void Reason']],
   petty_cash_history:[['cv_number','Petty Cash No'],['department','Department'],['branch','Branch'],
-    ['cost_center','Cost Center'],['claimant','Claimant'],['amount','Amount (RM)'],
+    ['cost_center','Cost Center'],['charge_subdepartment','Charge Sub-Department'],['requester_department','Requester Department'],['requester_subdepartment','Requester Sub-Department'],['requester_cost_center','Requester Cost Center'],['claimant','Claimant'],['amount','Amount (RM)'],
     ['status','Status'],['receipt_count','Receipt Count'],['created_at','Created'],
     ['submitted_at','Submitted'],['closed_at','Closed']],
   pv_operational_events_history:[['pv_number','PV Number'],['action','Event'],['actor','Recorded By'],
