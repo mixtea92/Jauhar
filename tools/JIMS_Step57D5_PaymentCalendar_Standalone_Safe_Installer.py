@@ -128,7 +128,7 @@ if indent.strip():stop('Unexpected sidebar button indentation')
 # JSX braces must be literal; NEVER use Python str.format on this markup.
 # Prefix existing sidebar indentation line-by-line instead of escaping braces.
 menu_lines=[
-    '{/* JIMS_STEP57D5_CALENDAR_SIDEBAR: Payment Process > Calendar > PV > Petty Cash */}',
+    '{/* JIMS_STEP57D5_CALENDAR_SIDEBAR: Process > Calendar > PV > PC */}',
     '{jimsCalendarEligible(profile) && (',
     '  <button type="button"',
     "    className={'nav-item nav-subitem '+(activePage === 'payment_calendar' ? 'nav-active' : '')}",
