@@ -13,10 +13,10 @@ const stamp=x=>{
   return new Intl.DateTimeFormat('en-MY',{timeZone:'Asia/Kuala_Lumpur',
     dateStyle:'medium',timeStyle:'short'}).format(d)
 }
-const titleCase=x=>value(x).replaceAll('_',' ').replace(/\b[a-z]/g,c=>c.toUpperCase())
+const titleCase=x=>value(x).replaceAll('_',' ').replace(/\b[a-z]/g,c=>c.toUpperCase()).replace(/\b(?:Ceo|Bod|Hod|Fm|Ap)\b/g,part=>part.toUpperCase())
 const cell=(x,bold=false)=>({text:value(x),bold,fontSize:8,margin:[1,3,1,3]})
 const pair=(label,text)=>[cell(label,true),cell(text)]
-const section=text=>({text,style:'section',margin:[0,16,0,7]})
+const section=text=>({text,style:'section',margin:[0,16,0,7],headlineLevel:1})
 const filename=x=>value(x).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,110)
 const grid=(body,widths=['29%','71%'])=>({
   table:{widths,body},layout:'lightHorizontalLines',margin:[0,2,0,6]
@@ -89,8 +89,10 @@ export function officialPVDocDefinition(report){
     }))
   ]:[
     grid([
-      pair('Initiated At',stamp(v.payment_initiation_date)),
-      pair('FM Review',titleCase(v.fm_payment_review_decision)+' · '+stamp(v.fm_payment_review_date)),
+      pair('Initiated At',v.payment_initiation_date?stamp(v.payment_initiation_date):'Not Yet Initiated'),
+      pair('FM Review',v.fm_payment_review_decision
+        ?titleCase(v.fm_payment_review_decision)+' · '+stamp(v.fm_payment_review_date)
+        :'Not Yet Reviewed'),
       pair('FM Review Remarks',v.fm_payment_review_remarks),
       pair('Payment Date',ymd(v.payment_date)),
       pair('Paid Recorded At',stamp(v.payment_recorded_at)),
@@ -101,6 +103,9 @@ export function officialPVDocDefinition(report){
   ]
   return {
     pageSize:'A4',pageMargins:[34,43,34,46],
+    // JIMS_STEP57D2C_KEEP_HEADING_WITH_CONTENT: avoid orphan section titles.
+    pageBreakBefore:(node,followingNodesOnPage)=>
+      node.headlineLevel===1&&followingNodesOnPage.length===0,
     info:{title:'JAUHAR Official PV '+value(v.pv_number),
       author:'JAUHAR Integrated Management System',
       subject:'Read-only Payment Voucher approval and settlement history'},
