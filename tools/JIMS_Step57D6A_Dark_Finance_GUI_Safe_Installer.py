@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix='jims_57d6a_preflight_') as td:
     stop('Preflight parser failed: '+(result.stderr or result.stdout)[-1800:])
   print(result.stdout.strip())
 
-if new.replace(IMPORT+'\n','')!=old:
+if new.replace(ANCHOR+'\n'+IMPORT,ANCHOR,1)!=old:
   stop('Import safety check failed; original main.jsx not preserved')
 if new.count(IMPORT)!=1:
   stop('Import inserted multiple times')
