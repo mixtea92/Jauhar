@@ -258,7 +258,7 @@ badge_logic = """
       activePage, refreshMyApprovalBadge])
 """
 app_new = app_new.replace(state_anchor, state_anchor + badge_logic, 1)
-nav_anchor = "              My Approvals\\n            </button>"
+nav_anchor = "              My Approvals\n            </button>"
 exactly_one(app_new, nav_anchor, "My Approvals sidebar label")
 app_new = app_new.replace(nav_anchor, """              <span>My Approvals</span>
               {myApprovalBadge !== null && myApprovalBadge > 0 && (
@@ -293,8 +293,11 @@ def existing_rpc_calls(x):
     return sorted(line.strip() for line in x.splitlines() if "supabase.rpc(" in line)
 if existing_rpc_calls(pv_old) != existing_rpc_calls(pv_new):
     stop("Existing PV approval/payment RPC references changed unexpectedly.")
-if existing_rpc_calls(app_old) != existing_rpc_calls(app_new):
-    stop("Existing App RPC references changed unexpectedly.")
+allowed_new_app_call = "await supabase.rpc('jims_actual_approver_summary_v1')"
+app_calls_before = existing_rpc_calls(app_old)
+app_calls_after = existing_rpc_calls(app_new)
+if app_calls_after != sorted(app_calls_before + [allowed_new_app_call]):
+    stop("Unexpected App RPC change; only the read-only approval summary count is allowed.")
 for token in ("PaymentTrackingPanel", "PVDelegationHistory", "bodDecide", "financeManagerDecide"):
     if pv_old.count(token) != pv_new.count(token):
         stop("Protected PaymentVoucher behavior changed: " + token)
