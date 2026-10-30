@@ -1,0 +1,46 @@
+/* JIMS_STEP57D6C7_ZERO_REDUNDANT_COPY
+   Content-only tightening after exact JSX removal of repeated helper text.
+   No sidebar, topbar, login, permission, finance action or status hidden.
+*/
+.jims-shell>.content .jims-closed-history-card{
+  min-height:100px;
+  padding:16px 19px;
+  gap:9px;
+  justify-content:center;
+}
+.jims-shell>.content .jims-closed-history-card strong{line-height:1.35}
+.jims-shell>.content .jims-closed-history-card em{margin-top:0}
+.jims-shell>.content .jims-closed-history > h2{margin-bottom:15px}
+.jims-shell>.content .jims-payment-board .jims-pb-card{
+  min-height:104px;
+  padding:16px 18px;
+  gap:7px;
+}
+.jims-shell>.content .jims-payment-board .jims-pb-card-top{
+  margin-bottom:2px;
+}
+.jims-shell>.content .jims-payment-board .jims-pb-money-tile{
+  min-height:110px;
+}
+.jims-shell>.content .jims-payment-board .jims-pb-money-main{
+  min-height:94px;
+}
+.jims-shell>.content .jims-payment-board .panel-head>div:empty{
+  display:none;
+}
+.jims-shell>.content .jims-cal-page .jims-cal-header{
+  align-items:center;
+}
+.jims-shell>.content .jims-cal-page .jims-cal-range-title{
+  margin-bottom:12px;
+}
+@media(max-width:650px){
+  .jims-shell>.content .jims-payment-board .jims-pb-card{
+    min-height:82px;
+    padding:12px;
+  }
+  .jims-shell>.content .jims-closed-history-card{
+    min-height:85px;
+    padding:13px;
+  }
+}
