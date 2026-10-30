@@ -1,8 +1,12 @@
 # JIMS 57CC1 — Code cleaning
 
-57CC1 cleans the installed Codespaces source. Repository `app/src` remains the
-historical base used by installers; do not overwrite the installed application
-with that base. Flow remains: cleaning → final UAT → readiness → go-live.
+57CC1 has been applied directly to the six reviewed files in the repository
+source. Before/after builds produced byte-identical artifacts. The repository
+still contains the historical base used by subsequent GUI installers; it is
+not a snapshot of the user's installed Codespaces working tree. Do not overwrite
+that working tree with this base. The guarded installer below remains available
+for cleaning any reviewed leftovers in the installed app. Flow remains:
+cleaning → final UAT → readiness → go-live.
 
 ## Reviewed edits
 

@@ -67,39 +67,6 @@ function dateMY(iso){
   if(Number.isNaN(d.getTime()))return String(iso)
   return new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',day:'2-digit',month:'2-digit',year:'numeric'}).format(d)
 }
-async function imageFromDataURL(url){
-  return new Promise((resolve,reject)=>{
-    const im=new Image()
-    im.onload=()=>resolve(im)
-    im.onerror=()=>reject(Error('Stored HOD signature image cannot be decoded'))
-    im.src=url
-  })
-}
-async function signerStamp(approval,stage){
-  if(!approval?.signature_png||!approval?.approved_at||!approval?.approved_username)
-    throw Error('Missing original digital signature, username or approval date for '+stage)
-  const username=String(approval.approved_username).trim()
-  const canvas=document.createElement('canvas')
-  canvas.width=720;canvas.height=400
-  const ctx=canvas.getContext('2d')
-  if(!ctx)throw Error('Unable to draw CV signature stamp in this browser')
-  ctx.fillStyle='#ffffff'
-  ctx.fillRect(0,0,canvas.width,canvas.height)
-  const sig=await imageFromDataURL(approval.signature_png)
-  const ratio=Math.min(620/sig.width,190/sig.height)
-  ctx.drawImage(sig,30,4,Math.round(sig.width*ratio),Math.round(sig.height*ratio))
-  let size=66
-  const fonts='"Monotype Corsiva","Apple Chancery","Brush Script MT",cursive'
-  while(size>24){
-    ctx.font='italic '+size+'px '+fonts
-    if(ctx.measureText(username).width<670)break
-    size-=2
-  }
-  ctx.fillStyle='#13334e';ctx.fillText(username,30,286)
-  ctx.fillStyle='#333b45';ctx.font='30px Arial, sans-serif'
-  ctx.fillText('Date: '+dateMY(approval.approved_at),30,348)
-  return canvas.toDataURL('image/png').split(',')[1]
-}
 function relTarget(rels,id){
   const r=nodes(rels,P,'Relationship').find(e=>e.getAttribute('Id')===id)
   if(!r)throw Error('Master workbook missing expected relationship '+id)

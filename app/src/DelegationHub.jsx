@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 
 // JAUHAR_STEP_46D_HUB — The database is the final authorization authority.
