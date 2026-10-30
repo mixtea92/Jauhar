@@ -125,19 +125,23 @@ indent=re.search(r'(?m)^([ \t]*)<button',new[button_start:button_start+8])
 line_start=new.rfind('\n',0,button_start)+1
 indent=new[line_start:button_start]
 if indent.strip():stop('Unexpected sidebar button indentation')
-menu="""{i}{{/* JIMS_STEP57D5_CALENDAR_SIDEBAR: Payment Process > Calendar > PV > Petty Cash */}}
-{i}{{jimsCalendarEligible(profile) && (
-{i}  <button type="button"
-{i}    className={{'nav-item nav-subitem '+(activePage === 'payment_calendar' ? 'nav-active' : '')}}
-{i}    onClick={{() => {{
-{i}      setActivePage('payment_calendar')
-{i}      setEditingUser(null)
-{i}      setResetUser(null)
-{i}    }}}}>
-{i}    Payment Calendar
-{i}  </button>
-{i})}}}
-""".format(i=indent)
+# JSX braces must be literal; NEVER use Python str.format on this markup.
+# Prefix existing sidebar indentation line-by-line instead of escaping braces.
+menu_lines=[
+    '{/* JIMS_STEP57D5_CALENDAR_SIDEBAR: Payment Process > Calendar > PV > Petty Cash */}',
+    '{jimsCalendarEligible(profile) && (',
+    '  <button type="button"',
+    "    className={'nav-item nav-subitem '+(activePage === 'payment_calendar' ? 'nav-active' : '')}",
+    '    onClick={() => {',
+    "      setActivePage('payment_calendar')",
+    '      setEditingUser(null)',
+    '      setResetUser(null)',
+    '    }}>',
+    '    Payment Calendar',
+    '  </button>',
+    ')}',
+]
+menu='\\n'.join(indent+line for line in menu_lines)+'\\n'
 new=new[:line_start]+menu+new[line_start:]
 new="import JIMSPaymentCalendar57D5 from './JIMSPaymentCalendar57D5'\n"+new
 
