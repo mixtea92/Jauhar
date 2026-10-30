@@ -106,9 +106,22 @@ with tempfile.TemporaryDirectory(prefix='jims57d1e_preflight_') as t:
     pc.write_text(modified,encoding='utf-8')
     ui.write_text(widget,encoding='utf-8')
     report.write_text(new_report,encoding='utf-8')
-    checker="""const fs=require('fs'),p=require('@babel/parser');
+    # @babel/parser is OPTIONAL: it is not in JIMS package.json.
+    # Never require an extra npm installation merely to perform a dry run.
+    # npm run build (Vite) is the authoritative syntax/bundling check during
+    # installation, and any failure automatically restores the original files.
+    checker="""const fs=require('fs');
+      let parser;
+      try {parser=require('@babel/parser');}
+      catch(e) {
+        if(e && e.code==='MODULE_NOT_FOUND') {
+          console.log('JSX PRECHECK SKIPPED: optional @babel/parser is not installed; Vite build validates JSX.');
+          process.exit(0);
+        }
+        throw e;
+      }
       for(const f of process.argv.slice(1)){
-        p.parse(fs.readFileSync(f,'utf8'),{sourceType:'module',plugins:['jsx']});
+        parser.parse(fs.readFileSync(f,'utf8'),{sourceType:'module',plugins:['jsx']});
       }
       console.log('JIMS 57D1E JSX CHECK PASS')"""
     preflight=subprocess.run(
