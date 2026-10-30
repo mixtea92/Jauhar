@@ -7,6 +7,7 @@ import './JIMS57D6C2MobileNav.css'
 
 const BREAKPOINT = '(max-width: 800px)'
 const OPEN_CLASS = 'jims-57d6c2-mobile-open'
+const READY_CLASS = 'jims-57d6c2-ready'
 const SIDEBAR_ID = 'jims-57d6c2-navigation'
 
 function mobileNow() {
@@ -45,6 +46,14 @@ export default function JIMS57D6C2MobileNav() {
     observer.observe(root, { childList:true, subtree:true })
     return () => observer.disconnect()
   }, [])
+
+  // Progressive enhancement: if JS is not ready, leave legacy mobile sidebar usable.
+  useEffect(() => {
+    document.documentElement.classList.toggle(
+      READY_CLASS, mobile && Boolean(nodes.sidebar && nodes.topbar)
+    )
+    return () => document.documentElement.classList.remove(READY_CLASS)
+  }, [mobile, nodes.sidebar, nodes.topbar])
 
   useEffect(() => {
     const sidebar = nodes.sidebar
