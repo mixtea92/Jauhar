@@ -60,3 +60,30 @@
   .jims-cal-plan-btn{align-self:flex-start}
 }
 @media(max-width:390px){.jims-cal-stats{grid-template-columns:1fr 1fr}.jims-cal-stat{padding:12px 10px}.jims-cal-stat b{font-size:17px}}
+
+
+/* JIMS_STEP57D5B_DATE_RANGE — date filter; CSS scoped to standalone Calendar */
+.jims-cal-range{display:flex;flex-direction:column;gap:12px;padding:16px 18px;margin:0 0 18px;
+  border:1px solid var(--jims-cal-outline);border-radius:12px;background:var(--jims-cal-fill)}
+.jims-cal-range-title{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}
+.jims-cal-range-title strong{font-size:14px}
+.jims-cal-range-title small{opacity:.72;font-size:12px}
+.jims-cal-range-inputs{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.jims-cal-range-inputs label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;min-width:170px}
+.jims-cal-range-inputs input[type=date]{width:100%;min-height:39px;box-sizing:border-box;
+  color:inherit;color-scheme:dark;background:#22262c;border:1px solid #806b48;border-radius:8px;
+  font-size:13px;padding:8px 10px}
+.jims-cal-range-inputs input[type=date]:focus-visible{outline:2px solid var(--jims-cal-gold);outline-offset:2px}
+.jims-cal-reset{min-height:39px;white-space:nowrap}
+.jims-cal-range-note,.jims-cal-range-error{margin:0;font-size:12px;line-height:1.5}
+.jims-cal-range-note{opacity:.81}.jims-cal-range-note strong{color:#e0be78;font-weight:700}
+.jims-cal-range-error{color:#f08a82;font-weight:700}
+.jims-cal-toolbar-note{font-size:12px;opacity:.65;text-align:right}
+.jims-cal-day:disabled,.jims-cal-outside{background:#15171a;opacity:.36;cursor:not-allowed}
+.jims-cal-day:disabled:hover{background:#15171a}
+@media(max-width:720px){
+ .jims-cal-range-inputs label{flex:1 1 170px}
+ .jims-cal-reset{width:100%}
+ .jims-cal-toolbar{flex-wrap:wrap}
+ .jims-cal-toolbar-note{width:100%;text-align:left}
+}
