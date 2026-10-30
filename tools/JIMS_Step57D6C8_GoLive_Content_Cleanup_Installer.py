@@ -179,7 +179,6 @@ EXACT={
  'PVDelegationHistory.jsx':[
   ('<p className="muted" style={{margin:\'6px 0\'}}>Part of this PV Approval History · recorded real actors and authorizers.</p>',''),
  ],
- 'JIMSHistoryExports.jsx':[],
 }
 
 # More local variants from recent actual in-app UAT screenshots. Static
