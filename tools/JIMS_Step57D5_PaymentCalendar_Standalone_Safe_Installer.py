@@ -139,7 +139,7 @@ if len(gate_hits)!=1:
          str(len(gate_hits))+' matches). Do not install inside JSX.')
 guard=gate_hits[0]
 line_start=new.rfind('\n',0,guard.start())+1
-indent=new[line_start:guard.start()]
+indent=guard.group(1)
 if indent.strip():stop('Unexpected outer PV access gate indentation')
 # JSX braces must be literal; NEVER use Python str.format on this markup.
 # Prefix existing sidebar indentation line-by-line instead of escaping braces.
