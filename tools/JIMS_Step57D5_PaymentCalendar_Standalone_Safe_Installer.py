@@ -96,7 +96,7 @@ new=old.replace('function App()',gate+'function App()',1)
 exactly(new,"activePage === 'payment_voucher' ? 'Payment Voucher'",'page title')
 new=new.replace(
     ": activePage === 'payment_voucher' ? 'Payment Voucher'",
-    ": activePage === 'payment_calendar' ? 'Payment Calendar'\\n"
+    ": activePage === 'payment_calendar' ? 'Payment Calendar'\n"
     "                  : activePage === 'payment_voucher' ? 'Payment Voucher'",1
 )
 
