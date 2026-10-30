@@ -38,6 +38,14 @@ const SPECS = {
     ['created_at','Created (MYT)'],['submitted_at','Submitted (MYT)'],
     ['closed_at','Closed (MYT)']
   ],
+  pv_operational_events_history: [
+    ['pv_number','PV Number'],['action','Operational Event'],['actor','Performed By'],
+    ['event_time','Timestamp (MYT)'],['details','Details (JSON)']
+  ],
+  petty_cash_operational_events_history: [
+    ['cv_number','Petty Cash Number'],['action','Operational Event'],
+    ['actor','Performed By'],['event_time','Timestamp (MYT)'],['details','Details (JSON)']
+  ],
   pv_approval_history: [
     ['pv_number','PV Number'],['financial_tier','Tier'],
     ['tier_policy_version','Tier Version'],['branch','Branch'],
@@ -187,7 +195,7 @@ export default function JIMSHistoryExports({profile}){
     </section>
   }
 
-  const allAP=[['pv_history','Payment Vouchers'],['payment_process_history','Payment Process'],['petty_cash_history','Petty Cash']]
+  const allAP=[['pv_history','Payment Vouchers'],['payment_process_history','Payment Process'],['petty_cash_history','Petty Cash'],['pv_operational_events_history','PV Events'],['petty_cash_operational_events_history','Petty Cash Events']]
   const ownerSheets=[['pv_approval_history','PV Approvals'],['petty_cash_approval_history','PC Approvals'],['delegation_approval_history','Delegation Approvals']]
   const buttonStyle={padding:'10px 14px',fontWeight:700,marginRight:10,marginBottom:10}
   return <section className="panel" aria-label="JIMS Excel history exports">
