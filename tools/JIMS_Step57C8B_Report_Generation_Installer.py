@@ -76,13 +76,25 @@ for k in ('JIMS_STEP_57C5S_MY_APPROVALS',
           'JIMS_STEP_57C5SN_APPROVAL_BADGE',
           'JIMS_STEP57C7B_AP_AR_EXPORTS',
           'jimsAPExcelAccess(profile)',
-          'jimsOwnerExportAllowed',
           '<PaymentVoucher','<CashVoucher',
           'JIMSHistoryExports profile={profile}'):
   if app_new.count(k)!=app_old.count(k):
     stop('Protected authority/navigation changed: '+k)
 def app_rpc(s):
   return sorted(line.strip() for line in s.splitlines() if 'supabase.rpc(' in line)
+# The old menu LABEL contains one "jimsOwnerExportAllowed" reference; replacing
+# its display text MUST remove exactly that one use while preserving the real
+# owner authorization and export-route gates.
+if app_new.count('jimsOwnerExportAllowed') != app_old.count('jimsOwnerExportAllowed')-1:
+  stop('Owner variable usages changed beyond the intended menu label')
+for security_gate in (
+    "(jimsAPExcelAccess(profile) || jimsOwnerExportAllowed)",
+    "jimsAPExcelAccess(profile) || jimsOwnerExportAllowed",
+    "jimsOwnerExportAllowed,setJimsOwnerExportAllowed",
+    "jims_is_system_owner_v1",
+):
+  if app_old.count(security_gate)!=app_new.count(security_gate):
+    stop('Owner/AP authorization gate changed: '+security_gate)
 if app_rpc(app_old)!=app_rpc(app_new):
   stop('An existing App RPC changed unexpectedly')
 
