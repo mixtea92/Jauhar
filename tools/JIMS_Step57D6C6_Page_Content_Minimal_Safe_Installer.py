@@ -141,9 +141,13 @@ for name,pairs in PATCHES.items():
         count=current.count(old)
         if count==0:
             continue  # Different installed revision; do not guess or overwrite.
-        # Same hint is rendered by two distinct PV lists (approval/payment).
-        expected=2 if old=='<small>{card.hint}</small>' else 1
-        if count!=expected:
+        # Different installed PV revisions can render one shared home grid
+        # or two grids (approval + payment). Both are valid and text-only.
+        # Refuse any unexpected extra matches rather than guessing.
+        if old=='<small>{card.hint}</small>':
+            if name!='PaymentVoucher.jsx' or count not in (1,2):
+                stop(name+': unexpected PV hint count: '+str(count))
+        elif count!=1:
             stop(name+': ambiguous source match for '+repr(old[:65])+': '+str(count))
         current=current.replace(old,new)
         applied+=count
