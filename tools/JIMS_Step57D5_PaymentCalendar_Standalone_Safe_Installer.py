@@ -123,22 +123,22 @@ new=new[:route.start()]+route_add+new[route.end():]
 #   )}
 # Inserting a sibling between the gate and <button> breaks JSX. Insert BEFORE
 # the entire guarded block, rather than inside that conditional expression.
-m=list(re.finditer(r'(?m)^[ \\t]*Payment Voucher[ \\t]*$',new))
+m=list(re.finditer(r'(?m)^[ \t]*Payment Voucher[ \t]*$',new))
 if len(m)!=1:stop('PV sidebar label became ambiguous')
 button_start=new.rfind('<button',max(0,m[0].start()-1600),m[0].start())
 if button_start<0:stop('Could not relocate PV sidebar button')
-access_rx=re.compile(r'(?m)^([ \\t]*)\\{jimsAPModuleAccess\\(profile\\)\\s*&&\\s*\\(\\s*$')
+access_rx=re.compile(r'(?m)^([ \t]*)\{jimsAPModuleAccess\(profile\)\s*&&\s*\(\s*$')
 gate_hits=[]
 for guard in access_rx.finditer(new,max(0,button_start-900),button_start):
     between=new[guard.end():button_start]
     # Permit whitespace and existing JSX comments only; reject nested markup.
-    between=re.sub(r'\\{/\\*.*?\\*/\\}', '',between,flags=re.S)
+    between=re.sub(r'\{/\*.*?\*/\}', '',between,flags=re.S)
     if not between.strip():gate_hits.append(guard)
 if len(gate_hits)!=1:
     stop('Cannot safely locate outer jimsAPModuleAccess wrapper above PV button ('+
          str(len(gate_hits))+' matches). Do not install inside JSX.')
 guard=gate_hits[0]
-line_start=new.rfind('\\n',0,guard.start())+1
+line_start=new.rfind('\n',0,guard.start())+1
 indent=new[line_start:guard.start()]
 if indent.strip():stop('Unexpected outer PV access gate indentation')
 # JSX braces must be literal; NEVER use Python str.format on this markup.
