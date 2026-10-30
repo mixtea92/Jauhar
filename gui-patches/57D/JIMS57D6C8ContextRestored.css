@@ -1,0 +1,49 @@
+/* JIMS_STEP57D6C8_CONTEXT_RESTORED
+   Legible, short explanations on actionable cards. Never hide warnings.
+   Existing sidebar, login, workflows and desktop theme untouched.
+*/
+.jims-shell .jims-dashboard .jims-action-card{
+  min-height:160px;
+}
+.jims-shell .jims-dashboard .jims-action-desc{
+  font-size:11.5px;line-height:1.45;margin-top:7px;
+}
+.jims-shell .jims-dashboard .jims-link-row{
+  min-height:64px;
+}
+.jims-shell>.content .pv-home-grid .pv-home-card{
+  min-height:126px;
+}
+.jims-shell>.content .jims-payment-board .jims-pb-card{
+  min-height:122px;
+}
+@media(max-width:540px){
+  .jims-shell .jims-dashboard .jims-action-card{
+    min-height:110px;
+    grid-template-rows:auto auto!important;
+    row-gap:4px;
+    align-content:center;
+  }
+  .jims-shell .jims-dashboard .jims-action-card-top{
+    grid-row:1 / 3;
+    align-self:center;
+  }
+  .jims-shell .jims-dashboard .jims-action-title{
+    grid-column:2;
+    grid-row:1;
+    align-self:end;
+  }
+  .jims-shell .jims-dashboard .jims-action-desc{
+    grid-column:2;
+    grid-row:2;
+    margin:0;
+    align-self:start;
+    font-size:11px;
+  }
+  .jims-shell>.content .pv-home-grid .pv-home-card{
+    min-height:116px;
+  }
+  .jims-shell>.content .jims-payment-board .jims-pb-card{
+    min-height:115px;
+  }
+}
