@@ -182,11 +182,9 @@ pv_pos=new.find('Payment Voucher',menu_pos)
 if not(0<=new.find('Payment Process',new.find('finance-approval-submenu'))<menu_pos<pv_pos):
     stop('Calendar sidebar must appear after Process and before Payment Voucher')
 
-# Syntax-parse the candidate JSX BEFORE any local files are touched.
-# This catches broken conditional wrappers even when structural anchor checks pass.
-parser=APP_ROOT/'node_modules/@babel/parser'
-if not parser.is_dir():
-    stop('JSX parser not found in app/node_modules/@babel/parser. Cannot safely verify App.jsx.')
+# Transform candidate JSX in memory using Vite 8's built-in Oxc parser.
+# No new dependency and no application files touched by --dry-run.
+# This catches broken JSX nesting before the installer writes App.jsx.
 with tempfile.TemporaryDirectory(prefix='jims_57d5_jsx_') as td:
     temp=Path(td)
     app_candidate=temp/'App.jsx'
@@ -194,17 +192,19 @@ with tempfile.TemporaryDirectory(prefix='jims_57d5_jsx_') as td:
     app_candidate.write_text(new,encoding='utf-8')
     calendar_candidate.write_text(widget,encoding='utf-8')
     checker=(
-      "const fs=require('fs'),parser=require('@babel/parser');"
+      "const fs=require('node:fs');"
+      "import('vite').then(async({transformWithOxc})=>{"
       "for(const f of process.argv.slice(1)){"
-      "parser.parse(fs.readFileSync(f,'utf8'),{sourceType:'module',plugins:['jsx']});}"
+      "await transformWithOxc(fs.readFileSync(f,'utf8'),f);}"
       "console.log('JIMS 57D5 JSX PARSER PASS');"
+      "}).catch(e=>{console.error(e.stack||e);process.exit(1)});"
     )
     verify=subprocess.run(
       ['node','-e',checker,str(app_candidate),str(calendar_candidate)],
       cwd=APP_ROOT,capture_output=True,text=True
     )
     if verify.returncode!=0:
-        stop('Pre-install JSX syntax check failed: '+(verify.stderr or verify.stdout)[-1300:])
+        stop('Pre-install JSX syntax check failed: '+(verify.stderr or verify.stdout)[-1600:])
     print(verify.stdout.strip())
 
 print('57D5 Standalone Calendar + Sidebar Position PASS')
