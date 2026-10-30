@@ -33,35 +33,6 @@ function monthGrid(year,month){
 }
 const statusText={upcoming:'Upcoming',due_today:'Due Today',overdue:'Overdue',
   paid:'Paid',missing_due:'Due Date Not Set'}
-
-// JIMS_STEP57D55_UAT_PREVIEW — local/dev-only, synthetic rows NEVER stored in Supabase.
-// Due dates use an earlier Malaysia calendar day, not FM scheduled date.
-const DEV_UAT=import.meta.env.DEV
-function buildOverdueUatRows(today){
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(today||''))return []
-  const earlier=days=>{
-    const [y,m,d]=today.split('-').map(Number)
-    const date=new Date(Date.UTC(y,m-1,d-days))
-    return iso(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate())
-  }
-  return [
-    {
-      id:'uat-preview-full',pv_number:'UAT-DEMO-FULL',payee_name:'DEMO ONLY · Full Payment',
-      branch:'UAT',payment_mode:'full',payment_status:'pending_payment',
-      amount:250,paid_amount:0,outstanding_amount:250,
-      current_due_date:earlier(20),fm_scheduled_date:earlier(-5),
-      calendar_status:'overdue',isUatPreview:true,transactions:[]
-    },
-    {
-      id:'uat-preview-partial',pv_number:'UAT-DEMO-PARTIAL',
-      payee_name:'DEMO ONLY · Partial Payment',branch:'UAT',
-      payment_mode:'partial',payment_status:'pending_payment',
-      amount:500,paid_amount:200,outstanding_amount:300,
-      current_due_date:earlier(10),fm_scheduled_date:earlier(-10),
-      calendar_status:'overdue',isUatPreview:true,transactions:[]
-    }
-  ]
-}
 function sumCents(rows){return rows.reduce((n,r)=>n+Math.round(Number(r.outstanding_amount||0)*100),0)/100}
 
 export default function JIMSPaymentCalendar57D5({profile}){
@@ -75,7 +46,6 @@ export default function JIMSPaymentCalendar57D5({profile}){
   const [dueRange,setDueRange]=useState({from:'',to:'',custom:false})
   const [showOverdue,setShowOverdue]=useState(false)
   const [showUnplanned,setShowUnplanned]=useState(false)
-  const [uatPreview,setUatPreview]=useState(false)
   const [selectedPV,setSelectedPV]=useState(null)
   const reload=useCallback(()=>setRefreshToken(n=>n+1),[])
   useEffect(()=>{
@@ -109,11 +79,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
   const year=Number((month||today||'2026-01').slice(0,4))
   const mIndex=Number((month||today||'2026-01').slice(5,7))-1
   const calDays=useMemo(()=>monthGrid(year,mIndex),[year,mIndex])
-  const records=useMemo(()=>{
-    const original=feed?.records||[]
-    if(!DEV_UAT||!uatPreview||!feed?.today)return original
-    return [...original,...buildOverdueUatRows(feed.today)]
-  },[feed,uatPreview])
+  const records=feed?.records||[]
   const branches=useMemo(()=>[...new Set(records.map(r=>r.branch).filter(Boolean))].sort(),[records])
   const visible=useMemo(()=>records.filter(r=>!branch||r.branch===branch),[records,branch])
   const overdue=useMemo(()=>visible.filter(r=>r.calendar_status==='overdue')
@@ -175,9 +141,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
   const recordCard=(r)=><div className="jims-cal-record" key={r.id}>
     <div className="jims-cal-record-main">
       <div className="jims-cal-record-heading">
-        <strong>{r.pv_number}</strong>
-        {r.isUatPreview&&<span className="jims-cal-demo-tag">DEMO ONLY</span>}
-        {chipStatus(r.calendar_status)}
+        <strong>{r.pv_number}</strong>{chipStatus(r.calendar_status)}
       </div>
       <span className="jims-cal-supplier">{r.payee_name||'Supplier not set'}{r.branch?' · '+r.branch:''}</span>
       <div className="jims-cal-record-metrics">
@@ -187,11 +151,9 @@ export default function JIMSPaymentCalendar57D5({profile}){
         {r.payment_mode==='partial'&&<span>Paid <b>{amount(r.paid_amount)}</b></span>}
       </div>
     </div>
-    {r.isUatPreview?
-      <span className="jims-cal-demo-label">Preview only · no real PV</span>:
-      <button type="button" className="btn jims-cal-plan-btn" onClick={()=>openPlanning(r)}>
-        {['ceo','bod','system_admin'].includes(feed?.role)?'View Planning':'Payment Planning'}
-      </button>}
+    <button type="button" className="btn jims-cal-plan-btn" onClick={()=>openPlanning(r)}>
+      {['ceo','bod','system_admin'].includes(feed?.role)?'View Planning':'Payment Planning'}
+    </button>
   </div>
   return <section className="panel jims-cal-page" aria-label="Payment Calendar">
     <header className="jims-cal-header">
@@ -238,23 +200,6 @@ export default function JIMSPaymentCalendar57D5({profile}){
             Select a valid range: From must be on or before To. Overdue remains visible.
           </p>}
       </section>
-      {DEV_UAT&&<section className="jims-cal-uat-preview" aria-label="Local development UAT preview">
-        <div className="jims-cal-uat-top">
-          <button type="button" className="btn"
-            aria-pressed={uatPreview}
-            onClick={()=>{
-              setUatPreview(v=>!v)
-              setShowOverdue(true)
-            }}>
-            {uatPreview?'Disable Overdue UAT Preview':'Enable Overdue UAT Preview'}
-          </button>
-          <small>Development only · simulated full + partial overdue PVs · no database writes</small>
-        </div>
-        {uatPreview&&<p role="status">
-          TEST DATA VISIBLE — Two DEMO records added to the overdue panel.
-          These are not Payment Vouchers and cannot be submitted or edited.
-        </p>}
-      </section>}
       <div className="jims-cal-stats">
         <div className="jims-cal-stat"><span>Upcoming</span><b>{countStatus(upcoming)}</b>
           <small>{amount(sumCents(upcoming))}</small></div>
