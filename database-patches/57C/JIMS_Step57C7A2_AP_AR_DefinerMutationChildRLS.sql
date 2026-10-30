@@ -6,7 +6,8 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $$
 BEGIN
  IF NOT public.jims_finance_non_ap_user_v1() THEN
-   RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
+   IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+   RETURN NEW;
  END IF;
  IF TG_TABLE_NAME='payment_vouchers' AND TG_OP='UPDATE'
     AND public.jims_finance_non_ap_fm_v1() THEN
