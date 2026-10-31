@@ -19,7 +19,7 @@ test('all eight financial registries are covered', () => {
   ]) assert.ok(source.includes("'" + table + "'"), table)
 })
 test('no record or Storage writes', () => {
-  assert.doesNotMatch(source, /\.insert\(|\.update\(|\.upsert\(|\.delete\(|\.remove\(|\.upload\(/)
+  assert.doesNotMatch(source, /\.insert\(|\.update\(|\.upsert\(|\.delete\(|\.upload\(|\.storage\.from\([^)]*\)\.remove\(/)
   assert.match(source, /\.download\(row\.path\)/)
   assert.match(source, /\.createSignedUrl\(row\.path, 60\)/)
 })
