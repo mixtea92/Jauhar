@@ -47,6 +47,8 @@ test('JR PDF input disabled on mobile while viewing and meeting workflows remain
   const s = await source('../src/jr/JRPanel.jsx')
   assert.match(s, /disabled=\{mobileUploadsBlocked \|\| uploading\}/)
   assert.match(s, /if\(f && !isMobileUploadBlocked\(\)\)onUpload\(f\)/)
+  // Guard against an unclosed JSX expression in the mobile notice.
+  assert.match(s, /\{mobileUploadsBlocked && <small>\{MOBILE_UPLOAD_NOTICE\}<\/small>\}\s*<\/div>/)
   assert.match(s, /Record Offline Approval Evidence/)
 })
 
