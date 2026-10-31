@@ -59,6 +59,7 @@ export default function JSYNCUserAdminForm({
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
+  const isGlobalRole = role === 'ceo' || role === 'bod'
   const subs = JSYNC_SUBDEPARTMENTS[department] || []
   const jobs = JOBS[`${department}|${sub}`] || []
 
@@ -104,14 +105,18 @@ export default function JSYNCUserAdminForm({
     try {
       const name = username.trim().toLowerCase()
 
-      if (!Object.hasOwn(JSYNC_SUBDEPARTMENTS, department)) {
+      if (!isGlobalRole && !Object.hasOwn(JSYNC_SUBDEPARTMENTS, department)) {
         throw Error('Department is required')
       }
-      if (sub && !subs.includes(sub)) {
+      if (!isGlobalRole && sub && !subs.includes(sub)) {
         throw Error('Invalid Subdepartment')
       }
-      if (job && !jobs.includes(job)) {
+      if (!isGlobalRole && job && !jobs.includes(job)) {
         throw Error('Invalid Staff Designation')
+      }
+
+      if (editing && isGlobalRole && user?.department) {
+        throw Error('Existing departmental account cannot be converted to CEO/BOD here. Create a fresh global account for go-live.')
       }
 
       if (!editing) {
@@ -126,10 +131,10 @@ export default function JSYNCUserAdminForm({
           username: name,
           password,
           role,
-          department,
-          subdepartment: sub || null,
+          department: isGlobalRole ? null : department,
+          subdepartment: isGlobalRole ? null : (sub || null),
           branch: branch || null,
-          staff_designation: job || null,
+          staff_designation: isGlobalRole ? null : (job || null),
           cost_center: costCenter || null
         })
 
@@ -234,8 +239,9 @@ export default function JSYNCUserAdminForm({
       </h2>
 
       <p className="muted">
-        Department required. Subdepartment, Branch and
-        Staff Designation and Cost Center optional.
+        {isGlobalRole
+          ? 'CEO/BOD are global roles. Department and Subdepartment are not assigned.'
+          : 'Department required. Subdepartment, Branch, Staff Designation and Cost Center optional.'}
       </p>
 
       <form onSubmit={save} style={{ maxWidth: 720 }}>
@@ -263,7 +269,15 @@ export default function JSYNCUserAdminForm({
               <label>Role / Access Level *</label>
               <select style={field} value={role}
                 disabled={busy}
-                onChange={e => setRole(e.target.value)}>
+                onChange={e => {
+                  const nextRole = e.target.value
+                  setRole(nextRole)
+                  if (nextRole === 'ceo' || nextRole === 'bod') {
+                    setDepartment('')
+                    setSub('')
+                    setJob('')
+                  }
+                }}>
                 {ROLES.map(([v, l]) =>
                   <option key={v} value={v}>{l}</option>
                 )}
@@ -276,10 +290,12 @@ export default function JSYNCUserAdminForm({
           <p><strong>{user.username.toUpperCase()}</strong> · {user.role}</p>
         )}
 
+        {!isGlobalRole && (
+          <>
         <div className="field">
           <label>Department *</label>
-          <select style={field} required value={department}
-            disabled={busy}
+          <select style={field} required={!isGlobalRole} value={department}
+            disabled={busy || isGlobalRole}
             onChange={e => {
               setDepartment(e.target.value)
               setSub('')
@@ -307,6 +323,8 @@ export default function JSYNCUserAdminForm({
           </select>
         </div>
 
+          </>
+        )}
         <div className="field">
           <label>Primary Branch (Optional)</label>
           <select style={field} value={branch}
