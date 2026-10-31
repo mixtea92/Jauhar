@@ -8,7 +8,7 @@ export default function JRPanel({voucher,documents,meetings,links,canUpload,
   const [date,setDate] = useState('')
   const [attested,setAttested] = useState(false)
   const isReturned = voucher.status === 'returned'
-  const finalRole = ['T03','T07'].includes(voucher.financial_tier) ? 'ceo':'bod'
+  const finalRole = (voucher.financial_tier==='T03' || (voucher.financial_tier==='T06' && voucher.jims_tier_policy_version==='R1') || (voucher.financial_tier==='T07' && voucher.jims_tier_policy_version!=='R1')) ? 'ceo':'bod'
   const recorded = meetings.find(m => m.approval_round===voucher.approval_round && m.decision_tier===finalRole)
   const latest = documents[0]
   return (

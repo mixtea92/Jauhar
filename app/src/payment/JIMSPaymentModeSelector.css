@@ -1,0 +1,102 @@
+/* Step 57A - premium JIMS black/gold. Scoped to the payment selector. */
+.jims-pay-mode {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid #6b552e;
+  border-radius: 13px;
+  color: #f0f0ed;
+  background: linear-gradient(145deg, #191b1f, #101216);
+}
+.jims-pay-mode-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 17px;
+}
+.jims-pay-mode-heading small {
+  display: block;
+  color: #c8a45c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+}
+.jims-pay-mode-heading h3 { margin: 0; color: #f5f5f4; font-size: 19px; }
+.jims-pay-mode-approved {
+  color: #d3b369;
+  border: 1px solid #6b552e;
+  border-radius: 99px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.jims-pay-mode-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.jims-pay-mode-metrics > div {
+  background: #202227;
+  border: 1px solid #363432;
+  padding: 12px;
+  border-radius: 9px;
+  min-width: 0;
+}
+.jims-pay-mode-metrics span, .jims-pay-mode-projected span {
+  display: block;
+  color: #b8bac2;
+  font-size: 12px;
+}
+.jims-pay-mode-metrics strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 17px;
+  color: #e9d1a0;
+  overflow-wrap: anywhere;
+}
+.jims-pay-mode-progress {
+  margin: 11px 0 17px;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+  background: #3a3b40;
+}
+.jims-pay-mode-progress > div { height: 100%; border-radius: 999px; background: #c8a45c; }
+.jims-pay-mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.jims-pay-mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid #47484b;
+  border-radius: 10px;
+  padding: 15px;
+  background: #202227;
+  cursor: pointer;
+}
+.jims-pay-mode-option.selected { border-color: #c8a45c; background: #28241d; }
+.jims-pay-mode-option input { accent-color: #c8a45c; margin-top: 3px; flex-shrink: 0; }
+.jims-pay-mode-option strong { display: block; color: #f0ece2; font-size: 15px; }
+.jims-pay-mode-option small { display: block; margin-top: 5px; color: #bdbec4; line-height: 1.45; font-size: 12px; }
+.jims-pay-mode-note { font-size: 13px; color: #c1c2c6; margin: 12px 0 0; }
+.jims-pay-mode-partial { margin-top: 16px; border-top: 1px solid #44413b; padding-top: 16px; }
+.jims-pay-mode-fields { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 16px; }
+.jims-pay-mode-fields label { color: #e5e0d4; font-size: 13px; font-weight: 600; }
+.jims-pay-mode-fields input {
+  display: block; width: 100%; margin-top: 8px; padding: 10px 12px;
+  box-sizing: border-box; border-radius: 8px; border: 1px solid #69635b;
+  background: #161719; color: #f7f7f5; font-size: 14px;
+}
+.jims-pay-mode-fields input:focus-visible { outline: 2px solid #c8a45c; }
+.jims-pay-mode-projected { background: #252421; border-radius: 8px; padding: 11px 13px; }
+.jims-pay-mode-projected strong { display: block; margin-top: 5px; color: #e9d1a0; font-size: 18px; }
+.jims-pay-mode-locked {
+  margin: 14px 0 0; padding: 12px 14px; border: 1px dashed #8a7349;
+  border-radius: 8px; color: #e7cf98; background: #302819; font-size: 13px; line-height: 1.5;
+}
+.jims-pay-mode-error { color: #ffb1a9; font-size: 13px; }
+@media(max-width: 700px) {
+  .jims-pay-mode { padding: 14px; }
+  .jims-pay-mode-metrics, .jims-pay-mode-fields { grid-template-columns: 1fr; }
+  .jims-pay-mode-options { grid-template-columns: 1fr; }
+}

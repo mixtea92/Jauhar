@@ -110,7 +110,7 @@ export default function DelegationWorkspace({ profile, onOpenVoucher, onManage, 
         <div>
           <span className="muted">FINANCIAL APPROVAL / DELEGATION</span>
           <h2 style={{fontSize:25,marginTop:8}}>Delegation Workspace</h2>
-          <p className="muted">All delegated financial approvals in one place. Your own approval authority stays in Payment Voucher.</p>
+          
         </div>
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <button type="button" className="btn" onClick={()=>onManage?.('request')}>Manage Delegation</button>
@@ -131,6 +131,7 @@ export default function DelegationWorkspace({ profile, onOpenVoucher, onManage, 
           <strong style={titleStyle}>{loading || m.value == null ? '—' : m.value}</strong>
           <span style={{fontWeight:700,display:'block',margin:'6px 0'}}>{m.label} ↗</span>
           <span className="muted">{m.hint}</span>
+          
         </button>)}
       </div>
       <p className="muted" style={{marginTop:14}}>Only authority that has passed independent authorization, valid dates and database permission checks is actionable. Acting decisions use your real login in the audit trail.</p>
@@ -144,7 +145,7 @@ export default function DelegationWorkspace({ profile, onOpenVoucher, onManage, 
       <div className="panel-head" style={{flexWrap:'wrap'}}>
         <div>
           <h2>Delegated PV Inbox ({queues ? delegated.length : '—'})</h2>
-          <p className="muted">Approve / Return / Reject only where the delegated permission allows. Open a PV to make a decision.</p>
+          
         </div>
       </div>
       <div style={{display:'flex',gap:12,flexWrap:'wrap',margin:'0 0 18px'}}>
@@ -182,7 +183,7 @@ export default function DelegationWorkspace({ profile, onOpenVoucher, onManage, 
             q || department !== 'all' ? 'No approvals match the current filter.' :
               'No delegated PV approvals currently require action.'}</td></tr>}
       </tbody></table></div>
-      <p className="muted" style={{marginTop:14}}>Showing up to 300 actionable Payment Vouchers, as returned by the authorization RPC. Budget delegation will be integrated after the Budget Dashboard is developed.</p>
+      <p className="muted" style={{marginTop:14}}>Showing up to 300 actionable PVs.</p>
     </section>
 
     <JSYNCDelegationUnifiedOverview authorities={authorities} handovers={handovers}
@@ -191,7 +192,7 @@ export default function DelegationWorkspace({ profile, onOpenVoucher, onManage, 
 
     <section className="panel" style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:14,flexWrap:'wrap'}}>
       <div><h2>Manage Delegation &amp; Handover</h2>
-        <p className="muted">Request, authorize, revoke, track expiry, and review delegation history.</p></div>
+        </div>
       <button className="btn" type="button" onClick={()=>onManage?.('request')}>Open Manage Delegation</button>
     </section>
   </div>

@@ -1,0 +1,49 @@
+/* JIMS_STEP57D6C5_MINIMAL_BUTTON_COPY
+   Presentation only: compact Dashboard Home action cards after
+   redundant helper text is removed by guarded JSX text-only installer.
+   NO Finance controls, login, sidebar, topbar or role/access rules.
+*/
+.jims-shell .jims-dashboard .jims-action-card {
+  min-height:130px;
+  padding:16px;
+}
+.jims-shell .jims-dashboard .jims-action-card-top {
+  margin-bottom:12px;
+}
+.jims-shell .jims-dashboard .jims-action-title {
+  margin-top:auto;
+  line-height:1.4;
+}
+.jims-shell .jims-dashboard .jims-link-row {
+  min-height:52px;
+  padding-top:12px;
+  padding-bottom:12px;
+}
+.jims-shell .jims-dashboard .jims-link-copy {
+  gap:0;
+}
+@media (max-width:540px) {
+  .jims-shell .jims-dashboard .jims-action-card {
+    min-height:76px;
+    padding:12px 14px;
+    grid-template-rows:minmax(40px,auto);
+    row-gap:0;
+    align-items:center;
+  }
+  .jims-shell .jims-dashboard .jims-action-card-top {
+    grid-column:1;
+    grid-row:1;
+    align-self:center;
+    margin:0;
+  }
+  .jims-shell .jims-dashboard .jims-action-title {
+    grid-column:2;
+    grid-row:1;
+    align-self:center;
+    margin:0;
+    font-size:14px;
+  }
+  .jims-shell .jims-dashboard .jims-link-row {
+    min-height:50px;
+  }
+}

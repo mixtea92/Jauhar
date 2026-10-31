@@ -304,7 +304,7 @@ export default function DelegationHub({ profile, initialTab = 'request' }) {
     <section className="panel">
       <div className="panel-head"><div>
         <h2>Manage Delegation &amp; Requester Handover</h2>
-        <p className="muted">Separate from Payment Voucher · independent authorization · full audit trail</p>
+        
       </div><button className="btn" type="button" disabled={busy} onClick={()=>submit(()=>Promise.resolve(), 'Refreshed')}>Refresh</button></div>
       <div className="pv-actions" style={{ flexWrap:'wrap',marginTop:12 }}>
         {NAV.map(([id,title])=><button type="button" key={id}

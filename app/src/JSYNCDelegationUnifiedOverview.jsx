@@ -27,7 +27,7 @@ export default function JSYNCDelegationUnifiedOverview({authorities=[],handovers
     {section === 'authorities' && <section className="panel" id="delegation-active-authorities" style={{scrollMarginTop:22}}>
       <div style={headline}>
         <div><h2 style={heading}>My Active Authorities ({myGrants.length})</h2>
-          <p style={muted}>Your current independently-authorized approval authority. The matching pending PVs are in Delegated PV Inbox directly below.</p></div>
+          </div>
         <button type="button" className="btn" onClick={() => onManage?.('received')}>View All Authority Records</button>
       </div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:12}}>
@@ -55,7 +55,7 @@ export default function JSYNCDelegationUnifiedOverview({authorities=[],handovers
     {section === 'other' && <section className="panel" id="delegation-active-handovers" style={{scrollMarginTop:22}}>
       <div style={headline}>
         <div><h2 style={heading}>Handed Over PVs ({myHandovers.length})</h2>
-          <p style={muted}>Draft / Returned work assigned to or handed over by you. This is editing authority, not approval authority.</p></div>
+          <p style={muted}>Editing authority only — not approval.</p></div>
         <button className="btn" type="button" onClick={() => onManage?.('handover')}>Manage Handover</button>
       </div>
       <div className="table-wrap"><table><thead><tr>
@@ -72,13 +72,13 @@ export default function JSYNCDelegationUnifiedOverview({authorities=[],handovers
         </tr>)}
         {!myHandovers.length && <tr><td colSpan={5}>No currently active requester handovers for this account.</td></tr>}
       </tbody></table></div>
-      <p style={muted}>For the transferred PV, use Payment Voucher to open and edit. Original created_by remains unchanged. The receiving Executive must not be allowed to delete the draft; that backend rule requires separate verification.</p>
+      <p style={muted}>Open transferred PV in Payment Voucher to edit.</p>
     </section>}
 
     {section === 'other' && <section className="panel" id="delegation-activity">
       <div style={headline}>
         <div><h2 style={heading}>Delegation Activity ({activity.length} latest records)</h2>
-          <p style={muted}>Delegation / handover history from the existing authorized dashboard. PV-level approval history is a separate audit control.</p></div>
+          </div>
         <button type="button" className="btn" onClick={() => onManage?.('history')}>Full History</button>
       </div>
       <div className="table-wrap"><table><thead><tr>

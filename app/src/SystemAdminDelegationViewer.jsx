@@ -26,7 +26,7 @@ export default function SystemAdminDelegationViewer({ profile }) {
   if(profile?.role!=='system_admin'||profile?.is_active!==true)return <p>Access Restricted</p>
   return <section className="panel">
     <h2>Manage Delegation — Read Only</h2>
-    <p>System Admin may view all delegation records and audit events. No operational actions are available.</p>
+    <p>Read-only.</p>
     <button type="button" className="btn" disabled={loading} onClick={()=>{setLoading(true);setRefresh(x=>x+1)}}>Refresh</button>
     {error&&<p role="alert">{error}</p>}
     <h3>Delegations ({items.length})</h3>

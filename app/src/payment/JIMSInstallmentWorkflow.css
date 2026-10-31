@@ -1,0 +1,36 @@
+/* JIMS Step 57B3: per-installment mandatory evidence & verification. */
+.jims-v2-evidence{
+  border-top:1px solid #514632;
+  margin-top:18px;
+  padding-top:16px;
+  display:grid;
+  gap:12px;
+  color:#e9e6dd;
+}
+.jims-v2-evidence h4{font-size:15px;color:#dcb970;margin:3px 0;}
+.jims-v2-flag{border:1px solid #735d36;color:#e9d4a3;background:#28231a;
+  padding:11px 13px;border-radius:8px;font-size:13px;line-height:1.5;margin:0;}
+.jims-v2-fieldset{display:grid;gap:10px;padding:14px;background:#202227;
+  border:1px solid #524a3c;border-radius:10px;}
+.jims-v2-fieldset label{font-size:13px;color:#d7c8a5;font-weight:600;}
+.jims-v2-fieldset input,.jims-v2-fieldset textarea{width:100%;box-sizing:border-box;
+  border:1px solid #63615b;border-radius:8px;background:#161719;color:#f1f1ee;
+  padding:10px;font:inherit;}
+.jims-v2-fieldset input[type=file]{cursor:pointer;}
+.jims-v2-fieldset button,.jims-v2-docrow button{
+  border:1px solid #bc9954;background:#ae8b49;color:#18191b;
+  border-radius:8px;padding:11px 13px;font-weight:750;cursor:pointer;
+}
+.jims-v2-fieldset button:disabled,.jims-v2-docrow button:disabled{opacity:.5;cursor:not-allowed;}
+.jims-v2-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.jims-v2-actions button:nth-child(2){background:#49372b;color:#f7e1bc;}
+.jims-v2-history{padding:12px;background:#222328;border:1px solid #45403a;
+  border-radius:9px;display:grid;gap:8px;}
+.jims-v2-history>div:first-child{display:flex;justify-content:space-between;
+  gap:12px;align-items:center;flex-wrap:wrap;}
+.jims-v2-history strong{color:#efd6a2;}
+.jims-v2-history span,.jims-v2-history small{color:#c2c2c6;font-size:12px;}
+.jims-v2-docrow{display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+  border-top:1px solid #3d3d40;padding-top:8px;}
+.jims-v2-docrow button{padding:7px 10px;font-size:12px;}
+.jims-v2-docrow a{color:#ddbd77;text-decoration:underline;font-size:12px;}

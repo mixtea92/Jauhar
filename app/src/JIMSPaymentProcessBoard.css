@@ -1,0 +1,170 @@
+/* JIMS Step 57B9 — the ONE unified Payment Process board.
+   The existing premium charcoal / gold visual theme is retained. */
+.jims-payment-board{
+  display:grid;
+  gap:22px;
+  padding:24px;
+  border-radius:16px;
+}
+.jims-payment-board .panel-head{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.jims-payment-board .panel-head h2{margin:0 0 6px;font-size:24px;color:var(--text,#eee);}
+.jims-payment-board .panel-head p{margin:0;line-height:1.5;}
+.jims-pb-updated{font-size:12px;margin:-10px 0 0;}
+.jims-pb-pending{display:grid;grid-template-columns:1fr;}
+.jims-pb-groups{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch;}
+.jims-pb-group{
+  border:1px solid #51442f;
+  background:#18191c;
+  border-radius:13px;
+  padding:16px;
+  min-width:0;
+}
+.jims-pb-group>h3{color:#e7c27c;margin:2px 2px 14px;font-size:17px;}
+.jims-pb-stack{display:grid;gap:12px;}
+.jims-pb-card{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:9px;
+  width:100%;
+  padding:16px 18px;
+  text-align:left;
+  color:#eee;
+  background:#22252a;
+  border:1px solid #49423a;
+  border-radius:11px;
+  cursor:pointer;
+  font:inherit;
+  transition:border-color .12s,background .12s;
+}
+.jims-pb-card:hover:not(:disabled),.jims-pb-card:focus-visible{
+  border-color:#c4a05f;
+  background:#292722;
+}
+.jims-pb-card:focus-visible,.jims-pb-history-toggle:focus-visible{outline:2px solid #dcb772;outline-offset:2px;}
+.jims-pb-card.jims-pb-selected{border-color:#d5a951;background:#2d281e;}
+.jims-pb-card:disabled{opacity:.6;cursor:default;}
+.jims-pb-card-top{display:flex;justify-content:space-between;align-items:center;color:#e9c17c;}
+.jims-pb-card-top strong{font-size:29px;font-weight:750;line-height:1;}
+.jims-pb-card-name{font-size:15px;font-weight:700;color:#f1eee7;}
+.jims-pb-card small{font-size:12px;color:#bfc0c4;line-height:1.45;}
+.jims-pb-pending .jims-pb-card{
+  background:linear-gradient(135deg,#29251f,#22252a);
+  border-color:#8b6c35;
+}
+.jims-pb-details,.jims-pb-history{
+  border:1px solid #594932;
+  border-radius:12px;
+  background:#17191d;
+  padding:18px;
+  display:grid;
+  gap:14px;
+}
+.jims-pb-detail-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+.jims-pb-detail-header h3{color:#eac27e;margin:0;font-size:18px;}
+.jims-pb-detail-header p{color:#bdbfc6;font-size:12px;margin:5px 0 0;}
+.jims-pb-search{display:grid;gap:6px;max-width:360px;color:#d7cbb5;font-size:12px;}
+.jims-pb-search input{
+  border:1px solid #555965;
+  border-radius:7px;
+  padding:11px 12px;
+  background:#21242a;
+  color:#f8f8f5;
+  font:inherit;
+}
+.jims-pb-record{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+  border:1px solid #383a40;
+  background:#202227;
+  border-radius:9px;
+  padding:13px;
+}
+.jims-pb-record>div:first-child{display:grid;gap:4px;min-width:0;}
+.jims-pb-record strong{color:#efce91;}
+.jims-pb-record span{color:#ddd;word-break:break-word;}
+.jims-pb-record small{color:#b8bbc3;}
+.jims-pb-record-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.jims-pb-history{margin-top:10px;border-color:#6c5638;}
+.jims-pb-history-total{font-size:12px;color:#e9cf96;}
+.jims-pb-history-toggle{
+  text-align:center;
+  background:#30281b;
+  color:#f1d299;
+  border:1px solid #84683a;
+  border-radius:8px;
+  padding:12px;
+  cursor:pointer;
+  font-weight:700;
+}
+@media(max-width:850px){
+  .jims-pb-groups{grid-template-columns:1fr;}
+}
+@media(max-width:560px){
+  .jims-payment-board{padding:13px;gap:16px;}
+  .jims-pb-group,.jims-pb-details,.jims-pb-history{padding:12px;}
+  .jims-pb-record-actions{width:100%;justify-content:space-between;}
+  .jims-pb-record-actions button{max-width:100%;}
+}
+
+
+/* JIMS STEP 57C1 — financial amount summary, deliberately FIRST in dashboard */
+.jims-pb-money-summary{display:grid;gap:11px;}
+.jims-pb-money-main{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;padding:20px 22px;border-radius:12px;
+  background:linear-gradient(120deg,#332a1d,#25221c 62%,#1e2024);
+  border:1px solid #b08a49;
+}
+.jims-pb-money-main>div{display:grid;gap:6px;}
+.jims-pb-money-label{font-size:16px;font-weight:750;color:#f1ddaf;}
+.jims-pb-money-main strong{
+  font-size:clamp(24px,3vw,33px);font-weight:800;
+  color:#f3c874;font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;
+}
+.jims-pb-money-main small,.jims-pb-money-tile small{
+  font-size:12px;color:#bbb9b2;line-height:1.45;
+}
+.jims-pb-money-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;
+}
+.jims-pb-money-tile{
+  display:grid;align-content:start;gap:9px;
+  border:1px solid #49443b;border-radius:10px;
+  background:#22252a;padding:17px 18px;min-width:0;
+}
+.jims-pb-money-tile>span{
+  color:#d4d4d2;font-size:13px;font-weight:650;
+}
+.jims-pb-money-tile strong{
+  color:#eec783;font-size:clamp(20px,2.1vw,26px);
+  font-weight:800;overflow-wrap:anywhere;
+  font-variant-numeric:tabular-nums;
+}
+.jims-pb-money-outstanding{border-color:#92713e;background:#28241d;}
+@media(max-width:720px){
+  .jims-pb-money-grid{grid-template-columns:1fr;}
+  .jims-pb-money-main{padding:15px;}
+  .jims-pb-money-tile{padding:14px;}
+}

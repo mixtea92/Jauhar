@@ -1,3 +1,4 @@
+import { JIMSPettyCashChargeFields, JIMSPettyCashRevisionPanel } from './JIMSPettyCash57D1E'
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
@@ -95,7 +96,7 @@ export default function CashVoucher({profile}) {
   const [notice,setNotice]=useState('')
   const [templateReady,setTemplateReady]=useState(false)
   const [refresh,setRefresh]=useState(0)
-  const [filter,setFilter]=useState('all')
+  const [filter,setFilter]=useState('active')
 
   useEffect(()=>{
     let live=true
@@ -134,7 +135,9 @@ export default function CashVoucher({profile}) {
     return authority==='finance_hod' ? profile.department==='Finance' : profile.department===v.applicable_department
   }
   const stageRows=rows.filter(v=>canSign(v,approvalStage))
-  const displayRows=rows.filter(v=>filter==='all'||v.status===filter)
+  const displayRows=rows.filter(v=>filter==='active'
+    ? v.status==='draft'||v.status==='pending_approval' : v.status===filter)
+  const historyRows=rows.filter(v=>v.status==='closed')
   const totals=useMemo(()=>{
     const out={draft:0,pending_approval:0,closed:0,total:0}
     rows.forEach(v=>{out[v.status]=(out[v.status]||0)+1;out.total+=Number(v.total_amount||0)})
@@ -247,7 +250,7 @@ export default function CashVoucher({profile}) {
     if(!isHOD||busy||!signature||!checked.length)return
     const eligible=checked.filter(id=>stageRows.some(v=>v.id===id))
     if(eligible.length!==checked.length){setError('One or more selected CVs are not eligible for this approval stage.');return}
-    if(!window.confirm('Digitally sign and approve '+checked.length+' Cash Voucher(s) as '+(approvalStage==='finance_hod'?'HOD FM':'Applicable HOD')+'? Each CV will receive its own approval and audit record.'))return
+    if(!window.confirm('Digitally sign and approve '+checked.length+' Petty Cash vouchers as '+(approvalStage==='finance_hod'?'HOD FM':'Applicable HOD')+'? Each CV will receive its own approval and audit record.'))return
     const result=await action('Signed approvals recorded: '+checked.length+' CV(s).',()=>supabase.rpc('jsync_cv_approve_many_v1',{
       p_voucher_ids:eligible,p_authority:approvalStage,p_signature_png:signature
     }))
@@ -260,7 +263,7 @@ export default function CashVoucher({profile}) {
       const visibleImages=await captureSignedCVSignatures()
       const result=await downloadSignedCVExcel(v,byId(v.id),visibleImages)
       setNotice(result.filename+' downloaded. Open it in Excel and choose Export / Save As PDF for the same original A4 one-page design.')
-    } catch (err) {setError(err?.message||'Unable to export signed Cash Voucher') }
+    } catch (err) {setError(err?.message||'Unable to export signed Petty Cash') }
     finally {setBusy(false)}
   }
   async function inspect(v){
@@ -295,27 +298,28 @@ export default function CashVoucher({profile}) {
 
   return <section className="panel" style={{maxWidth:'100%',overflow:'hidden'}}>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',alignItems:'center'}}>
-      <div><h2 style={{marginBottom:5}}>Cash Voucher (Petty Cash)</h2>
-        <p style={{marginTop:0}}>Post-disbursement recording, dual HOD approval with digital signatures, then CLOSED.</p>
+      <div><h2 style={{marginBottom:5}}>Petty Cash</h2>
+        <p style={{marginTop:0}}>Two HOD approvals required.</p>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {mode!=='home'&&<button type="button" className="btn" onClick={()=>{setMode('home');setError('')}}>Back to CV Dashboard</button>}
-        {isAP&&<button type="button" className="btn" onClick={newForm}>+ New Cash Voucher</button>}
+        {mode!=='home'&&<button type="button" className="btn" onClick={()=>{setMode('home');setError('')}}>Back to Petty Cash Dashboard</button>}
+        {isAP&&<button type="button" className="btn" onClick={newForm}>+ New Petty Cash</button>}
       </div>
     </div>
     {isAdmin&&<p className="pv-notice" role="status">SYSTEM ADMIN — VIEW ALL / READ ONLY. No business actions permitted.</p>}
     {error&&<p className="error" role="alert">{error}</p>}
     {notice&&<p className="pv-success" role="status">{notice}</p>}
     {mode==='home'&&<>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',gap:10,margin:'18px 0'}}>
-        {[['Draft',totals.draft],['Pending Dual HOD',totals.pending_approval],['Closed',totals.closed],['Action Required',myAttention]].map(([k,n])=>
+      
+      <JIMSPettyCashRevisionPanel profile={profile} /><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',gap:10,margin:'18px 0'}}>
+        {[['Draft',totals.draft],['Pending Dual HOD',totals.pending_approval],['Action Required',myAttention]].map(([k,n])=>
           <div key={k} style={{border:'1px solid #9a7b3c',borderRadius:10,padding:14}}>
             <div style={{fontSize:12,opacity:.9}}>{k}</div><strong style={{fontSize:26}}>{n}</strong>
           </div>)}
       </div>
       <section style={{border:'1px solid #81704c',borderRadius:9,padding:12,marginBottom:18}}>
         <h3>Official Petty Cash Excel Template</h3>
-        <p>Original workbook, unchanged: PC (Digital), PC (Manual), List Expenses Category; A4 portrait one-page print areas.</p>
+        
         {templateReady?<a className="btn" href={CV_TEMPLATE_URL} download="FIN_FM_PC_Petty Cash.xlsx">Download Original Excel Template</a>:
           <p className="pv-notice">Official template is not installed in public/templates yet. Upload the original unchanged XLSX file to enable download.</p>}
         {isAP&&<div style={{marginTop:12,display:'flex',gap:12,alignItems:'end',flexWrap:'wrap'}}>
@@ -329,11 +333,11 @@ export default function CashVoucher({profile}) {
           </label>
         </div>}
       </section>
-      <h3>Cash Voucher Records</h3>
+      <h3>Petty Cash Records</h3>
       <div style={{display:'flex',gap:8,margin:'10px 0',flexWrap:'wrap'}}>
-        {['all','draft','pending_approval','closed'].map(s=>
+        {['active','draft','pending_approval'].map(s=>
           <button key={s} type="button" style={smallButton} aria-pressed={filter===s} onClick={()=>setFilter(s)}>
-            {s==='all'?'All':s.replaceAll('_',' ').toUpperCase()}
+            {s==='active'?'ACTIVE':s.replaceAll('_',' ').toUpperCase()}
           </button>)}
         <button type="button" disabled={loading} style={smallButton} onClick={reload}>Refresh</button>
       </div>
@@ -354,12 +358,12 @@ export default function CashVoucher({profile}) {
               {isAP&&v.status==='draft'&&<button type="button" style={smallButton} disabled={busy} onClick={()=>submitCV(v)}>Submit</button>}
             </td>
           </tr>)}
-          {!displayRows.length&&<tr><td style={cellStyle} colSpan={9}>{loading?'Loading Cash Vouchers...':'No matching Cash Voucher records'}</td></tr>}
+          {!displayRows.length&&<tr><td style={cellStyle} colSpan={9}>{loading?'Loading Petty Cash records...':'No matching Petty Cash records'}</td></tr>}
         </tbody>
       </table></div>
       {isHOD&&<>
         <h3 style={{marginTop:22}}>HOD Verification / Bulk Approval</h3>
-        <p>Each selected CV receives a separate approval record and digital signature. Both stages must be signed before CLOSED.</p>
+        
         <label>Verification Stage
           <select style={{...inputStyle,maxWidth:300,marginTop:5}} value={approvalStage}
             onChange={e=>{setApprovalStage(e.target.value);setChecked([]);setSignature('')}}>
@@ -374,7 +378,7 @@ export default function CashVoucher({profile}) {
             <span>{v.cv_number} · {v.form_data?.claimant_name||'—'} · {money(v.total_amount)}</span>
             <button type="button" style={smallButton} onClick={()=>inspect(v)}>View</button>
           </label>)}
-          {!stageRows.length&&<p>No Cash Vouchers awaiting this HOD approval stage.</p>}
+          {!stageRows.length&&<p>No Petty Cash records awaiting this HOD approval stage.</p>}
         </div>
         {checked.length>0&&<>
           <p><strong>{checked.length} selected</strong> · Confirm documents before signing.</p>
@@ -383,10 +387,37 @@ export default function CashVoucher({profile}) {
             style={{marginTop:10}}>Digitally Sign & Approve {checked.length} CV(s)</button>
         </>}
       </>}
+      <section className="jims-closed-history" aria-label="Petty Cash History">
+        <h3>Petty Cash History</h3>
+        <p>Closed records after both HOD signatures. Existing CV identifiers and official signed Excel stay unchanged.</p>
+        <details>
+          <summary>View Closed Petty Cash ({historyRows.length} loaded records)</summary>
+          <div className="jims-history-scroll">
+            <table>
+              <thead><tr><th>CV Number</th><th>Claimant</th><th>Amount</th>
+                <th>Status</th><th>Date</th><th>Action</th></tr></thead>
+              <tbody>
+                {historyRows.map(v=><tr key={v.id}>
+                  <td>{v.cv_number}</td>
+                  <td>{v.form_data?.claimant_name||'—'}</td>
+                  <td>{money(v.total_amount)}</td>
+                  <td>Closed</td>
+                  <td>{dateLabel(v.created_at)}</td>
+                  <td><button type="button" style={smallButton}
+                    onClick={()=>inspect(v)}>View</button></td>
+                </tr>)}
+                {!historyRows.length&&<tr><td colSpan={6}>No Closed Petty Cash yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          <small>Showing records currently loaded, up to the latest 500. Original approval audit and signed Excel remain available.</small>
+        </details>
+      </section>
     </>}
     {mode==='form'&&isAP&&<>
-      <h3>{editingId?'Edit Cash Voucher Draft':'New Cash Voucher'}</h3>
-      <p>Enter the same fields as the official XLSX. No new payment is made. Entries must fit the original 10-row printed form.</p>
+      
+      <JIMSPettyCashChargeFields form={form} setForm={setForm} /><h3>{editingId?'Edit Petty Cash Draft':'New Petty Cash'}</h3>
+      
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(215px,1fr))',gap:12}}>
         {field('Date of Request (H10)','date_of_request','date')}
         {field('Actual Petty Cash Disbursement Date (system record)','date_disbursed','date')}
@@ -404,7 +435,7 @@ export default function CashVoucher({profile}) {
       </label>
       <p>Payment Method (G17:I17): <strong>Cash (Petty Cash)</strong></p>
       <h3>Expense Details — Maximum 10 Receipt Lines</h3>
-      <p style={{fontSize:12}}>Every expense row requires a PDF/JPG/PNG/WEBP receipt (max 10 MB). Uploading a receipt auto-saves your Draft and marks Receipt Attached? = Yes. If you change a row after uploading, upload its receipt again before Submit. Mobile file uploads are disabled.</p>
+      <p style={{fontSize:12}}>Receipt required per row (PDF/image, max 10 MB). Re-upload after editing a row. Desktop upload only.</p>
       <div style={{overflowX:'auto'}}>
         <table style={{borderCollapse:'collapse',minWidth:1220,width:'100%'}}>
           <thead><tr>{['No.','Receipt Date','Receipt No.','Supplier / Description / Purpose','Expense Category (Finance Use Only)','Expenses for Branch','Amount (RM)','Receipt Attached?','Upload Receipt *'].map(h=><th key={h} style={cellStyle}>{h}</th>)}</tr></thead>
@@ -435,7 +466,7 @@ export default function CashVoucher({profile}) {
         </table>
       </div>
       <p style={{marginTop:13}}><strong>TOTAL CLAIM (RM): {money(tenRows.reduce((acc,l)=>acc+(Number(l.amount)||0),0))}</strong></p>
-      <p style={{fontSize:12}}>The official claimant declaration, approval boxes, acknowledgment, logo and print layout stay in the original Excel. HOD signatures are captured digitally during approval.</p>
+      
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         <button type="button" className="btn" disabled={busy} onClick={saveDraft}>Save CV Draft</button>
         <button type="button" style={smallButton} onClick={()=>setMode('home')}>Back to Dashboard</button>
@@ -464,7 +495,7 @@ export default function CashVoucher({profile}) {
         <button type="button" className="btn" disabled={busy||!templateReady} onClick={()=>downloadSigned(selected)}>
           Download Signed CV Excel (Print / PDF)
         </button>
-        <small>Original one-page Excel print layout. HOD digital signature, username and approval date appear in the existing signature blocks. For PDF, open the signed Excel in Microsoft Excel and choose Save as PDF.</small>
+        <small>PDF: Open signed Excel → Save as PDF.</small>
       </div>}
       <h3>Digital Signatures</h3>
       <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>

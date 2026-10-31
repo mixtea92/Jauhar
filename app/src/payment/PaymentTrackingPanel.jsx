@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import JIMSPaymentModeSelector from './JIMSPaymentModeSelector'
+import './JIMSPaymentModeSelector.css'
+import './JIMSPartialDraft.css'
+import './JIMSInstallmentWorkflow.css'
 
 // JAUHAR STEP 45 — Private payment initiation, Finance Manager verification, final PDF receipt.
 // Authorization is enforced by Step 43B/43C Supabase storage policies and RPCs.
@@ -64,6 +68,7 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
   const [transaction, setTransaction] = useState('')
   const [amount, setAmount] = useState(() => Number(voucher?.amount || 0).toFixed(2))
   const [busy, setBusy] = useState(false)
+  const [paymentMode, setPaymentMode] = useState('full')
   const [message, setMessage] = useState('')
   const [failed, setFailed] = useState(false)
 
@@ -75,10 +80,18 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
   const eligible = voucher?.status === 'fully_approved'
   const status = voucher?.payment_status
   const decision = voucher?.payment_initiation_manager_decision
-  const canInitiate = eligible && financeExec && (status === 'pending_payment' ||
+  const canInitiate = eligible && financeExec && voucher?.payment_mode !== 'partial' && (status === 'pending_payment' ||
     (status === 'payment_initiated' && decision === 'returned'))
   const canReview = eligible && financeManager && status === 'payment_initiated' && decision === 'pending'
   const canComplete = eligible && financeExec && status === 'payment_initiated' && decision === 'approved'
+  // Choose a mode only before the legacy V1 initiation/proof exists.
+  // V1 returned initiatives continue through their original workflow.
+  // The installment history/approval must also be visible to Finance Manager
+  // and permitted PV viewers after V2 starts, including after final settlement.
+  const modeChoiceAllowed = eligible && (
+    voucher?.payment_mode === 'partial' ||
+    (financeExec && status === 'pending_payment' &&
+      !voucher?.payment_initiation_proof_id && proofs.length === 0))
   const latest = proofs[0]
   const newerProofRequired = decision === 'returned' &&
     (!latest || latest.id === voucher.payment_initiation_proof_id)
@@ -87,6 +100,7 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
 
   useEffect(() => {
     let active = true
+    setPaymentMode(voucher?.payment_mode === 'partial' ? 'partial' : 'full')
     setProofFile(null)
     setReceiptFile(null)
     setReceiptPath('')
@@ -281,7 +295,12 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
           {proofLinks[p.id] && <a href={proofLinks[p.id]} target="_blank" rel="noopener noreferrer">Open private link (60s)</a>}
         </div>)}
       </div>}
-      {canInitiate && <div style={{border:'1px solid #d5e2f0',borderRadius:10,padding:14,margin:'12px 0'}}>
+      {modeChoiceAllowed && (
+        <JIMSPaymentModeSelector voucher={voucher} mode={paymentMode}
+          onModeChange={setPaymentMode} onDraftChanged={onVoucherChanged}
+          profile={profile} canReview={financeManager} disabled={busy}/>
+      )}
+      {canInitiate && (!modeChoiceAllowed || paymentMode === 'full') && <div style={{border:'1px solid #d5e2f0',borderRadius:10,padding:14,margin:'12px 0'}}>
         <h3>AP Executive — Payment Initiation</h3>
         <p className="muted">Upload proof of a payment REQUEST/INITIATION, not the final bank receipt. The payment is not yet recorded as Paid.</p>
         <div className="pv-field"><label htmlFor="pv-init-proof">Initiation proof · PDF/JPG/PNG/WEBP · max 5 MB</label>

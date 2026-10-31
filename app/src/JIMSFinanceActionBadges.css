@@ -1,0 +1,31 @@
+/* JIMS Step 56N — role-scoped action counts in Finance sidebar only.
+   No status, access, workflow, or payment logic. Black/gold locked palette. */
+.jims-shell .nav-item.jims-action-nav {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  min-width:0;
+}
+.jims-shell .nav-item .jims-nav-notification {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  min-width:23px;
+  height:22px;
+  padding:0 7px;
+  border-radius:999px;
+  border:1px solid rgba(231,183,99,.38);
+  background:#4b3620;
+  color:#ffe1a7;
+  font-size:11px;
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+.jims-shell .nav-item .jims-nav-notification.jims-count-unavailable {
+  background:#202329;
+  color:#b3b8c1;
+  border-color:#4c5059;
+}

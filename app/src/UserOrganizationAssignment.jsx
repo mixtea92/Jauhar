@@ -79,7 +79,7 @@ export default function UserOrganizationAssignment({ user, onSaved, onCancel }) 
       <div className="panel-head">
         <h2>Assign Branch &amp; Subdepartment — {user?.username?.toUpperCase()}</h2>
       </div>
-      <p className="muted">System Admin only. This changes organization metadata, not roles, existing PVs or approval authority.</p>
+      <p className="muted">Organization details only.</p>
       <form onSubmit={submit} style={{maxWidth:720}}>
         <div className="field">
           <label htmlFor="jsync-assignment-department">Department (existing)</label>

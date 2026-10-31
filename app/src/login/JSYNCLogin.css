@@ -1,168 +1,220 @@
-/* JAUHAR JSYNC Login — separate GUI skin, no effect on dashboard/PV styles.
-   Coordinates follow the original 1122 × 1402 artwork. Keep artwork aspect ratio.
-   To adjust an overlay later, modify the left/top/width/height percentages below. */
-.jsync-page {
-  width: 100%;
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #070707;
-  overflow-x: hidden;
-  isolation: isolate;
-}
-.jsync-page, .jsync-page * { box-sizing: border-box; }
-
-.jsync-artboard {
-  position: relative;
-  width: min(100%, 920px, calc(100dvh * 1122 / 1402));
-  flex-shrink: 0;
-  container-type: inline-size;
-  line-height: normal;
-  user-select: none;
-}
-.jsync-artwork { display: block; width: 100%; height: auto; pointer-events: none; }
-.jsync-form-overlay { position: absolute; inset: 0; margin: 0; pointer-events: none; }
-.jsync-sr-only {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-}
-.jsync-overlay-input {
-  position: absolute;
-  display: block;
-  padding: 0 1.1%;
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  outline: 0;
-  color: #f9edcc;
-  background: linear-gradient(90deg, #111214 0%, #101113 64%, #111213 100%);
-  box-shadow: none;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: clamp(12px, 2.2cqw, 25px);
-  font-weight: 400;
-  line-height: 1.1;
-  pointer-events: auto;
-  user-select: text;
-  min-width: 0;
-  min-height: 0;
-}
-.jsync-overlay-input::placeholder { color: #777679; opacity: 1; }
-.jsync-overlay-input:focus { background: #141417; box-shadow: inset 0 -2px 0 #e2b357; }
-.jsync-overlay-input:disabled { opacity: .7; cursor: wait; }
-
-/* Text overlay starts after the golden icon in each artwork input. */
-.jsync-username-input { left: 24.7%; top: 50.55%; width: 49.3%; height: 4.65%; }
-.jsync-password-input { left: 24.7%; top: 65.54%; width: 49.3%; height: 4.65%; }
-
-/* Covers the printed eye icon and replaces it with an accessible real button. */
-.jsync-password-toggle {
-  position: absolute;
-  left: 76.6%; top: 66.18%; width: 5.65%; height: 3.55%;
-  display: grid; place-items: center;
-  padding: .15%; margin: 0;
-  background: #111214;
-  border: 0; border-radius: 50%;
-  color: #e8bd65;
-  cursor: pointer; pointer-events: auto;
-}
-.jsync-password-toggle svg { width: 92%; height: 92%; }
-.jsync-password-toggle:hover { color: #fff0bb; }
-.jsync-password-toggle:focus-visible { outline: 2px solid #ffdf87; outline-offset: 1px; }
-
-/* Leave the artwork's precise gold-gradient Login button visible and clickable. */
-.jsync-login-hotspot {
-  position: absolute;
-  left: 15.3%; top: 74.55%; width: 67.8%; height: 7.55%;
-  padding: 0; margin: 0; border: 0; border-radius: 18px;
-  background: transparent; cursor: pointer; pointer-events: auto;
-  display: grid; place-items: center;
-  color: #231705;
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 750;
-  font-size: clamp(12px, 2.6cqw, 29px);
-}
-.jsync-login-hotspot:hover { box-shadow: inset 0 0 0 999px #fff8e20b, 0 0 20px #ffc85740; }
-.jsync-login-hotspot:focus-visible { outline: 3px solid #fff1b0; outline-offset: 3px; }
-.jsync-login-hotspot:disabled { cursor: wait; }
-.jsync-login-hotspot.jsync-is-loading {
-  background: linear-gradient(95deg, #d3a24c, #ffe596 50%, #c78f36);
-  box-shadow: 0 0 22px #ffcb5b55;
-}
-.jsync-loading-label { pointer-events: none; }
-.jsync-error {
-  position: absolute; left: 15.6%; top: 83%; width: 67.3%;
-  text-align: center; color: #ffe7df;
-  background: #421f1fef; border: 1px solid #d68d63;
-  border-radius: 8px; padding: .8% 1%;
-  font-size: clamp(11px, 1.6cqw, 18px);
-  line-height: 1.35; pointer-events: auto;
-}
-@media (max-width: 600px) {
-  .jsync-artboard { width: 100%; }
-  .jsync-overlay-input { font-size: clamp(11px, 2.3cqw, 17px); }
-  .jsync-login-hotspot { border-radius: 8px; }
-  .jsync-password-toggle { min-width: 22px; min-height: 22px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .jsync-page *, .jsync-page *::before, .jsync-page *::after { transition: none !important; animation: none !important; }
-}
-
-/* BEGIN JSYNC METALLIC BACKDROP — Step 41B
-   Full-viewport metallic backdrop; preserves original JSYNC login controls. */
-.jsync-page {
-  position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  height: 100dvh !important;
-  min-height: 0 !important;
-  max-width: none !important;
+/* Step 50B JIMS — isolated, full-bleed login-only stylesheet.
+   Matches the provided 1672x941 artwork; authentication remains in App.jsx. */
+html:has(.jims-login-screen),
+body:has(.jims-login-screen) {
   margin: 0 !important;
   padding: 0 !important;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden !important;
+  background: #050403 !important;
+}
+#root:has(.jims-login-screen) {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100dvh !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #050403 !important;
+}
+.jims-login-screen,
+.jims-login-screen * { box-sizing: border-box; }
+.jims-login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #050403;
+  color: #f3dfae;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: left;
+  isolation: isolate;
+}
+/* Object-fit cover math: wallpaper and inputs use exactly the same coordinate system. */
+.jims-login-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.6833dvh);
+  height: max(100dvh, 56.2799vw);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+.jims-login-artwork {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+  pointer-events: none;
+}
+.jims-mobile-brand, .jims-mobile-form-heading { display: none; }
+.jims-login-form { position: absolute; inset: 0; margin: 0; pointer-events: none; }
+.jims-login-form input, .jims-login-form button { pointer-events: auto; font-family: inherit; }
+.jims-login-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.jims-login-input {
+  position: absolute;
+  display: block;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0 0.45%;
+  outline: none;
+  color: #f9f0d6;
+  background: linear-gradient(90deg, #171714 0%, #1a1917 53%, #181816 100%);
+  box-shadow: none;
+  font-size: clamp(12px, 1.05vw, 18px);
+  font-weight: 400;
+  line-height: normal;
+  min-width: 0;
+  min-height: 0;
+  appearance: none;
+}
+.jims-login-input::placeholder { color: #92908b; opacity: 1; }
+.jims-login-input:focus { background: #1e1c18; box-shadow: inset 0 -2px 0 #e4b452; }
+.jims-login-input:disabled { opacity: 0.8; cursor: wait; }
+.jims-login-username { left: 39.42%; top: 60.04%; width: 24.6%; height: 4.95%; }
+.jims-login-password { left: 39.42%; top: 68.31%; width: 23.12%; height: 4.80%; }
+.jims-password-eye {
+  position: absolute;
+  left: 62.55%;
+  top: 68.35%;
+  width: 2.45%;
+  height: 4.75%;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  padding: 0.15%;
+  margin: 0;
+  color: #bba77d;
+  background: #191915;
+  cursor: pointer;
+}
+.jims-password-eye svg { display: block; width: 80%; height: 80%; }
+.jims-password-eye:hover { color: #ffe49f; }
+.jims-password-eye:focus-visible, .jims-login-submit:focus-visible {
+  outline: 3px solid #ffe19b;
+  outline-offset: 2px;
+}
+.jims-login-submit {
+  position: absolute;
+  left: 34.91%;
+  top: 75.48%;
+  width: 30.25%;
+  height: 7.86%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #050404;
-  isolation: isolate;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 17px;
+  background: transparent;
+  color: #251402;
+  cursor: pointer;
 }
-/* Gold-brushed metallic surface bleeds beyond both sides of the login artwork.
-   The central area is faded to charcoal, preventing a second 'ghost' login panel. */
-.jsync-page::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url('../assets/JSYNC_Metallic_Backdrop.webp') center center / cover no-repeat;
-  -webkit-mask-image: linear-gradient(to right,
-    #000 0%, #000 13%, transparent 37%, transparent 63%, #000 87%, #000 100%);
-  mask-image: linear-gradient(to right,
-    #000 0%, #000 13%, transparent 37%, transparent 63%, #000 87%, #000 100%);
+.jims-login-submit:hover { background: rgba(255,248,220,0.07); box-shadow: 0 0 22px rgba(255,205,78,.19); }
+.jims-login-submit:disabled { cursor: wait; background: rgba(253,219,133,.2); }
+.jims-submit-label, .jims-submit-arrow { display: none; }
+.jims-login-submit:disabled .jims-submit-label { display: inline; color: #1f1609; font-weight: 800; font-size: clamp(13px,1.3vw,20px); }
+.jims-login-error {
+  position: absolute;
+  top: 84.2%;
+  left: 35%;
+  width: 30%;
+  border: 1px solid #c48860;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: rgba(60,18,18,.94);
+  color: #ffe1d7;
+  font-size: clamp(12px, 1vw, 16px);
+  line-height: 1.3;
+  text-align: center;
+  pointer-events: auto;
 }
-/* A soft warm reflection ties the metallic edges into the main image. */
-.jsync-page::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 40% 65% at -8% 0%, rgba(184, 114, 31, .12), transparent 85%),
-    radial-gradient(ellipse 40% 75% at 108% 100%, rgba(185, 123, 35, .12), transparent 85%);
+/* Portrait and mobile: same artwork is used for the original branded heading,
+   with a real card below it. No tiny scaled inputs, clipped form, or white gutters. */
+@media (max-width: 820px), (max-aspect-ratio: 9/10) {
+  .jims-login-screen { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+  .jims-login-stage {
+    position: relative; top: auto; left: auto;
+    width: 100%; min-height: 100dvh; height: auto;
+    transform: none; overflow: visible;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 18px 30px;
+    background:
+      radial-gradient(ellipse 90% 26% at 50% 4%, rgba(154,95,26,.19), transparent 75%),
+      linear-gradient(180deg,#090706 0%,#050504 100%);
+  }
+  .jims-login-artwork { display: none; }
+  .jims-mobile-brand {
+    display: block;
+    flex: 0 0 200px;
+    width: calc(100% + 36px);
+    margin: 0 -18px;
+    background-position: center top, center top;
+    background-repeat: no-repeat;
+    background-size: 100% 100%, auto 365px;
+    pointer-events: none;
+  }
+  .jims-login-form {
+    position: relative; inset: auto;
+    display: flex; flex-direction: column;
+    width: min(100%, 440px); margin: 0;
+    padding: 24px 23px 26px;
+    border-radius: 20px;
+    border: 1px solid rgba(216,161,76,.43);
+    background: linear-gradient(145deg, rgba(20,18,15,.98), rgba(8,8,8,.99));
+    box-shadow: 0 20px 48px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,208,124,.08);
+    pointer-events: auto;
+  }
+  .jims-mobile-form-heading { display: block; margin-bottom: 22px; }
+  .jims-mobile-form-heading span { display: block; font-size: 10px; font-weight: 750; letter-spacing: 3px; color: #b58b49; margin-bottom: 8px; }
+  .jims-mobile-form-heading h1 { color: #ffe3a2; font-size: clamp(24px,6vw,31px); line-height: 1.15; margin: 0 0 7px; font-weight: 750; letter-spacing: -.6px; }
+  .jims-mobile-form-heading p { color: #ada08a; font-size: 12px; line-height: 1.45; margin: 0; }
+  .jims-login-label { position: static; display: block; width: auto; height: auto; clip-path: none; overflow: visible; white-space: normal; margin: 0 0 8px; color: #e3c386; font-size: 12px; font-weight: 700; }
+  .jims-password-wrap { position: relative; margin-bottom: 17px; }
+  .jims-login-input {
+    position: static; left: auto; top: auto;
+    width: 100%; height: 52px; padding: 0 15px;
+    margin: 0 0 17px;
+    border: 1px solid rgba(200,154,84,.48);
+    border-radius: 12px;
+    background: #191817;
+    font-size: 16px;
+  }
+  .jims-login-input:focus { border-color: #f0be60; box-shadow: 0 0 0 3px rgba(231,171,65,.15); }
+  .jims-password-wrap .jims-login-input { margin: 0; padding-right: 56px; }
+  .jims-password-eye {
+    position: absolute; left: auto; right: 5px; top: 5px;
+    width: 43px; height: 42px; padding: 10px;
+    background: transparent; border-radius: 10px;
+  }
+  .jims-password-eye svg { width: 22px; height: 22px; }
+  .jims-login-submit {
+    position: static; left: auto; top: auto;
+    width: 100%; height: 55px;
+    border-radius: 13px;
+    background: linear-gradient(100deg,#d5a345 0%,#ffe49c 43%,#c68d35 100%);
+    box-shadow: 0 7px 19px rgba(220,152,44,.23), inset 0 1px 0 rgba(255,255,255,.4);
+    color: #211508; font-size: 15px; font-weight: 800; letter-spacing: 3px;
+  }
+  .jims-login-submit:hover { background: linear-gradient(100deg,#e6b95c,#fff0b9,#dfa94c); box-shadow: 0 9px 26px rgba(222,160,61,.33); }
+  .jims-login-submit:disabled { opacity:.65; }
+  .jims-submit-label, .jims-submit-arrow { display: inline; }
+  .jims-submit-arrow { font-size: 25px; line-height: 1; margin-top: -2px; }
+  .jims-login-error { position: static; width: 100%; margin-top: 16px; padding: 10px; font-size: 12px; }
 }
-/* Fade only the outside 7% of the original portrait artwork.
-   Gold logo, panel border and live form controls stay sharp and untouched. */
-.jsync-artboard {
-  position: relative;
-  z-index: 1;
-  -webkit-mask-image: linear-gradient(to right,
-    transparent 0%, #000 7.5%, #000 92.5%, transparent 100%);
-  mask-image: linear-gradient(to right,
-    transparent 0%, #000 7.5%, #000 92.5%, transparent 100%);
+@media (max-height: 650px) and (max-width: 820px) {
+  .jims-mobile-brand { flex-basis: 160px; background-size: 100% 100%, auto 310px; }
+  .jims-login-form { padding-top: 18px; }
 }
-/* END JSYNC METALLIC BACKDROP — Step 41B */
+@media (prefers-reduced-motion: reduce) {
+  .jims-login-screen *, .jims-login-screen *::before, .jims-login-screen *::after { transition: none !important; animation: none !important; }
+}

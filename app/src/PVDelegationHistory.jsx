@@ -43,7 +43,7 @@ export default function PVDelegationHistory({ voucherId }) {
     <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10}}>
       <div>
         <strong>Delegation &amp; Requester Handover Audit</strong>
-        <p className="muted" style={{margin:'6px 0'}}>Part of this PV Approval History · recorded real actors and authorizers.</p>
+        
       </div>
       <button type="button" className="btn" style={{background:'#68788d',padding:'7px 13px'}}
         disabled={loading} onClick={()=>setVersion(v=>v+1)}>

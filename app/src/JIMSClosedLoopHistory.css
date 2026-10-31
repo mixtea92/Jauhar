@@ -1,0 +1,51 @@
+/* JIMS Step 54H — Closed-loop history + Petty Cash visual rename.
+   Screen-only. Does not alter payment/approval workflows or signed XLSX files. */
+.jims-shell>.content .jims-closed-history{
+  margin-top:22px;padding:22px;
+  border:1px solid rgba(218,178,106,.23)!important;
+  background:#17191d!important;
+  border-radius:15px;
+}
+.jims-shell>.content .jims-closed-history h2,
+.jims-shell>.content .jims-closed-history h3{
+  color:#ead0a0!important;font-size:19px;margin:0 0 7px;
+}
+.jims-shell>.content .jims-closed-history p{
+  color:#adb6c3!important;margin:0 0 15px;
+}
+.jims-shell>.content .jims-closed-history-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:11px;
+}
+.jims-shell>.content button.jims-closed-history-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+  text-align:left;background:#202329!important;border:1px solid rgba(216,180,112,.27)!important;
+  color:#f0ece4!important;border-radius:12px;padding:15px 16px;cursor:pointer;
+}
+.jims-shell>.content button.jims-closed-history-card:hover:not(:disabled){
+  background:#2e2b26!important;border-color:rgba(216,180,112,.53)!important;
+}
+.jims-shell>.content .jims-closed-history-card strong{
+  font-size:15px;color:#f6dbab;
+}
+.jims-shell>.content .jims-closed-history-card small{
+  font-size:12px;color:#b9c0c8;
+}
+.jims-shell>.content .jims-closed-history-card em{
+  font-size:12px;color:#e7c58b;font-style:normal;font-variant-numeric:tabular-nums;
+}
+.jims-shell>.content .jims-closed-history details{
+  padding:14px;background:#202329;border:1px solid rgba(216,180,112,.23);
+  border-radius:11px;color:#f3e9da;
+}
+.jims-shell>.content .jims-closed-history summary{
+  cursor:pointer;color:#efd6a5;font-weight:650;
+}
+.jims-shell>.content .jims-closed-history table{
+  width:100%;min-width:650px;border-collapse:collapse;
+}
+.jims-shell>.content .jims-closed-history th,
+.jims-shell>.content .jims-closed-history td{
+  padding:10px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.09);
+}
+.jims-shell>.content .jims-closed-history .jims-history-scroll{overflow-x:auto;margin-top:12px;}
+@media(max-width:650px){.jims-shell>.content .jims-closed-history{padding:16px;}}

@@ -29,7 +29,7 @@ export default function ApprovalQueues({ profile, onOpenVoucher, refreshKey = 0,
   const rows=data[selectedLane]||[]
   return <section className="panel">
     <div className="panel-head"><div><h2>{mode === 'actual' ? 'My Approvals · Actual Authority' : 'Approval Queues'}</h2>
-      <p className="muted">Own approval authority and delegated authority are always shown separately.</p></div>
+      </div>
       <button type="button" className="btn" disabled={loading} onClick={reload}>{loading?'Loading...':'Refresh Queues'}</button>
     </div>
     <div className="pv-actions" style={{marginBottom:15}}>
@@ -59,6 +59,6 @@ export default function ApprovalQueues({ profile, onOpenVoucher, refreshKey = 0,
       {!rows.length && <tr><td colSpan={selectedLane==='delegated'?8:7}>
         {loading?'Loading...':'No actionable approvals in this category.'}</td></tr>}
     </tbody></table></div>
-    <p className="muted" style={{marginTop:12}}>Shows up to 300 actionable PVs. Use Payment Voucher's full list for historical tracking.</p>
+    <p className="muted" style={{marginTop:12}}>Showing up to 300 PVs.</p>
   </section>
 }

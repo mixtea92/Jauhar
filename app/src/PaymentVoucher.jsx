@@ -1,3 +1,5 @@
+import JIMS57D2OfficialPVDownload from './JIMS57D2OfficialPVDownload'
+import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'
 // JAUHAR_STEP_46_DELEGATION_HANDOVER_ALL
 // JAUHAR_STEP_45_PAYMENT_TRACKING_COMPLETE
 // JAUHAR_STEP_44F_ALL_NINE_CROSSDEPARTMENT
@@ -15,7 +17,9 @@ import PVDelegationHistory from './PVDelegationHistory'
 // JAUHAR_STEP_46N2D_PV_HISTORY_AND_DELETE_UI
 import JRPanel from './jr/JRPanel'
 import PaymentTrackingPanel from './payment/PaymentTrackingPanel'
-import ApprovalQueues from './ApprovalQueues'
+import JIMSPaymentProcessBoard from './JIMSPaymentProcessBoard'
+import JIMSV2FinanceManagerQueue from './JIMSV2FinanceManagerQueue'
+import JIMSPaymentCompletionQueue from './JIMSPaymentCompletionQueue'
 // JAUHAR_STEP_46D_SEPARATE_DELEGATION_MENU
 
 // Step 38.3: official Excel is imported from 'Blank Form' before any NEW PV.
@@ -23,24 +27,40 @@ import ApprovalQueues from './ApprovalQueues'
 // Financial Tier is saved through the versioned v3 draft RPCs.
 // Tier-based submission is disabled until the routing backend is implemented.
 const OFFICIAL_TEMPLATE_URL = '/templates/JAUHAR_PV_Official_Template.xlsx'
-const REQUIRED_TEMPLATE_REVISION = '0000'
+const REQUIRED_TEMPLATE_REVISION = '0001'
 const TIER_PERSISTENCE_BACKEND_READY = true
 const JR_TIERS = ['T03','T05','T06','T07','T09']
-const JR_FINAL_CEO = ['T03','T07']
-const JR_FINAL_BOD = ['T05','T06','T09']
+const JR_FINAL_CEO = ['T03','T06']
+const JR_FINAL_BOD = ['T05','T07','T09']
 const FINANCIAL_TIERS = {
-  T01: { label: 'Fixed / recurring (budgeted)', approver: 'Finance Manager', jr: false },
-  T02: { label: 'Variable within budget < RM10,000', approver: 'Finance Manager', jr: false },
-  T03: { label: 'Variable exceeds budget <= RM10,000', approver: 'CEO', jr: true },
-  T04: { label: 'Variable within budget > RM10,000', approver: 'CEO', jr: false },
-  T05: { label: 'Variable exceeds budget > RM10,000', approver: 'BOD', jr: true },
-  T06: { label: 'Unbudgeted > RM1,000', approver: 'BOD', jr: true },
-  T07: { label: 'Unbudgeted <= RM1,000', approver: 'CEO', jr: true },
-  T08: { label: 'Payroll within budget (pilot; amount limit pending Finance)', approver: 'BOD', jr: false },
-  T09: { label: 'Payroll exceeds approved budget (amount pending Finance)', approver: 'BOD', jr: true }
+  T01: { label: 'Fixed / Recurring Monthly Payments', approver: 'Finance Manager', jr: false },
+  T02: { label: 'Non-Fixed within approved budget <= RM10,000', approver: 'Finance Manager', jr: false },
+  T03: { label: 'Non-Fixed exceeds approved budget <= RM10,000', approver: 'CEO', jr: true },
+  T04: { label: 'Non-Fixed within approved budget > RM10,000', approver: 'CEO', jr: false },
+  T05: { label: 'Non-Fixed exceeds approved budget > RM10,000', approver: 'BOD', jr: true },
+  T06: { label: 'Unbudgeted amount <= RM1,000', approver: 'CEO', jr: true },
+  T07: { label: 'Unbudgeted amount > RM1,000', approver: 'BOD', jr: true },
+  T08: { label: 'Payroll within approved baseline', approver: 'BOD', jr: false },
+  T09: { label: 'Payroll exceeds approved baseline', approver: 'BOD', jr: true }
 }
 // T08: Finance pilot routes FM -> CEO -> BOD; T09 stays Draft-only.
 // Payroll limits/payment controls are still pending Finance confirmation.
+// JIMS Tier Revision 1. NULL policy version means historical authority.
+function isJRFinalCEO(v) {
+  const t=v?.financial_tier
+  return t==='T03' || (t==='T06' && v?.jims_tier_policy_version==='R1')
+    || (t==='T07' && v?.jims_tier_policy_version!=='R1')
+}
+function isJRFinalBOD(v) {
+  const t=v?.financial_tier
+  return t==='T05' || t==='T09'
+    || (t==='T07' && v?.jims_tier_policy_version==='R1')
+    || (t==='T06' && v?.jims_tier_policy_version!=='R1')
+}
+function isCEOFinalTier(v) {
+  return v?.financial_tier==='T04' || isJRFinalCEO(v)
+}
+
 const DEFAULT_INVOICE_LINES = 5
 // Step 38.1: enable expanded invoice lists ONLY AFTER the companion
 // Supabase migration has been run successfully on this project's database.
@@ -75,7 +95,7 @@ function blankForm() {
     payee_name: '', supplier_code: '', supplier_tin: '',
     bank_name: '', bank_account_no: '', branch_department: '',
     payment_method: '', payment_type: '', expense_nature: '',
-    budget_classification: '', financial_tier: '', template_version: '',
+    budget_classification: '', financial_tier: '', template_version: REQUIRED_TEMPLATE_REVISION,
     lines: blankLines(), sst_amount: '0',
     supporting_types: [], supporting_other_text: '', remarks: '',
     source_voucher_no: '', source_pv_date: '',
@@ -309,15 +329,62 @@ function parseWorkbook(sheet) {
   }
 }
 
+// Revision 1 official form: sheet 'PV (T-Digital)', cells E13..E23,
+// tier L10, invoice rows 26..35, subtotals L36/L37/L38.
+function parseRevisionOneWorkbook(sheet) {
+  const lines=Array.from({length:10},(_,index)=>{
+    const row=26+index
+    const amount=cellText(sheet,'L'+row)
+    return {
+      invoice_reference:cellText(sheet,'C'+row),
+      description:cellText(sheet,'F'+row),
+      gl_code:cellText(sheet,'J'+row),
+      amount:amount ? parseAmount(amount) : ''
+    }
+  })
+  const check=(cell)=>/[☑✓✔xX]/.test(cellText(sheet,cell))
+  const branch=cellText(sheet,'E17').replace(/^JMC[_ -]?/i,'').trim().toUpperCase()
+  return {
+    ...blankForm(),
+    template_version:'0001',
+    financial_tier:readFinancialTier(cellText(sheet,'L10')),
+    payee_name:cellText(sheet,'E13'),
+    supplier_code:cellText(sheet,'E14'),
+    supplier_tin:'',
+    bank_name:cellText(sheet,'E15'),
+    bank_account_no:cellText(sheet,'E16'),
+    branch_department:chooseValue(branch,choices.branch),
+    payment_method:chooseValue(cellText(sheet,'E19'),choices.method),
+    payment_type:chooseValue(cellText(sheet,'E21'),choices.type),
+    expense_nature:chooseValue(cellText(sheet,'E22'),choices.nature),
+    budget_classification:chooseValue(cellText(sheet,'E23'),choices.budget),
+    lines,
+    sst_amount:parseAmount(cellText(sheet,'L37'))||'0',
+    supporting_types:[
+      check('B40')&&'Invoice',
+      check('E40')&&'Quotation',
+      check('H40')&&'Payment Request Form',
+      check('K40')&&'Other'
+    ].filter(Boolean),
+    supporting_other_text:'',
+    remarks:'',
+    // Official PV number and payment date are always generated/tracked by JIMS.
+    source_voucher_no:'',
+    source_pv_date:'',
+    imported_transaction_no:cellText(sheet,'E20'),
+    imported_payment_date:dateToIso(cellText(sheet,'L20'))
+  }
+}
+
 function validateImportedPV(form) {
-  if (!form.payee_name.trim()) return 'Payee Name is required in Blank Form (D15).'
+  if (!form.payee_name.trim()) return 'Payee Name is required (E13 in Rev1 / D15 in legacy template).'
   if (!form.financial_tier) {
-    return 'Select a valid PV Tier in Blank Form K12 (PVT01 to PVT07).'
+    return 'Select Financial Tier T01–T09 (L10 in Rev1 / K12 legacy).'
   }
   const lines = form.lines.filter(item =>
     Object.values(item).some(value => String(value).trim() !== '')
   )
-  if (!lines.length) return 'Enter at least one invoice in Blank Form rows 28–37.'
+  if (!lines.length) return 'Enter at least one invoice (Rev1 rows 26–35 / legacy 28–37).'
   for (const line of lines) {
     if (!line.invoice_reference.trim() || !line.description.trim() ||
         !strictMoney(line.amount)) {
@@ -325,7 +392,7 @@ function validateImportedPV(form) {
     }
   }
   if (!strictMoney(form.sst_amount || '0', true)) {
-    return 'Invalid SST amount in Blank Form K39.'
+    return 'Invalid SST amount (L37 in Rev1 / K39 legacy).'
   }
   return ''
 }
@@ -354,7 +421,7 @@ function ChoiceField({ label, name, value, onChange, options }) {
   )
 }
 
-export default function PaymentVoucher({ profile, openRequest = null, onOpenRequestHandled, reviewMode = "normal", onReviewClose }) {
+export default function PaymentVoucher({ profile, openRequest = null, onOpenRequestHandled, reviewMode = "normal", onReviewClose, dashboardSection = "approval" }) {
   const canCreate = profile?.role === 'executive'
   const canManage = profile?.role === 'manager'
   const canApproveCEO = profile?.role === 'ceo'
@@ -364,6 +431,8 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const isAPFinance = canCreate && profile?.department === 'Finance'
   // JSYNC_FINANCE_ONLY_NEW_PV_V1: new vouchers only; legacy non-Finance PV actions stay unchanged.
   const canRaisePV = isAPFinance && profile?.is_active === true
+  // 51UI: two visual entrances, one unchanged PV approval and payment process.
+  const paymentLanding = dashboardSection === 'payment' && reviewMode !== 'delegated'
   // Payment Voucher always opens its OWN dashboard under Finance Approval.
   const [workspaceMode, setWorkspaceMode] = useState('home')
   const [listCategory, setListCategory] = useState('draft')
@@ -378,6 +447,8 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [listDateTo, setListDateTo] = useState('')
   const latestListRequest = useRef(0)
   const [dashboardCounts, setDashboardCounts] = useState(null)
+  const [jimsV2FMCount,setJimsV2FMCount] = useState(null)
+  const [jimsCompletionSnapshot,setJimsCompletionSnapshot] = useState(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [dashboardError, setDashboardError] = useState('')
   const [form, setForm] = useState(blankForm)
@@ -558,7 +629,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
       const expected = decision === 'return' ? 'returned' : decision === 'reject' ? 'rejected' :
         stage === 'hod' ? 'pending_ap_finance' :
         stage === 'finance_manager' ? (['T01','T02'].includes(v.financial_tier) ? 'fully_approved' : 'pending_ceo') :
-        stage === 'ceo' ? (['T03','T04','T07'].includes(v.financial_tier) ? 'fully_approved' : 'pending_bod') : 'fully_approved'
+        stage === 'ceo' ? (isCEOFinalTier(v) ? 'fully_approved' : 'pending_bod') : 'fully_approved'
       if (data?.id !== v.id || data.status !== expected) {
         throw new Error('Delegated decision not confirmed. Reopen the voucher.')
       }
@@ -698,7 +769,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
       }
       const [draft, submitted, approved, pending_payment, payment_initiated, paid,
          pending_initiation_review, needs_payment_completion,
-        returned, pending_hod, pending_ap_finance, pending_manager, pending_finance_manager, pending_ceo, pending_bod] = await Promise.all([
+        returned, pending_hod, pending_ap_finance, pending_manager, pending_finance_manager, pending_ceo, pending_bod, rejected] = await Promise.all([
         count(q => q.in('status', ['draft', 'returned'])),
         count(q => q.in('status', SUBMITTED_STAGES)),
         count(q => q.eq('status', 'fully_approved')),
@@ -715,11 +786,12 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
         count(q => q.eq('status', 'pending_manager')),
         count(q => q.eq('status', 'pending_finance_manager')),
         count(q => q.eq('status', 'pending_ceo')),
-        count(q => q.eq('status', 'pending_bod'))
+        count(q => q.eq('status', 'pending_bod')),
+        count(q => q.eq('status', 'rejected'))
       ])
       setDashboardCounts({ draft, submitted, approved, pending_payment, payment_initiated, paid,
          pending_initiation_review, needs_payment_completion,
-        returned, pending_hod, pending_ap_finance, pending_manager, pending_finance_manager, pending_ceo, pending_bod })
+        returned, pending_hod, pending_ap_finance, pending_manager, pending_finance_manager, pending_ceo, pending_bod, rejected })
     } catch (err) {
       setDashboardCounts(null)
       setDashboardError(err.message || 'Unable to load PV counters.')
@@ -1253,6 +1325,22 @@ async function uploadInvoice(line, file) {
     setSubmittingVoucher(true)
     setSubmitMessage('')
     try {
+      // JIMS 57D4 preflight: AP blocked attempts are recorded before a rejected submit.
+      // Other department workflows still get the same global DB status-transition guard.
+      if (!nonFinanceExecutive) {
+        const {data:duplicateCheck,error:duplicateError}=await supabase.rpc(
+          'jims_57d4_preflight_submit_v1',{p_voucher_id:voucher.id}
+        )
+        if(duplicateError)throw duplicateError
+        if(duplicateCheck?.can_submit!==true) {
+          const pvMatches=(duplicateCheck?.matches||[]).slice(0,4)
+            .map(x=>x.existing_pv).filter(Boolean)
+          setSubmitMessage('Duplicate supplier invoice detected. Already in '+
+            (pvMatches.join(', ')||'another Payment Voucher')+
+            '. Review invoice reference before submitting.')
+          return
+        }
+      }
       const rpcName = nonFinanceExecutive ? 'submit_department_pv_v1'
         : jrPilot ? 'submit_finance_jr_v1'
         : t08Pilot ? 'submit_finance_t08_v1'
@@ -1414,7 +1502,7 @@ async function uploadInvoice(line, file) {
       tell('Remarks required for Return/Reject (maximum 2000 characters).');return
     }
     const final=stage==='finance_manager' ? ['T01','T02'].includes(v.financial_tier)
-      : stage==='ceo' ? ['T03','T04','T07'].includes(v.financial_tier) : true
+      : stage==='ceo' ? isCEOFinalTier(v) : true
     if(decision==='approve' && final && JR_TIERS.includes(v.financial_tier) &&
       !jrMeetings.some(m=>m.approval_round===v.approval_round && m.decision_tier===stage)){
       tell('Record actual offline JR meeting evidence before final approval.');return
@@ -1465,7 +1553,7 @@ async function uploadInvoice(line, file) {
       `Tier: ${voucher.financial_tier}\n` +
       `Amount: ${money(voucher.amount)}\n` +
       `Result: ${decision === 'approve' ? (['T04','T08','T03','T05','T06','T07','T09'].includes(voucher.financial_tier)
-        ? ((voucher.financial_tier === 'T08' || JR_FINAL_BOD.includes(voucher.financial_tier)) ? 'Pending CEO, then BOD final' : 'Pending CEO for final decision')
+        ? ((voucher.financial_tier === 'T08' || isJRFinalBOD(voucher)) ? 'Pending CEO, then BOD final' : 'Pending CEO for final decision')
         : 'Fully Approved (Finance Manager final)') :
         decision === 'return' ? 'Returned for Amendment' : 'Rejected Permanently'}\n` +
       (remarks ? `Remarks: ${remarks}\n` : '')
@@ -1784,7 +1872,7 @@ async function uploadInvoice(line, file) {
     if(!['approve','return','reject'].includes(decision))return
     if(['return','reject'].includes(decision)&&!remarks){setCeoMessage('Reason required for Return/Reject');return}
     if(remarks.length>2000){setCeoMessage('Remarks too long');return}
-    const final=JR_FINAL_CEO.includes(v.financial_tier)
+    const final=isJRFinalCEO(v)
     if(decision==='approve'&&final&&!jrMeetings.some(m=>m.approval_round===v.approval_round&&m.decision_tier==='ceo')){
       setCeoMessage('Record approved offline JR meeting evidence before CEO final approval');return
     }
@@ -1807,7 +1895,7 @@ async function uploadInvoice(line, file) {
 
   async function bodDecideJR(decision){
     const v=viewingVoucher
-    if(!canApproveBOD||!v||!JR_FINAL_BOD.includes(v.financial_tier)||v.status!=='pending_bod'||bodSaving)return
+    if(!canApproveBOD||!v||!isJRFinalBOD(v)||v.status!=='pending_bod'||bodSaving)return
     const remarks=bodRemarks.trim()
     if(!['approve','return','reject'].includes(decision))return
     if(['return','reject'].includes(decision)&&!remarks){setBodMessage('Reason required for Return/Reject');return}
@@ -2009,8 +2097,8 @@ async function uploadInvoice(line, file) {
       return
     }
 
-    if (newPvValidated && !window.confirm(
-      'Replace the previously imported form and all your unsaved edits with this new Excel?'
+    if ((newPvValidated || JSON.stringify(form) !== JSON.stringify(blankForm())) && !window.confirm(
+      'Importing Excel will replace your current unsaved PV form details. Continue?'
     )) return
 
     setImporting(true)
@@ -2018,21 +2106,40 @@ async function uploadInvoice(line, file) {
       const ExcelJS = (await import('exceljs')).default
       const workbook = new ExcelJS.Workbook()
       await workbook.xlsx.load(await file.arrayBuffer())
-      const sheet = workbook.getWorksheet('Blank Form')
-      if (!sheet || !workbook.getWorksheet('Sample PV') ||
-          !workbook.getWorksheet('PV Approval Matrix') ||
-          !cellText(sheet, 'A5').toUpperCase().includes('PAYMENT VOUCHER') ||
-          !cellText(sheet, 'A26').toUpperCase().includes('PV APPROVAL TIER') ||
-          !cellText(sheet, 'I12').toUpperCase().includes('PV TIER') ||
-          !cellText(sheet, 'A27').toUpperCase().includes('NO.') ||
-          !cellText(sheet, 'K27').toUpperCase().includes('AMOUNT')) {
-        throw new Error('Wrong Excel layout. Use the current official JAUHAR workbook with Blank Form, Sample PV and PV Approval Matrix.')
+      const revisionOneSheet=workbook.getWorksheet('PV (T-Digital)')
+      let revision=''
+      let parsed
+      if(revisionOneSheet){
+        const sheet=revisionOneSheet
+        if(!cellText(sheet,'B5').toUpperCase().includes('PAYMENT VOUCHER') ||
+           !cellText(sheet,'B13').toUpperCase().includes('PAYEE') ||
+           !cellText(sheet,'B25').toUpperCase().includes('NO.') ||
+           !cellText(sheet,'K25').toUpperCase().includes('AMOUNT')){
+          throw new Error('Wrong Revision 1 layout. Use official PV (T-Digital) sheet.')
+        }
+        revision=cellText(sheet,'J2')
+        if(revision!=='1'){
+          throw new Error('Unsupported Revision 1 workbook; J2 must be 1.')
+        }
+        parsed=parseRevisionOneWorkbook(sheet)
+      } else {
+        // Keep existing legacy Excel Rev 0000 import fully compatible.
+        const sheet=workbook.getWorksheet('Blank Form')
+        if(!sheet || !workbook.getWorksheet('Sample PV') ||
+           !workbook.getWorksheet('PV Approval Matrix') ||
+           !cellText(sheet,'A5').toUpperCase().includes('PAYMENT VOUCHER') ||
+           !cellText(sheet,'A26').toUpperCase().includes('PV APPROVAL TIER') ||
+           !cellText(sheet,'I12').toUpperCase().includes('PV TIER') ||
+           !cellText(sheet,'A27').toUpperCase().includes('NO.') ||
+           !cellText(sheet,'K27').toUpperCase().includes('AMOUNT')){
+          throw new Error('Unsupported Excel workbook layout; use official Rev1 or legacy template.')
+        }
+        revision=cellText(sheet,'I2')
+        if(revision!=='0000'){
+          throw new Error('Legacy template revision must be 0000.')
+        }
+        parsed=parseWorkbook(sheet)
       }
-      const revision = cellText(sheet, 'I2')
-      if (revision !== REQUIRED_TEMPLATE_REVISION) {
-        throw new Error(`Outdated or unsupported template revision (${revision || 'blank'}). Download the latest template (rev ${REQUIRED_TEMPLATE_REVISION}).`)
-      }
-      const parsed = parseWorkbook(sheet)
       // T08/T09 may now import for Draft only; Submit is independently blocked.
       const validationError = validateImportedPV(parsed)
       if (validationError) throw new Error(validationError)
@@ -2079,10 +2186,6 @@ async function uploadInvoice(line, file) {
       setError('Cannot create a new PV while an existing voucher is selected.')
       return
     }
-    if (workspaceMode === 'new' && !newPvValidated) {
-      setError('Upload and validate the official JAUHAR Excel template before creating a PV.')
-      return
-    }
     if (workspaceMode === 'new' && !TIER_PERSISTENCE_BACKEND_READY) {
       setError('New PV saving is paused until the financial tier database migration is installed. No data has been saved.')
       return
@@ -2091,7 +2194,7 @@ async function uploadInvoice(line, file) {
       setError('Choose a valid Financial Tier (T01–T09) before saving a Draft.')
       return
     }
-    if (workspaceMode === 'new' && form.template_version !== REQUIRED_TEMPLATE_REVISION) {
+    if (workspaceMode === 'new' && !['0000','0001'].includes(form.template_version)) {
       setError('The official Excel template revision must match the current release.')
       return
     }
@@ -2178,7 +2281,7 @@ async function uploadInvoice(line, file) {
         return // Prevent the create_v2 call below from generating a duplicate.
       }
 
-      const { data, error: saveError } = await supabase.rpc('create_pv_draft_v4', {
+      const { data, error: saveError } = await supabase.rpc('create_pv_draft_v6', {
         p_financial_tier: form.financial_tier,
         p_template_version: form.template_version,
         p_payee_name: form.payee_name.trim(),
@@ -2206,7 +2309,7 @@ async function uploadInvoice(line, file) {
       })
       if (saveError) throw saveError
       if (!data?.pv_number || data.financial_tier !== form.financial_tier ||
-          data.source_template_version !== REQUIRED_TEMPLATE_REVISION) {
+          data.source_template_version !== form.template_version) {
         throw new Error('PV save and financial tier/template metadata could not be confirmed. Check Existing Drafts before retrying to avoid duplicates.')
       }
       setSuccess(`${data.pv_number} saved successfully as Draft (${money(data.amount)}).`)
@@ -2232,7 +2335,7 @@ async function uploadInvoice(line, file) {
           <div className="panel-head">
             <div>
               <h2>Delegation / Review Payment Voucher</h2>
-              <p className="muted">Acting authority only · Return to Delegation Workspace after reviewing.</p>
+              
             </div>
             <button type="button" className="btn" style={{background:'#68788d'}}
               onClick={() => onReviewClose?.()}>← Delegation Workspace</button>
@@ -2240,23 +2343,33 @@ async function uploadInvoice(line, file) {
         </section>
       ) : <>
       <section className="panel">
-        <h2>JAUHAR — Payment Voucher</h2>
+        <h2>{paymentLanding ? 'JAUHAR — Payment Process' : 'JAUHAR — Payment Voucher'}</h2>
         <p className="muted">
-          {profile?.department || 'All Departments'} | Official PV Template FM-FIN-PV_AP-0000 | Revision 0000
+          {profile?.department || 'All Departments'} | Official PV Template FM-FIN-PV_AP-0001 | Revision 1
         </p>
-        <p className="muted">Effective Date (template): 01-Nov-2026 · PV numbers are assigned by JAUHAR upon saving.</p>
+        
       </section>
 
       {error && <p className="error" role="alert">{error}</p>}
       {success && <p className="pv-success" role="status">{success}</p>}
 
-      {workspaceMode === 'home' && (
+      {/* 51UI payment-only dashboard; no new RPC, payment state or approval behaviour. */}
+      {/* JIMS_STEP_57B9_UNIFIED_PAYMENT_PROCESS:
+          Pending Payment -> Full/Partial status -> one Payment History LAST. */}
+      {workspaceMode === 'home' && paymentLanding && (
+        <JIMSPaymentProcessBoard
+          profile={profile}
+          onOpenVoucher={openVoucher}
+        />
+      )}
+
+      {workspaceMode === 'home' && !paymentLanding && (
         <>
           <section className="panel">
             <div className="panel-head">
               <div>
                 <h2>Payment Voucher Dashboard</h2>
-                <p className="muted">Counters reflect vouchers visible to your login. Select a card to open its filtered list.</p>
+                
               </div>
               <button type="button" className="btn" disabled={dashboardLoading}
                 onClick={loadDashboardCounts}>
@@ -2268,12 +2381,11 @@ async function uploadInvoice(line, file) {
               <div className="pv-action-title">
                 <span>⚠ Action Required</span>
                 <strong>{dashboardCounts ? (
-                  isAPFinance ? dashboardCounts.returned + dashboardCounts.pending_ap_finance +
-                    dashboardCounts.pending_payment + dashboardCounts.needs_payment_completion
+                  isAPFinance ? dashboardCounts.returned + dashboardCounts.pending_ap_finance
                   : canCreate ? dashboardCounts.returned
                   : nonFinanceHOD ? dashboardCounts.pending_hod
                   : canManage ? dashboardCounts.pending_manager +
-                    (profile?.department === 'Finance' ? dashboardCounts.pending_finance_manager + dashboardCounts.pending_initiation_review : 0)
+                    (profile?.department === 'Finance' ? dashboardCounts.pending_finance_manager : 0)
                   : canApproveCEO ? dashboardCounts.pending_ceo
                   : canApproveBOD ? dashboardCounts.pending_bod
                   : 0
@@ -2284,7 +2396,7 @@ async function uploadInvoice(line, file) {
                   {isAPFinance && (
                     <button className="pv-action-link" type="button"
                       onClick={() => openCategory('submitted','pending_ap_finance')}>
-                      <span>AP Finance — Department PV Verification</span>
+                      <span>Department PV Verification</span>
                       <strong>{dashboardCounts?.pending_ap_finance ?? '—'} →</strong>
                     </button>
                   )}
@@ -2293,18 +2405,6 @@ async function uploadInvoice(line, file) {
                     <span>Returned for Amendment</span>
                     <strong>{dashboardCounts?.returned ?? '—'} →</strong>
                   </button>
-                  {isAPFinance && <>
-                    <button className="pv-action-link" type="button"
-                      onClick={() => openCategory('pending_payment')}>
-                      <span>Pending Payment — Initiate</span>
-                      <strong>{dashboardCounts?.pending_payment ?? '—'} →</strong>
-                    </button>
-                    <button className="pv-action-link" type="button"
-                      onClick={() => openCategory('payment_initiated')}>
-                      <span>Payment Initiated — Complete / Returned</span>
-                      <strong>{dashboardCounts?.needs_payment_completion ?? '—'} →</strong>
-                    </button>
-                  </>}
                 </>
               ) : canManage || canApproveCEO || canApproveBOD ? (
                 <button className="pv-action-link" type="button"
@@ -2322,13 +2422,6 @@ async function uploadInvoice(line, file) {
               ) : (
                 <p className="muted">View-only access. No approval or payment action is assigned.</p>
               )}
-              {canManage && profile?.department === 'Finance' && (
-                <button className="pv-action-link" type="button"
-                  onClick={() => openCategory('payment_initiated')}>
-                  <span>Finance Manager — Review Payment Initiation</span>
-                  <strong>{dashboardCounts?.pending_initiation_review ?? '—'} →</strong>
-                </button>
-              )}
             </div>
 
             <div className="pv-workflow-title">Approval Process</div>
@@ -2336,45 +2429,44 @@ async function uploadInvoice(line, file) {
               {[
                 { id:'draft', label:'Draft', hint:'Draft + Returned' },
                  { id:'submitted', label:'Submitted', hint:'Pending HOD / AP Finance / FM / CEO / BOD' },
-                { id:'approved', label:'Approved', hint:'Final approval by designated authority' }
+                
               ].map(card => (
                 <button type="button" key={card.id} className="pv-home-card"
                   onClick={() => openCategory(card.id)}>
                   <strong>{dashboardCounts?.[card.id] ?? '—'}</strong>
                   <span>{card.label} ↗</span>
                   <small>{card.hint}</small>
+                  
                 </button>
               ))}
             </div>
-            <div className="pv-workflow-title">Payment Process</div>
-            <div className="pv-home-grid payment">
-              {[
-                { id:'pending_payment', label:'Pending Payment', hint:'AP Finance: upload initiation evidence' },
-                { id:'payment_initiated', label:'Payment Initiated', hint:'Manager review / bank completion' },
-                { id:'paid', label:'Paid', hint:'Final PDF receipt and transaction details' }
-              ].map(card => (
-                <button type="button" key={card.id} className="pv-home-card"
-                  onClick={() => openCategory(card.id)}>
-                  <strong>{dashboardCounts?.[card.id] ?? '—'}</strong>
-                  <span>{card.label} ↗</span>
-                  <small>{card.hint}</small>
-                </button>
-              ))}
-            </div>
-            <p className="muted">Approved contains Pending Payment, Payment Initiated and Paid. Payment stages are mutually exclusive.</p>
             <div className="pv-actions">
               {canRaisePV && (
                 <button type="button" className="btn" onClick={() => changeMode('new')}>
                   + New Payment Voucher
                 </button>
               )}
-              <button type="button" className="btn" style={{background:'#68788d'}}
+
+            </div>
+          </section>
+          <section className="panel jims-closed-history" aria-label="PV History">
+            <h2>PV History</h2>
+            <p>Closed-loop PVs only. Fully Approved but unpaid PVs remain in Payment Process.</p>
+            <div className="jims-closed-history-grid">
+              <button type="button" className="jims-closed-history-card"
+                onClick={() => openCategory('paid')}>
+                <strong>Paid · Closed Loop</strong>
+                <small>Full payment recorded with final bank receipt</small>
+                <em>{dashboardCounts?.paid == null ? '—' : dashboardCounts.paid + ' records'} ↗</em>
+              </button>
+              <button type="button" className="jims-closed-history-card"
                 onClick={() => openCategory('rejected')}>
-                Rejected Archive
+                <strong>Rejected Permanently</strong>
+                <small>Approval ended without payment</small>
+                <em>{dashboardCounts?.rejected == null ? '—' : dashboardCounts.rejected + ' records'} ↗</em>
               </button>
             </div>
           </section>
-          <ApprovalQueues profile={profile} onOpenVoucher={openVoucher} mode="actual" refreshKey={allDelegationRecords.length + allHandoverRecords.length} />
         </>
       )}
 
@@ -2392,13 +2484,13 @@ async function uploadInvoice(line, file) {
           <h2>{editingVoucher
             ? `Edit Payment Voucher — ${editingVoucher.pv_number}`
             : 'New Payment Voucher'}</h2>
-          <p className="muted">New PV requires a valid official Excel upload. Existing Draft edits do not require another upload.</p>
+          <p className="muted">New PV: fill the form manually, or upload the official Excel for auto-fill. Both options use the same validation and approval workflow.</p>
           {workspaceMode === 'new' ? (
             <>
               <div className="pv-section">OFFICIAL JAUHAR EXCEL TEMPLATE</div>
               <div className="pv-notice">
-                <strong>Download is optional. Upload is compulsory.</strong>
-                {' '}If you already have the current Excel template, use it directly.
+                <strong>Two options: Manual Entry or Excel Import.</strong>
+                {' '}Complete the form below yourself, or upload a completed template to auto-fill it.
                 <div className="pv-actions" style={{marginTop:10}}>
                   <a className="btn" href={OFFICIAL_TEMPLATE_URL} download="JAUHAR_PV_Official_Template.xlsx">
                     Download Official Template (Optional)
@@ -2406,12 +2498,12 @@ async function uploadInvoice(line, file) {
                 </div>
               </div>
               <div className="pv-field">
-                <label htmlFor="pv-import">Upload Completed Official PV Excel (.xlsx) *</label>
+                <label htmlFor="pv-import">Upload Completed Official PV Excel (.xlsx) — Optional</label>
                 <input id="pv-import" type="file" accept=".xlsx"
                   disabled={importing || loading} onChange={handleExcelImport} />
               </div>
               <p className="muted">
-                Complete the <strong>Blank Form</strong> tab and choose PV Tier in cell K12.
+                For Rev1 Excel, use <strong>PV (T-Digital)</strong> and select PV Tier at L10. Legacy Blank Form remains accepted.
                 {' '}Sample PV and PV Approval Matrix are reference tabs, not data to import.
               </p>
               {newPvValidated && (
@@ -2437,7 +2529,7 @@ async function uploadInvoice(line, file) {
           {importing && <p className="muted">Reading Excel and filling the form...</p>}
           {importNote && <div className="pv-notice" role="status">{importNote}</div>}
 
-          {(workspaceMode === 'edit' || newPvValidated) ? (
+          {(workspaceMode === 'edit' || workspaceMode === 'new') && (
           <form onSubmit={handleSave}>
             <div className="pv-section">PAYMENT VOUCHER</div>
             <div className="pv-grid">
@@ -2560,7 +2652,7 @@ async function uploadInvoice(line, file) {
             <div className="pv-actions" style={{ marginTop: 12, marginBottom: 4 }}>
               <button type="button" className="btn" disabled={loading || importing}
                 onClick={addInvoiceLine}>+ Add Invoice Line</button>
-              <span className="muted">Ten rows come from the official Excel; extra rows are allowed.</span>
+              <span className="muted">Enter invoice lines manually or import them from Excel; extra rows are allowed.</span>
             </div>
             <p className="muted">
               Each completed invoice will require its reference number and supporting PDF/image
@@ -2568,6 +2660,13 @@ async function uploadInvoice(line, file) {
               {!EXTENDED_INVOICE_BACKEND_READY &&
                 ' Saving more than five populated lines is temporarily blocked until the Supabase upgrade.'}
             </p>
+            {/* JIMS_STEP57D4_Duplicate_Invoice_UI — read-only draft warning */}
+            <JIMS57D4DuplicateInvoiceWarning
+              payeeName={form.payee_name}
+              supplierCode={form.supplier_code}
+              supplierTin={form.supplier_tin}
+              lines={form.lines}
+              excludeVoucherId={editingVoucher?.id||null}/>
             <div className="pv-totals">
               <div className="pv-total-row"><span>Subtotal (RM)</span><strong>{money(subtotal)}</strong></div>
               <div className="pv-total-row">
@@ -2634,11 +2733,6 @@ async function uploadInvoice(line, file) {
               </button>
             </div>
           </form>
-          ) : (
-            <div className="pv-notice" role="status">
-              <strong><span aria-hidden="true">🔒</span> New PV form locked.</strong>
-              {' '}Upload a valid, completed Blank Form Excel template above to unlock editing.
-            </div>
           )}
         </section>
       )}
@@ -2656,15 +2750,22 @@ async function uploadInvoice(line, file) {
               paid:'Paid Payment Vouchers',
               rejected:'Rejected Archive'
             })[listCategory]}</h2>
-            <p className="muted">{listTotal} matching voucher(s) · Page {listPage + 1}.
-              Click a PV Number to open details and permitted actions.</p>
+            <p className="muted">
+              {listCategory === 'payment_initiated' ? 'Full Payment V1: ' : ''}
+              {listTotal} matching voucher(s) · Page {listPage + 1}.
+              {listCategory === 'payment_initiated' &&
+                ' Partial Payment V2 reviews appear in their own queue below.'}
+              {' '}Click a PV Number to open details and permitted actions.
+            </p>
           </div>
           <button type="button" className="btn" disabled={listLoading || dashboardLoading}
             onClick={refreshPVData}>{listLoading ? 'Loading...' : 'Refresh'}</button>
         </div>
         <div className="pv-actions" style={{marginTop:0}}>
           <button type="button" className="btn" style={{background:'#68788d'}}
-            onClick={() => changeMode('home')}>← Payment Voucher Dashboard</button>
+            onClick={() => changeMode('home')}>
+              {paymentLanding ? '← Payment Process Dashboard' : '← Payment Voucher Dashboard'}
+            </button>
           {canRaisePV && <button type="button" className="btn"
             onClick={() => changeMode('new')}>+ New Payment Voucher</button>}
         </div>
@@ -2735,6 +2836,23 @@ async function uploadInvoice(line, file) {
               <option value="pending_bod">Pending BOD</option>
             </select>
           </div>
+        )}
+        {/* JIMS_STEP_57B5_INITIATED_LIST:
+            The legacy PV table below lists Full Payment V1 (parent status).
+            Show the server-authorized Partial Payment V2 pending queue directly
+            in this SAME Payment Initiated list, without rewriting V1 filtering. */}
+        {listCategory === 'payment_initiated' && canManage &&
+          profile?.department === 'Finance' && (
+          <div className="jims-v2-initiated-list" style={{margin:'18px 0 22px'}}>
+            <JIMSV2FinanceManagerQueue onOpenVoucher={openVoucher}
+              onCountChange={setJimsV2FMCount}/>
+          </div>
+        )}
+        {listCategory === 'payment_initiated' && (
+          <p className="muted" style={{margin:'12px 0'}}>
+            Full Payment V1 records are listed below. Partial Payment V2
+            installments awaiting Finance Manager appear separately above.
+          </p>
         )}
         <div className="table-wrap" aria-label="Payment Voucher tracking table">
           <table className="pv-tracking-table">
@@ -2891,7 +3009,9 @@ async function uploadInvoice(line, file) {
                 disabled={overviewBusy} onClick={closeVoucherOverview}>✕</button>
             </div>
 
-            <div className="pv-section">PAYMENT VOUCHER DETAILS</div>
+             {/* JIMS_STEP57D2_OFFICIAL_PV_PDF — official read-only approved PV PDF */}
+             <JIMS57D2OfficialPVDownload voucher={viewingVoucher} />
+             <div className="pv-section">PAYMENT VOUCHER DETAILS</div>
             <div className="table-wrap">
               <table>
                 <tbody>
@@ -3034,9 +3154,9 @@ async function uploadInvoice(line, file) {
                   canUpload={ownsVoucher(viewingVoucher) &&
                     (viewingVoucher.status === 'draft' ||
                       viewingVoucher.status === 'returned')}
-                  canConfirmMeeting={((JR_FINAL_CEO.includes(viewingVoucher.financial_tier) &&
+                  canConfirmMeeting={((isJRFinalCEO(viewingVoucher) &&
                     (delegateCanAct(viewingVoucher,'ceo','approve') || (canApproveCEO && !authoritySuspended(viewingVoucher,'ceo'))) && viewingVoucher.status==='pending_ceo') ||
-                    (JR_FINAL_BOD.includes(viewingVoucher.financial_tier) &&
+                    (isJRFinalBOD(viewingVoucher) &&
                     (delegateCanAct(viewingVoucher,'bod','approve') || (canApproveBOD && !authoritySuspended(viewingVoucher,'bod'))) && viewingVoucher.status==='pending_bod'))}
                   onUpload={uploadJR} onOpen={openJR} onMeeting={recordJRMeeting} />
               )}
@@ -3321,7 +3441,7 @@ async function uploadInvoice(line, file) {
               {canApproveCEO && !authoritySuspended(viewingVoucher,'ceo') && viewingVoucher.origin_department === 'Finance' && viewingVoucher.status==='pending_ceo' &&
                 JR_TIERS.includes(viewingVoucher.financial_tier) && (
                 <div><div className="pv-section">CEO — {viewingVoucher.financial_tier} JR DECISION</div>
-                  <p className="muted">{JR_FINAL_CEO.includes(viewingVoucher.financial_tier)
+                  <p className="muted">{isJRFinalCEO(viewingVoucher)
                     ? 'CEO FINAL approval; requires recorded offline meeting.'
                     : 'Approve forwards to BOD FINAL; JR PDF must be reviewed.'}</p>
                   <div className="pv-field"><label>CEO Remarks</label>
@@ -3330,7 +3450,7 @@ async function uploadInvoice(line, file) {
                   <div className="pv-actions">
                     <button type="button" className="btn" disabled={ceoSaving}
                       style={{background:'#167347'}} onClick={()=>ceoDecideJR('approve')}>
-                      {JR_FINAL_CEO.includes(viewingVoucher.financial_tier) ? 'CEO Final Approve' : 'Approve → BOD'}
+                      {isJRFinalCEO(viewingVoucher) ? 'CEO Final Approve' : 'Approve → BOD'}
                     </button>
                     <button type="button" className="btn" disabled={ceoSaving}
                       style={{background:'#9a6700'}} onClick={()=>ceoDecideJR('return')}>Return for Amendment</button>
@@ -3417,7 +3537,7 @@ async function uploadInvoice(line, file) {
 
               {/* Step 40: separate T08 BOD final path (not Legacy). */}
               {canApproveBOD && !authoritySuspended(viewingVoucher,'bod') && viewingVoucher.origin_department === 'Finance' && viewingVoucher.status==='pending_bod' &&
-                JR_FINAL_BOD.includes(viewingVoucher.financial_tier) && (
+                isJRFinalBOD(viewingVoucher) && (
                 <div><div className="pv-section">BOD — {viewingVoucher.financial_tier} JR FINAL DECISION</div>
                   <p className="muted">Recorded actual offline JR meeting approval is required before FINAL APPROVE.</p>
                   <div className="pv-field"><label>BOD Remarks</label>

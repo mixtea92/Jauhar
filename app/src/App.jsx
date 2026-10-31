@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import JIMSPaymentCalendar57D5 from './JIMSPaymentCalendar57D5'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import JSYNCLogin from './login/JSYNCLogin'
+import JIMSDashboardHome from './JIMSDashboardHome'
+import './JIMSDashboardHome.css'
+import './JIMSFinancialApprovalTheme.css'
+import './JIMSUnifiedDarkV1.css'
+import './JIMSPaymentSeparation.css'
+import './JIMSClosedLoopHistory.css'
+import './JIMSFinanceActionBadges.css'
+import {fetchJIMSActionNotifications} from './jimsActionNotifications'
 import { supabase } from './lib/supabase'
 import AddUser from './AddUser'
 import EditUser from './EditUser'
@@ -11,6 +20,8 @@ import UserStatusButton from './UserStatusButton'
 import AuditTrail from './AuditTrail'
 import ResetPassword from './ResetPassword'
 import PaymentVoucher from './PaymentVoucher'
+import JIMSHistoryExports from './JIMSHistoryExports'
+import JIMSApproverSummary from './JIMSApproverSummary'
 import CashVoucher from './CashVoucher'
 // JSYNC_STEP_48C_CASH_VOUCHER_FULL_STACK
 import DelegationHub from './DelegationHub'
@@ -47,6 +58,12 @@ const css = `
   .nav-item { padding: 13px; margin-bottom: 9px; border-radius: 8px; color: #b9cce5; font-size: 14px;  display: block; width: 100%; border: none; background: transparent; text-align: left; cursor: pointer; }
   .nav-item:hover { background: #21466f; color: white; }
   .nav-active { background: #28517d; color: white; font-weight: 700; }
+  .jims-my-approval-badge {
+    float: right; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 23px; height: 22px; padding: 0 7px; border-radius: 999px;
+    background: #c6a15c; color: #211a10; font-size: 12px; font-weight: 800;
+    line-height: 1; margin-left: 9px;
+  }
   /* FINANCE APPROVAL: expandable main menu with indented child items */
   .nav-group-toggle { font-size: 18px; font-weight: 800; color: white; display: flex; align-items: center; justify-content: space-between; margin-top: 18px; }
   .nav-group-toggle .chevron { font-size: 16px; color: #c9daee; }
@@ -103,6 +120,38 @@ function displayDepartment(role, department) {
   return department || 'Not Assigned'
 }
 
+// JIMS_STEP_57C5S_MY_APPROVALS: actual approval roles only (no System Admin).
+function jimsCanSeeMyApprovals(p) {
+  return p?.is_active === true && (
+    p.role === 'ceo' || p.role === 'bod' ||
+    (p.role === 'manager' && Boolean(p.department))
+  )
+}
+
+// JIMS_STEP57C7B_AP_AR_EXPORTS — subdepartment-based AP visibility.
+function jimsAPModuleAccess(p) {
+  if(p?.is_active !== true) return false
+  if(p.role === 'system_admin') return true // read-only oversight, no finance approvals
+  return p.department === 'Finance' && ['executive','manager'].includes(p.role) &&
+    (p.subdepartment == null || p.subdepartment === '' ||
+      ['Accounts Payable','Accounting'].includes(p.subdepartment))
+}
+function jimsAPExcelAccess(p) {
+  return p?.is_active === true && p.department === 'Finance' &&
+    ['executive','manager'].includes(p.role) &&
+    ['Accounts Payable','Accounting'].includes(p.subdepartment)
+}
+
+// JIMS 57D5: calendar menu visibility only; Supabase RPC enforces actual access.
+function jimsCalendarEligible(p) {
+  return p?.is_active===true && (
+    ['ceo','bod','system_admin'].includes(p.role) ||
+    (p.role==='manager' && p.department==='Finance') ||
+    (p.role==='executive' && p.department==='Finance' &&
+      p.subdepartment==='Accounts Payable')
+  )
+}
+
 function App() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -114,8 +163,73 @@ function App() {
   const [error, setError] = useState('')
   const [usersError, setUsersError] = useState('')
   const [activePage, setActivePage] = useState('dashboard')
+  // JIMS_STEP57C8B_REPORT_GENERATION: shared report center, same role checks.
+  const [jimsOwnerExportAllowed,setJimsOwnerExportAllowed] = useState(false)
+  useEffect(()=>{
+    let active=true
+    async function checkOwner(){
+      if(profile?.role!=='system_admin'||profile?.is_active!==true){
+        if(active)setJimsOwnerExportAllowed(false)
+        return
+      }
+      const {data,error:e}=await supabase.rpc('jims_is_system_owner_v1')
+      if(active)setJimsOwnerExportAllowed(!e&&data===true)
+    }
+    void checkOwner()
+    return ()=>{active=false}
+  },[profile?.role,profile?.is_active])
+
+  // JIMS_STEP_57C5SN_APPROVAL_BADGE — actual authority notifications only.
+  const [myApprovalBadge, setMyApprovalBadge] = useState(null)
+  const myApprovalBadgeSequence = useRef(0)
+  const refreshMyApprovalBadge = useCallback(async () => {
+    const sequence = ++myApprovalBadgeSequence.current
+    if (!jimsCanSeeMyApprovals(profile)) {
+      setMyApprovalBadge(null)
+      return
+    }
+    try {
+      const { data, error: badgeError } =
+        await supabase.rpc('jims_actual_approver_summary_v1')
+      if (sequence !== myApprovalBadgeSequence.current) return
+      if (badgeError || !Array.isArray(data?.rows)) {
+        setMyApprovalBadge(null)
+        return
+      }
+      setMyApprovalBadge(data.rows.length)
+    } catch {
+      if (sequence === myApprovalBadgeSequence.current) setMyApprovalBadge(null)
+    }
+  }, [profile?.role, profile?.department, profile?.is_active])
+
+  useEffect(() => {
+    // Refresh on role/login, return to tab, selected page and periodically.
+    if (!jimsCanSeeMyApprovals(profile)) {
+      ++myApprovalBadgeSequence.current
+      setMyApprovalBadge(null)
+      return
+    }
+    void refreshMyApprovalBadge()
+    const onFocus = () => void refreshMyApprovalBadge()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshMyApprovalBadge()
+    }
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refreshMyApprovalBadge()
+    }, 60000)
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [profile?.role, profile?.department, profile?.is_active,
+      activePage, refreshMyApprovalBadge])
+
+  const [jimsActionCounts,setJimsActionCounts] = useState({pv:undefined,payment:undefined,cv:undefined})
   const [financeOpen, setFinanceOpen] = useState(true)
-  const [delegationOpen, setDelegationOpen] = useState(true)
+  const [delegationOpen, setDelegationOpen] = useState(false)
   const [manageDelegationTab, setManageDelegationTab] = useState('request')
   const [voucherOpenRequest, setVoucherOpenRequest] = useState(null)
   // JAUHAR_STEP_46H_SEPARATE_DELEGATED_REVIEW
@@ -179,6 +293,31 @@ function App() {
       loadUsers()
     }
   }, [profile?.role, loadUsers])
+
+  // Step 56N — actual user actions ONLY, read through current user RLS/RPC.
+  // Refresh when entering a page, returning to browser, or every 120 seconds.
+  useEffect(() => {
+    if (!profile || profile.role === 'non_executive' || profile.is_active === false) {
+      setJimsActionCounts({pv:undefined,payment:undefined,cv:undefined})
+      return
+    }
+    let alive = true
+    const refreshJIMSBadges = () => {
+      fetchJIMSActionNotifications(profile).then(counts => {
+        if (alive) setJimsActionCounts(counts)
+      }).catch(() => {
+        if (alive) setJimsActionCounts({pv:null,payment:null,cv:null})
+      })
+    }
+    refreshJIMSBadges()
+    window.addEventListener('focus',refreshJIMSBadges)
+    const poll = window.setInterval(refreshJIMSBadges,120000)
+    return () => {
+      alive = false
+      window.removeEventListener('focus',refreshJIMSBadges)
+      window.clearInterval(poll)
+    }
+  },[profile?.role,profile?.department,profile?.username,profile?.is_active,activePage])
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -277,15 +416,25 @@ function App() {
     <>
       <style>{css}</style>
 
-      <div className="layout">
+      <div className="layout jims-shell">
         <aside className="sidebar">
-          <div className="sidebar-title">JAUHAR MEDICAL CLINIC</div>
-          <div className="sidebar-sub">STAFF DASHBOARD SYSTEM</div>
+          <div className="jims-brand">
+            <img
+              className="jims-brand-logo"
+              src="/branding/JIMS_Logo.png"
+              alt="JIMS — JAUHAR Integrated Management System"
+              onError={e => e.currentTarget.closest('.jims-brand')?.classList.add('jims-brand--text')}
+            />
+            <div className="jims-brand-text" aria-hidden="true">
+              <strong>JIMS</strong>
+              <small>JAUHAR INTEGRATED<br />MANAGEMENT SYSTEM</small>
+            </div>
+          </div>
 
           {/* MAIN DASHBOARD */}
           <button
             type="button"
-            className={`nav-item ${activePage === 'dashboard' ? 'nav-active' : ''}`}
+            className={`nav-item jims-57d6c1-row jims-57d6c1-dashboard ${activePage === 'dashboard' ? 'nav-active' : ''}`}
             onClick={() => {
               setActivePage('dashboard')
               setEditingUser(null)
@@ -295,11 +444,12 @@ function App() {
             Dashboard
           </button>
 
+          
           {/* SYSTEM ADMIN: USER MANAGEMENT */}
           {profile.role === 'system_admin' && (
             <button
               type="button"
-              className={`nav-item ${activePage === 'users' ? 'nav-active' : ''}`}
+              className={`nav-item jims-57d6c1-row jims-57d6c1-users ${activePage === 'users' ? 'nav-active' : ''}`}
               onClick={() => {
                 setActivePage('users')
                 setEditingUser(null)
@@ -311,7 +461,7 @@ function App() {
           )}
 
           {profile.role === 'non_executive' && (
-      <button type="button" className="nav-item"
+      <button type="button" className="nav-item jims-57d6c1-row jims-57d6c1-profile"
         onClick={() => setActivePage('my_profile')}>
         My Profile
       </button>
@@ -320,14 +470,14 @@ function App() {
     {/* FINANCE APPROVAL: MAIN MENU WITH SUBMENU */}
           <button
             type="button"
-            className={`nav-item nav-group-toggle ${
-              ['payment_voucher', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
+            className={`nav-item jims-57d6c1-row jims-57d6c1-group jims-57d6c1-finance nav-group-toggle ${
+              ['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
             }`}
             aria-expanded={financeOpen}
             aria-controls="finance-approval-submenu"
             onClick={() => setFinanceOpen(open => !open)}
           >
-            <span>Financial Approval</span>
+            <span>Finance Workspace</span>
             <span className="chevron" aria-hidden="true">
               {financeOpen ? '▼' : '▶'}
             </span>
@@ -335,9 +485,42 @@ function App() {
 
           {financeOpen && (
             <div id="finance-approval-submenu" className="nav-submenu">
+              {/* JIMS_STEP_55L_ORDER: Payment Process first. Original route handlers retained. */}
+              <button type="button"
+                className={`nav-item jims-57d6c1-row jims-57d6c1-process nav-subitem jims-action-nav ${activePage === 'payment_process' ? 'nav-active' : ''}`}
+                onClick={() => {
+                  setActivePage('payment_process')
+                  setEditingUser(null)
+                  setResetUser(null)
+                }}>
+                Payment Process
+                {jimsActionCounts.payment > 0 ? (
+                  <span className="jims-nav-notification"
+                    aria-label={jimsActionCounts.payment + ' pending actions'}
+                    title={jimsActionCounts.payment + ' actions requiring your attention'}>
+                    {jimsActionCounts.payment > 99 ? '99+' : jimsActionCounts.payment}
+                  </span>
+                ) : jimsActionCounts.payment === null ? (
+                  <span className="jims-nav-notification jims-count-unavailable"
+                    title="Action count unavailable" aria-label="Action count unavailable">—</span>
+                ) : null}
+              </button>
+              {/* JIMS_STEP57D5_CALENDAR_SIDEBAR: Process > Calendar > PV > PC */}
+              {jimsCalendarEligible(profile) && (
+                <button type="button"
+                  className={'nav-item jims-57d6c1-row jims-57d6c1-calendar nav-subitem '+(activePage === 'payment_calendar' ? 'nav-active' : '')}
+                  onClick={() => {
+                    setActivePage('payment_calendar')
+                    setEditingUser(null)
+                    setResetUser(null)
+                  }}>
+                  Payment Calendar
+                </button>
+              )}
+              {jimsAPModuleAccess(profile) && (
               <button
                 type="button"
-                className={`nav-item nav-subitem ${
+                className={`nav-item jims-57d6c1-row jims-57d6c1-pv nav-subitem jims-action-nav ${
                   activePage === 'payment_voucher' ? 'nav-active' : ''
                 }`}
                 onClick={() => {
@@ -347,21 +530,44 @@ function App() {
                 }}
               >
                 Payment Voucher
+                {jimsActionCounts.pv > 0 ? (
+                  <span className="jims-nav-notification"
+                    aria-label={jimsActionCounts.pv + ' pending actions'}
+                    title={jimsActionCounts.pv + ' actions requiring your attention'}>
+                    {jimsActionCounts.pv > 99 ? '99+' : jimsActionCounts.pv}
+                  </span>
+                ) : jimsActionCounts.pv === null ? (
+                  <span className="jims-nav-notification jims-count-unavailable"
+                    title="Action count unavailable" aria-label="Action count unavailable">—</span>
+                ) : null}
               </button>
+              )}
               {/* JSYNC_STEP_48A_CASH_VOUCHER_MENU */}
+              {(jimsAPModuleAccess(profile) || (profile?.is_active === true && profile?.role === "manager")) && (
               <button
                 type="button"
-                className={`nav-item nav-subitem ${activePage === 'cash_voucher' ? 'nav-active' : ''}`}
+                className={`nav-item jims-57d6c1-row jims-57d6c1-cash nav-subitem jims-action-nav ${activePage === 'cash_voucher' ? 'nav-active' : ''}`}
                 onClick={() => {
                   setActivePage('cash_voucher')
                   setEditingUser(null)
                   setResetUser(null)
                 }}
               >
-                Cash Voucher
+                Petty Cash
+                {jimsActionCounts.cv > 0 ? (
+                  <span className="jims-nav-notification"
+                    aria-label={jimsActionCounts.cv + ' pending actions'}
+                    title={jimsActionCounts.cv + ' actions requiring your attention'}>
+                    {jimsActionCounts.cv > 99 ? '99+' : jimsActionCounts.cv}
+                  </span>
+                ) : jimsActionCounts.cv === null ? (
+                  <span className="jims-nav-notification jims-count-unavailable"
+                    title="Action count unavailable" aria-label="Action count unavailable">—</span>
+                ) : null}
               </button>
+              )}
               {/* Step 46G: one financial-only Delegation section, reusable when Budgeting launches. */}
-              <button type="button" className={`nav-item nav-subitem nav-delegation-heading ${
+              <button type="button" className={`nav-item jims-57d6c1-row jims-57d6c1-delegation nav-subitem nav-delegation-heading ${
                 ['delegation_workspace','delegation_review','manage_delegation'].includes(activePage) ? 'nav-group-active' : ''}`}
                 aria-expanded={delegationOpen} aria-controls="finance-delegation-submenu"
                 onClick={() => setDelegationOpen(open => !open)}>
@@ -370,7 +576,7 @@ function App() {
               </button>
               {delegationOpen && <div id="finance-delegation-submenu" className="nav-delegation-submenu">
                 <button type="button"
-                  className={`nav-item nav-subitem ${activePage === 'delegation_workspace' ? 'nav-active' : ''}`}
+                  className={`nav-item jims-57d6c1-row jims-57d6c1-workspace nav-subitem ${activePage === 'delegation_workspace' ? 'nav-active' : ''}`}
                   onClick={() => {
                     setActivePage('delegation_workspace')
                     setEditingUser(null)
@@ -380,7 +586,7 @@ function App() {
                 </button>
                 {canManagePvDelegation(profile) && (
                 <button type="button"
-                  className={`nav-item nav-subitem ${activePage === 'manage_delegation' ? 'nav-active' : ''}`}
+                  className={`nav-item jims-57d6c1-row jims-57d6c1-manage nav-subitem ${activePage === 'manage_delegation' ? 'nav-active' : ''}`}
                   onClick={() => {
                     setManageDelegationTab('request')
                     setActivePage('manage_delegation')
@@ -391,12 +597,46 @@ function App() {
                 </button>
                 )}
               </div>}
+              {/* JIMS_STEP57C8C_REPORT_MENU_LAST: final Financial Approval item */}
+              {(jimsAPExcelAccess(profile) || jimsOwnerExportAllowed) && (
+                <button type="button"
+                  className={'nav-item jims-57d6c1-row jims-57d6c1-report nav-subitem '+(activePage === 'history_exports' ? 'nav-active' : '')}
+                  onClick={() => {
+                    setActivePage('history_exports')
+                    setEditingUser(null)
+                    setResetUser(null)
+                  }}>
+                  Report Generation
+                </button>
+              )}
             </div>
           )}
 
           </>)}
+{/* JIMS 57C5S: Standalone role-specific Approval Dashboard. */}
+          {jimsCanSeeMyApprovals(profile) && (
+            <button
+              type="button"
+              className={`nav-item jims-57d6c1-row jims-57d6c1-approvals ${activePage === 'my_approvals' ? 'nav-active' : ''}`}
+              onClick={() => {
+                setVoucherOpenRequest(null)
+                setActivePage('my_approvals')
+                setEditingUser(null)
+                setResetUser(null)
+              }}
+            >
+              <span>My Approvals</span>
+              {myApprovalBadge !== null && myApprovalBadge > 0 && (
+                <span className="jims-my-approval-badge"
+                  aria-label={myApprovalBadge + ' pending approvals'}>
+                  {myApprovalBadge >= 100 ? '99+' : myApprovalBadge}
+                </span>
+              )}
+            </button>
+          )}
+
 {/* FUTURE FINANCE DASHBOARD (SEPARATE MAIN MODULE) */}
-          <div className="nav-item nav-placeholder" aria-disabled="true">
+          <div className="nav-item nav-placeholder jims-57d6c1-soon" aria-disabled="true">
             Finance Dashboard — Soon
           </div>
 
@@ -404,7 +644,7 @@ function App() {
           {profile.role === 'system_admin' && (
             <button
               type="button"
-              className={`nav-item ${activePage === 'audit' ? 'nav-active' : ''}`}
+              className={`nav-item jims-57d6c1-row jims-57d6c1-audit ${activePage === 'audit' ? 'nav-active' : ''}`}
               onClick={() => {
                 setActivePage('audit')
                 setEditingUser(null)
@@ -414,17 +654,26 @@ function App() {
               Audit Trail
             </button>
           )}
+          <div className="jims-sidebar-footer">
+            <span className="jims-footer-line" />
+            <span>JAUHAR MEDICAL CLINIC</span>
+            <small>Internal management workspace</small>
+          </div>
         </aside>
 
-        <main className="content">
+        <main className={['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'content jims-finance-theme' : 'content'}>
           <div className="topbar">
             <div>
               <h1>
                 {activePage === 'delegation_review' ? 'Delegated PV Review'
                   : activePage === 'delegation_workspace' ? 'Delegation Workspace'
                   : activePage === 'manage_delegation' ? 'Manage Delegation'
+                  : activePage === 'payment_process' ? 'Payment Process'
+                  : activePage === 'my_approvals' ? 'My Approvals'
+                  : activePage === 'history_exports' ? 'Report Generation'
+                  : activePage === 'payment_calendar' ? 'Payment Calendar'
                   : activePage === 'payment_voucher' ? 'Payment Voucher'
-                  : activePage === 'cash_voucher' ? 'Cash Voucher'
+                  : activePage === 'cash_voucher' ? 'Petty Cash'
                   : profile.role === 'system_admin' && activePage === 'users'
                     ? 'User Management'
                     : profile.role === 'system_admin' && activePage === 'audit'
@@ -434,7 +683,15 @@ function App() {
 
               <p>Welcome, {profile.username} · {displayRole(profile.role)} · {displayDepartment(profile.role, profile.department)}</p>
             </div>
-            <button className="btn" onClick={handleLogout}>Logout</button>
+            <div className="jims-topbar-right">
+              <div className="jims-branch-indicator">
+                <span className="jims-branch-label">BRANCH</span>
+                <strong>{profile.branch || 'All / Not Assigned'}</strong>
+              </div>
+              <button type="button" className="btn jims-logout" onClick={handleLogout}>
+                <span aria-hidden="true">⇥</span> Logout
+              </button>
+            </div>
           </div>
 
           {profile.role === 'non_executive' ? (
@@ -447,9 +704,45 @@ function App() {
         <p>Branch: {profile.branch || 'Not Assigned'}</p>
         <p>Staff Designation: {profile.staff_designation || 'Not Assigned'}</p>
       </section>
-    ) : activePage === 'payment_voucher' ? (
-            <PaymentVoucher profile={profile} openRequest={voucherOpenRequest}
+    ) : activePage === 'my_approvals' ? (
+            jimsCanSeeMyApprovals(profile) ? (
+              <JIMSApproverSummary
+                profile={profile}
+                onDecisionRecorded={refreshMyApprovalBadge}
+                onOpenVoucher={id => {
+                  setVoucherOpenRequest({ id, key: Date.now() })
+                  setActivePage('payment_voucher')
+                }}
+              />
+            ) : (
+              <section className="panel">
+                <h2>Access Restricted</h2>
+                <p>This approval dashboard is available to HOD, Finance Manager, CEO and BOD only.</p>
+              </section>
+            )
+          ) : activePage === 'history_exports' ? (
+            (jimsAPExcelAccess(profile) || jimsOwnerExportAllowed) ? (
+              <JIMSHistoryExports profile={profile} />
+            ) : (
+              <section className="panel"><h2>Access Restricted</h2>
+                <p>Only AP / Accounting or designated System Owner.</p></section>
+            )
+          ) : activePage === 'payment_calendar' ? (
+              jimsCalendarEligible(profile) ? (
+                <JIMSPaymentCalendar57D5 profile={profile} />
+              ) : (
+                <section className="panel" role="alert">
+                  <h2>Access Restricted</h2>
+                  <p>Payment Calendar is limited to Finance AP, Finance Manager, CEO, BOD and read-only System Admin.</p>
+                </section>
+              )
+            ) : activePage === 'payment_voucher' ? (
+            <PaymentVoucher key="pv-approval-route" profile={profile}
+              dashboardSection="approval" openRequest={voucherOpenRequest}
               onOpenRequestHandled={() => setVoucherOpenRequest(null)} />
+          ) : activePage === 'payment_process' ? (
+            <PaymentVoucher key="pv-payment-route" profile={profile}
+              dashboardSection="payment" />
           ) : activePage === 'delegation_workspace' ? (
             <DelegationWorkspace profile={profile}
               onGoPaymentVoucher={() => setActivePage('payment_voucher')}
@@ -639,55 +932,18 @@ function App() {
                 </div>
               </section>
             </>
-          ) : profile.role === 'system_admin' ? (
-            <>
-              <div className="cards">
-                <div className="card">
-                  <div className="card-label">Total Users</div>
-                  <div className="card-value">{totalUsers}</div>
-                </div>
-                <div className="card">
-                  <div className="card-label">Active Users</div>
-                  <div className="card-value">{activeUsers}</div>
-                </div>
-                <div className="card">
-                  <div className="card-label">Disabled Users</div>
-                  <div className="card-value">{disabledUsers}</div>
-                </div>
-              </div>
-
-              <section className="panel">
-                <h2>Jauhar Modules</h2>
-                <div className="modules">
-                  <div className="module">
-                    <strong>Approval Dashboard</strong>
-                    <p>View all finance approval requests.</p>
-                    <span className="muted">Coming soon</span>
-                  </div>
-                  <div className="module">
-                    <strong>Finance Dashboard</strong>
-                    <p>Financial reports and summaries.</p>
-                    <span className="muted">Coming soon</span>
-                  </div>
-                  <div className="module">
-                    <strong>Audit Trail</strong>
-                    <p>View user activities and approval history.</p>
-                    <span className="muted">Available via sidebar</span>
-                  </div>
-                </div>
-              </section>
-
-              <p className="muted">
-                System Admin has full visibility but no finance approval authority.
-              </p>
-            </>
           ) : (
-            <section className="panel">
-              <h2>Finance Workspace</h2>
-              <p className="muted">
-                Role: {profile.role}. Finance approval modules are being developed.
-              </p>
-            </section>
+            <JIMSDashboardHome
+              profile={profile}
+              stats={profile.role === 'system_admin' ? { totalUsers, activeUsers, disabledUsers } : null}
+              canManageDelegation={canManagePvDelegation(profile)}
+              onNavigate={page => {
+                setActivePage(page)
+                setEditingUser(null)
+                setOrganizationUser(null)
+                setResetUser(null)
+              }}
+            />
           )}
         </main>
       </div>
