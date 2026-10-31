@@ -31,3 +31,10 @@
 .jims-fa-notice { margin:10px 0; border-left:3px solid #ab8d3e; padding:10px 12px; background:rgba(171,141,62,.09) }
 @media(max-width:1050px) { .jims-fa-filters { grid-template-columns:repeat(2,minmax(0,1fr)) } .jims-fa-search { grid-column:1/-1 } }
 @media(max-width:560px) { .jims-fa-stats { grid-template-columns:repeat(2,minmax(0,1fr)) } .jims-fa-filters { grid-template-columns:1fr } .jims-fa-search { grid-column:auto } .jims-fa-toolbar>div { width:100% } .jims-fa-toolbar .btn { flex-grow:1 } }
+
+/* 57D7C5: purpose-built Finance Document Archive sidebar icon.
+   Do not change or override other sidebar row icons. */
+.jims-archive-nav { display:flex; align-items:center; gap:10px; }
+.jims-archive-nav::before { content:none !important; display:none !important; }
+.jims-archive-nav .jims-archive-nav-icon { display:block; width:19px; height:19px; flex:0 0 19px; color:var(--jims-gold,#c8a764); }
+.jims-archive-nav .jims-archive-nav-label { min-width:0; text-align:left; }
