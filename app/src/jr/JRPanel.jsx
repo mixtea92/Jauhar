@@ -32,7 +32,7 @@ export default function JRPanel({voucher,documents,meetings,links,canUpload,
         <input id="pv-jr-file" type="file" accept=".pdf,application/pdf" disabled={mobileUploadsBlocked || uploading}
           onChange={event=>{const f=event.target.files?.[0];event.target.value='';if(f && !isMobileUploadBlocked())onUpload(f)}} />
         <small>PDF only · maximum 5 MB · original versions are retained</small>
-        {mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>
+        {mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}
       </div>}
       {recorded && <p className="pv-notice"><strong>Offline meeting evidence recorded:</strong>{' '}
         {recorded.meeting_reference} — {recorded.meeting_date} (Round {recorded.approval_round}).</p>}
