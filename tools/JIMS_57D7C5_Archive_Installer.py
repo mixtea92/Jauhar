@@ -50,7 +50,7 @@ def apply_to(source):
     # The latest JIMS sidebar may render a notification badge inside the button.
     # Insert AFTER the enclosing role guard, never INSIDE its conditional.
     nav_buttons = list(re.finditer(
-        r'<button\\b[^>]*>(?:(?!</button>).)*?setActivePage\\([\\x27\\x22]cash_voucher[\\x27\\x22]\\)(?:(?!</button>).)*?</button>',
+        r'<button\b[^>]*>(?:(?!</button>).)*?setActivePage\([\x27\x22]cash_voucher[\x27\x22]\)(?:(?!</button>).)*?</button>',
         source,
         flags=re.DOTALL
     ))
@@ -60,13 +60,13 @@ def apply_to(source):
         end = nav_buttons[0].end()
     else:
         matches = []
-        for m in re.finditer(r"setActivePage\\(['\\x22]cash_voucher['\\x22]\\)", source):
+        for m in re.finditer(r"setActivePage\(['\x22]cash_voucher['\x22]\)", source):
             start = source.rfind('<button', max(0, m.start() - 1000), m.start())
             close = source.find('</button>', m.end())
             if start < 0 or close < 0 or close - m.start() > 2500:
                 continue
             # Verify this button is a named Petty Cash nav button, not an action.
-            if not re.search(r'\\bPetty Cash\\b', source[m.end():close]):
+            if not re.search(r'\bPetty Cash\b', source[m.end():close]):
                 continue
             matches.append(close + len('</button>'))
         if len(matches) != 1:
@@ -74,7 +74,7 @@ def apply_to(source):
         end = matches[0]
 
     # The Petty Cash button is wrapped by a JIMS role guard (... && (...)).
-    guard = re.match(r'\\s*\\)\\}', source[end:])
+    guard = re.match(r'\s*\)\}', source[end:])
     if not guard:
         raise RuntimeError('Petty Cash role-guard closing not recognized. No files changed.')
     pos = end + guard.end()
