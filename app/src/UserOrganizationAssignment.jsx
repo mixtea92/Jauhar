@@ -19,13 +19,13 @@ export const JSYNC_SUBDEPARTMENTS = {
     'Accounting', 'Accounts Payable', 'Accounts Receivable', 'Strategic Finance'
   ],
   Medical: ['Branch Medical PIC', 'Branch Medical Resident'],
-  'Sales and Marketing': ['Marketing', 'Sale']
+  'Sales & Marketing': ['Marketing', 'Sale']
 }
 
 const departmentalOptions = department => {
   const name = department === 'System, Project & Infra'
     ? 'System, Project & Infrastructure'
-    : department === 'Sales & Marketing' ? 'Sales and Marketing' : department
+    : department === 'Sales and Marketing' ? 'Sales & Marketing' : department
   return JSYNC_SUBDEPARTMENTS[name] || []
 }
 

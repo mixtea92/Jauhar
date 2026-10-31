@@ -7,7 +7,6 @@ import JSYNCDelegationUnifiedOverview from './JSYNCDelegationUnifiedOverview'
 // Future financial modules can add their own queue source. No Budgeting permissions/RPCs exist yet.
 const departments = ['Operation', 'Sales & Marketing', 'Medical', 'System, Project & Infrastructure']
 const money = amount => `RM ${Number(amount || 0).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2})}`
-const stamp = value => value ? new Date(value).toLocaleString('en-MY', {timeZone:'Asia/Kuala_Lumpur'}) : '—'
 const activeGrant = grant => {
   const now = Date.now()
   return grant?.status === 'approved' && !grant.revoked_at &&

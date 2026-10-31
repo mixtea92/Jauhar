@@ -1,0 +1,228 @@
+/* JIMS STEP 50E — UNIFIED DARK GUI V1.1
+   Applies to every logged-in workspace (PV, CV, Delegation, Staff/Admin, Audit, profiles).
+   CSS-ONLY. Do not alter auth, handlers, roles, RPCs, data, Excel export or signature bitmap.
+   Login is deliberately excluded (.jims-shell does not exist on login).
+*/
+.jims-shell>.content{
+  --jims-page:#0b0c0e;
+  --jims-panel:#17191d;
+  --jims-lift:#202329;
+  --jims-input:#20242a;
+  --jims-text:#f0f0ed;
+  --jims-muted:#bbc0c9;
+  --jims-gold:#d9b575;
+  --jims-outline:rgba(218,178,106,.21);
+  --jims-divider:rgba(255,255,255,.085);
+  background:var(--jims-page)!important;
+  color:var(--jims-text);
+  color-scheme:dark;
+}
+.jims-shell>.content :is(.panel,.card,.module){
+  background:var(--jims-panel)!important;
+  color:var(--jims-text)!important;
+  border:1px solid var(--jims-outline)!important;
+  border-radius:15px;
+  box-shadow:0 10px 27px rgba(0,0,0,.12);
+}
+.jims-shell>.content .card-value,
+.jims-shell>.content .module strong {color:#f4e1b3;}
+.jims-shell>.content .card-label,
+.jims-shell>.content .module p {color:var(--jims-muted);}
+.jims-shell>.content :is(.panel,.card,.module) :is(h1,h2,h3,h4){
+  color:#f0f0ed!important;
+  letter-spacing:-.35px;
+  line-height:1.35;
+}
+.jims-shell>.content :is(.panel,.card,.module) .muted,
+.jims-shell>.content :is(.panel,.card,.module) p.muted{
+  color:var(--jims-muted)!important;
+}
+.jims-shell>.content .panel-head{gap:14px;flex-wrap:wrap;}
+.jims-shell>.content .panel-head h2{font-weight:710;font-size:21px;}
+/* Form fields: neutral dark, visible borders and labels. Direct inline input
+   background:white is intentionally overriden, without changing input values. */
+.jims-shell>.content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea){
+  background:var(--jims-input)!important;
+  color:#f3f4f6!important;
+  border:1px solid rgba(182,188,198,.37)!important;
+  border-radius:9px;
+  color-scheme:dark;
+}
+.jims-shell>.content :is(input,textarea)::placeholder{color:#aeb5c0;opacity:1;}
+.jims-shell>.content :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus{
+  border-color:#d9b575!important;
+  outline:2px solid rgba(217,181,117,.22);
+  outline-offset:1px;
+}
+.jims-shell>.content :is(input,select,textarea):disabled{
+  opacity:.65;
+}
+.jims-shell>.content :is(.field,.pv-field) label,
+.jims-shell>.content .panel label,
+.jims-shell>.content legend {color:#e5e6e5!important;}
+.jims-shell>.content option{color:#f3f4f6;background:#20242a;}
+.jims-shell>.content input[type="checkbox"],
+.jims-shell>.content input[type="radio"]{accent-color:#cda665;}
+.jims-shell>.content input[type="file"]{max-width:100%;color:#ece6d9;}
+.jims-shell>.content input[type="file"]::file-selector-button{
+  background:#383022;color:#f0d6a2;border:1px solid rgba(213,175,111,.4);
+  border-radius:7px;padding:7px 11px;margin-right:12px;cursor:pointer;
+}
+/* Tables and admin lists — readable, never bright white. */
+.jims-shell>.content .table-wrap{
+  background:#191b20;
+  border:1px solid rgba(218,178,106,.16);
+  border-radius:11px;
+  overflow-x:auto;
+}
+.jims-shell>.content table{background:#191b20;color:#edf0f3;}
+.jims-shell>.content table thead th{
+  background:#292c32!important;
+  color:#efd49e!important;
+  border-bottom:1px solid rgba(218,178,106,.27);
+  font-weight:700;
+}
+.jims-shell>.content table tbody td{
+  background:#191b20!important;
+  color:#ebeef2!important;
+  border-bottom:1px solid var(--jims-divider)!important;
+}
+.jims-shell>.content table tbody tr:hover td{background:#23262c!important;}
+.jims-shell>.content table td strong{color:#f4e1b3;}
+/* Shared buttons: keep PV Home/action cards on their own approved 50D CSS. */
+.jims-shell>.content .btn{
+  border-radius:9px;
+  background:#342b1f!important;
+  border:1px solid rgba(225,181,107,.34)!important;
+  color:#f7dfa9!important;
+  box-shadow:none;
+  font-weight:630;
+}
+.jims-shell>.content .btn:hover:not(:disabled){
+  background:#453725!important;
+  border-color:#dfb76c!important;
+  color:#fff0c9!important;
+}
+.jims-shell>.content button[style]:not(.btn):not(.pv-home-card):not(.pv-mode-card):not(.pv-action-link){
+  background:#272a30!important;
+  color:#f0e2c9!important;
+  border:1px solid rgba(218,178,106,.27)!important;
+  border-radius:8px;
+}
+.jims-shell>.content button[style]:not(.btn):hover:not(:disabled){
+  background:#33343a!important;
+  border-color:rgba(218,178,106,.55)!important;
+}
+.jims-shell>.content button:disabled{opacity:.57;cursor:not-allowed;}
+.jims-shell>.content :is(button,a,input,select,textarea,summary):focus-visible{
+  outline:2px solid #e0b874;outline-offset:3px;
+}
+.jims-shell>.content :is(.status.active,.pv-payment-label.paid){
+  background:#1b382a!important;color:#a6e8c3!important;
+}
+.jims-shell>.content :is(.status.disabled,.pv-payment-label.unpaid){
+  background:#3b2b1c!important;color:#f6d098!important;
+}
+.jims-shell>.content .error,
+.jims-shell>.content [role="alert"]{color:#ffb5ad!important;}
+/* The Delegation Workspace metrics are <button style="background:#fff">
+   elements nested in a panel grid, with no className. Limit to panel buttons
+   with explicit inline background or the known metric grid. */
+.jims-shell>.content.jims-finance-theme section.panel button[style*="background: rgb(255, 255, 255)"],
+.jims-shell>.content.jims-finance-theme section.panel button[style*="background: #fff"],
+.jims-shell>.content.jims-finance-theme section.panel button[style*="background: white"],
+.jims-shell>.content.jims-finance-theme section.panel > div[style*="grid-template-columns"] > button[style]{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  background:#22262c!important;
+  color:#f1efeb!important;
+  border:1px solid rgba(218,178,106,.25)!important;
+  box-shadow:none!important;
+  border-radius:12px;
+  text-align:left;
+}
+.jims-shell>.content.jims-finance-theme section.panel > div[style*="grid-template-columns"] > button[style] strong{
+  color:#e4c28a!important;
+}
+/* Light inline cards used by DelegationWorkspace, UnifiedOverview,
+   delegation handovers and User Administration. Do not target signature pads. */
+.jims-shell>.content div[style*="background: rgb(255, 255, 255)"]:not([data-jsync-cv-signature-capture]),
+.jims-shell>.content div[style*="background: #fff"]:not([data-jsync-cv-signature-capture]),
+.jims-shell>.content div[style*="background: white"]:not([data-jsync-cv-signature-capture]),
+.jims-shell>.content div[style*="background: rgb(242, 246, 252)"],
+.jims-shell>.content div[style*="background: #f2f6fc"],
+.jims-shell>.content div[style*="background: rgb(243, 246, 251)"],
+.jims-shell>.content div[style*="background: #f3f6fb"]{
+  background:#23262c!important;
+  color:#f0eeea!important;
+  border-color:rgba(218,178,106,.22)!important;
+}
+.jims-shell>.content div[style*="border: 1px solid rgb(213, 226, 240)"],
+.jims-shell>.content div[style*="border: 1px solid #d5e2f0"],
+.jims-shell>.content div[style*="border: 1px solid rgb(224, 214, 189)"],
+.jims-shell>.content div[style*="border: 1px solid #e0d6bd"],
+.jims-shell>.content form[style*="border: 1px solid rgb(213, 226, 240)"],
+.jims-shell>.content form[style*="border: 1px solid #d5e2f0"]{
+  background:#21242a!important;
+  color:#f0eeea!important;
+  border:1px solid rgba(218,178,106,.25)!important;
+  border-radius:11px;
+}
+/* CV counters / import panels / signature approval cards retain structure. */
+.jims-shell>.content.jims-finance-theme section.panel div[style*="border: 1px solid rgb(154, 123, 60)"],
+.jims-shell>.content.jims-finance-theme section.panel div[style*="border: 1px solid #9a7b3c"],
+.jims-shell>.content.jims-finance-theme section.panel div[style*="border: 1px solid rgb(164, 138, 83)"],
+.jims-shell>.content.jims-finance-theme section.panel div[style*="border: 1px solid #a48a53"],
+.jims-shell>.content.jims-finance-theme section.panel section[style*="border: 1px solid rgb(129, 112, 76)"],
+.jims-shell>.content.jims-finance-theme section.panel section[style*="border: 1px solid #81704c"]{
+  background:#202329!important;
+  color:#f2eeea!important;
+  border-color:rgba(218,178,106,.28)!important;
+}
+.jims-shell>.content.jims-finance-theme section.panel span[style*="background: rgb(232, 238, 247)"],
+.jims-shell>.content.jims-finance-theme section.panel span[style*="background: #e8eef7"]{
+  background:#3a3020!important;
+  color:#f5d99d!important;
+}
+.jims-shell>.content.jims-finance-theme section.panel span[style*="border: 1px dashed rgb(184, 198, 214)"],
+.jims-shell>.content.jims-finance-theme section.panel span[style*="border: 1px dashed #b8c6d6"]{
+  border-color:rgba(220,184,113,.36)!important;
+  color:#c3c9d1!important;
+}
+/* Older inline text colors on dark can become unreadable. */
+.jims-shell>.content :is(h1,h2,h3,h4)[style*="color: rgb(36, 48, 71)"],
+.jims-shell>.content :is(h1,h2,h3,h4)[style*="color: #243047"],
+.jims-shell>.content :is(h1,h2,h3,h4)[style*="color: rgb(23, 37, 61)"]{
+  color:#f0efea!important;
+}
+.jims-shell>.content :is(p,span,small,div)[style*="color: rgb(100, 116, 139)"],
+.jims-shell>.content :is(p,span,small,div)[style*="color: #64748b"],
+.jims-shell>.content :is(p,span,small,div)[style*="color: rgb(101, 116, 139)"],
+.jims-shell>.content :is(p,span,small,div)[style*="color: #65748b"]{
+  color:#c2c8d0!important;
+}
+.jims-shell>.content strong[style*="color: rgb(25, 116, 71)"],
+.jims-shell>.content strong[style*="color: #197447"]{color:#9ce1b8!important;}
+.jims-shell>.content :is(.pv-notice,.pv-section){
+  color:#f0e4ca;
+}
+.jims-shell>.content .pv-notice{background:#242932!important;color:#ececed!important;}
+.jims-shell>.content .pv-section{background:#30291b!important;border-left-color:#c8a35c;color:#efdab1;}
+/* The signature canvas must remain white: blue ink is part of the approved
+   signed CV capture and printed Excel; never filter or recolor the canvas. */
+.jims-shell>.content canvas[style*="background"]{
+  background:#fff!important;
+  color-scheme:light;
+}
+.jims-shell>.content [data-jsync-cv-signature-capture],
+.jims-shell>.content [data-jsync-cv-signature-capture] img{
+  background:transparent!important;
+}
+.jims-shell>.content :is(pre,code){background:#15171b;color:#e9dbbd;}
+.jims-shell>.content pre{padding:12px;border:1px solid var(--jims-divider);border-radius:9px;overflow:auto;}
+@media(max-width:850px){
+  .jims-shell>.content .panel{padding:17px!important;}
+  .jims-shell>.content .table-wrap{overflow-x:auto;}
+}

@@ -1,0 +1,495 @@
+/* JIMS_STEP57D6B2_TRUE_LIGHT_MODE
+   Light mode only. Legacy JIMS 50C/50D/50E styles deliberately use !important,
+   :has(), and specificity-heavy selectors. Override THOSE EXACT shell selectors.
+   Dark mode / approved black-and-gold login / finance logic remain untouched.
+   Never change visibility, layout/grid structure, statuses or signatures.
+   Palette: ivory page #f6f4ef, white panel #fffefa, champagne border #e2d7c2.
+*/
+
+/* 50C: html/body/root hard-coded black with !important. */
+html.jims-57d6-light:has(.jims-shell),
+html.jims-57d6-light body:has(.jims-shell) {
+  background:#f6f4ef!important;
+  color:#2b3033!important;
+  color-scheme:light!important;
+}
+html.jims-57d6-light #root:has(.jims-shell) {
+  background:#f6f4ef!important;
+  color:#2b3033!important;
+}
+
+/* Shell, locked position/spacing preserved: only surface/ink/border altered. */
+html.jims-57d6-light .jims-shell {
+  background:#f6f4ef!important;
+  color:#2b3033!important;
+  --jims-page:#f6f4ef;
+  --jims-panel:#fffefa;
+  --jims-lift:#f5eee0;
+  --jims-input:#fffefa;
+  --jims-text:#2b3033;
+  --jims-muted:#646970;
+  --jims-gold:#996d25;
+  --jims-outline:#e2d7c2;
+  --jims-divider:#eae3d7;
+  color-scheme:light;
+}
+html.jims-57d6-light .jims-shell .sidebar {
+  background:#f1ece2!important;
+  color:#373833!important;
+  border-right-color:#ddd0b8!important;
+}
+html.jims-57d6-light .jims-shell .jims-brand {
+  border-bottom-color:#dbc8a7;
+}
+html.jims-57d6-light .jims-shell .sidebar .nav-item {
+  color:#53534f!important;
+}
+html.jims-57d6-light .jims-shell .sidebar button.nav-item:hover {
+  background:#e9decc!important;
+  color:#694912!important;
+}
+html.jims-57d6-light .jims-shell .sidebar .nav-item.nav-active {
+  background:#e7d8bd!important;
+  color:#644510!important;
+  box-shadow:inset 3px 0 #b08540;
+}
+html.jims-57d6-light .jims-shell .sidebar .nav-group-toggle {
+  color:#353634!important;
+}
+html.jims-57d6-light .jims-shell .sidebar .nav-group-active:not(.nav-active) {
+  background:#e9e0d1!important;
+  color:#664a1a!important;
+}
+html.jims-57d6-light .jims-shell .sidebar :is(.nav-submenu,.nav-delegation-submenu) {
+  border-left-color:#d3bd94!important;
+}
+html.jims-57d6-light .jims-shell .sidebar .nav-placeholder {
+  color:#8b8b85!important;
+}
+html.jims-57d6-light .jims-shell .jims-sidebar-footer {
+  color:#7c7469!important;
+}
+html.jims-57d6-light .jims-shell .jims-sidebar-footer small {
+  color:#7c7d7b!important;
+}
+html.jims-57d6-light .jims-shell .jims-nav-notification {
+  background:#ecd6a9!important;
+  color:#68450c!important;
+  border-color:#c6a363!important;
+}
+html.jims-57d6-light .jims-shell .jims-count-unavailable {
+  background:#e3ded5!important;
+  color:#706b64!important;
+  border-color:#d4c9b8!important;
+}
+html.jims-57d6-light .jims-shell>.content {
+  --jims-page:#f6f4ef;
+  --jims-panel:#fffefa;
+  --jims-lift:#f5eee0;
+  --jims-input:#fffefa;
+  --jims-text:#2b3033;
+  --jims-muted:#646970;
+  --jims-gold:#996d25;
+  --jims-outline:#e2d7c2;
+  --jims-divider:#eae3d7;
+  background:#f6f4ef!important;
+  color:#2b3033!important;
+  color-scheme:light!important;
+}
+html.jims-57d6-light .jims-shell>.content>.topbar {
+  background:#fffefa!important;
+  color:#292e30!important;
+  border-bottom:1px solid #e5d9c2!important;
+}
+html.jims-57d6-light .jims-shell>.content>.topbar h1 {
+  color:#2b3033!important;
+}
+html.jims-57d6-light .jims-shell>.content>.topbar p {
+  color:#686b70!important;
+}
+html.jims-57d6-light .jims-shell .jims-branch-label {
+  color:#796f61!important;
+}
+html.jims-57d6-light .jims-shell .jims-branch-indicator strong {
+  color:#78581e!important;
+}
+html.jims-57d6-light .jims-shell .jims-logout {
+  background:#f5ecdc!important;
+  color:#714c11!important;
+  border-color:#d6c198!important;
+}
+html.jims-57d6-light .jims-shell .jims-logout:hover {
+  background:#ebdbbc!important;
+}
+
+/* 50C: dashboard has many independently hard-coded black backgrounds. */
+html.jims-57d6-light .jims-shell .jims-dashboard {
+  color:#2d3031!important;
+}
+html.jims-57d6-light .jims-dashboard :is(
+  .jims-dashboard-intro h2,
+  .jims-section-title h3,
+  .jims-home-panel-header h3
+) {
+  color:#282d30!important;
+}
+html.jims-57d6-light .jims-dashboard :is(
+  .jims-dashboard-intro p,.jims-section-title p,
+  .jims-action-desc,.jims-link-copy small,
+  .jims-panel-footnote,.jims-profile-row span
+) {
+  color:#696c71!important;
+}
+html.jims-57d6-light .jims-dashboard :is(.jims-overline,.jims-section-note,.jims-action-tag),
+html.jims-57d6-light .jims-dashboard .jims-home-panel-header span:not(.jims-small-ornament) {
+  color:#946b28!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-role-pill {
+  background:#fffefa!important;
+  color:#565046!important;
+  border:1px solid #e3d7c2!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-action-card {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border:1px solid #e4d8c2!important;
+  box-shadow:0 5px 15px rgba(95,75,39,.055)!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-action-card:hover {
+  background:#fbf3e5!important;
+  border-color:#bc985e!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-action-card-top {
+  color:#7a7770!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-action-icon,
+html.jims-57d6-light .jims-dashboard .jims-link-icon {
+  background:#f6ebd6!important;
+  color:#98702c!important;
+  border-color:#e1cba3!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-action-title,
+html.jims-57d6-light .jims-dashboard .jims-link-row,
+html.jims-57d6-light .jims-dashboard .jims-link-copy strong {
+  color:#2d3033!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-home-panel,
+html.jims-57d6-light .jims-dashboard .jims-stat {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border:1px solid #e4d8c2!important;
+  box-shadow:0 5px 15px rgba(95,75,39,.045);
+}
+html.jims-57d6-light .jims-dashboard .jims-link-row {
+  border-top-color:#ede5d9!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-link-row:hover {
+  background:#f7eedf!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-profile-row {
+  border-top-color:#e9e1d5!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-profile-row strong,
+html.jims-57d6-light .jims-dashboard .jims-stat strong {
+  color:#805e22!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-stat>span,
+html.jims-57d6-light .jims-dashboard .jims-stat small {
+  color:#6b6f73!important;
+}
+html.jims-57d6-light .jims-dashboard .jims-row-chevron {
+  color:#938a7a!important;
+}
+
+/* 50D + 50E: darker finance variables and !important selectors. */
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme {
+  --jf-bg:#f6f4ef;
+  --jf-panel:#fffefa;
+  --jf-raised:#f5eee0;
+  --jf-input:#fffefa;
+  --jf-text:#2b3033;
+  --jf-muted:#666a70;
+  --jf-gold:#996d25;
+  --jf-border:#e4d8c2;
+  --jf-line:#eae3d7;
+  background:#f6f4ef!important;
+  color:#2b3033!important;
+  color-scheme:light!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(.panel,.card,.module) {
+  background:#fffefa!important;
+  color:#2d3033!important;
+  border-color:#e4d8c2!important;
+  box-shadow:0 5px 15px rgba(95,75,39,.04);
+}
+html.jims-57d6-light .jims-shell>.content :is(.panel,.card,.module) :is(h1,h2,h3,h4),
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme :is(.panel,.pv-section) :is(h1,h2,h3,h4) {
+  color:#2b3033!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(.panel,.card,.module) :is(.muted,p.muted),
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme :is(.muted,.panel>p,.panel small),
+html.jims-57d6-light .jims-shell>.content :is(.card-label,.module p) {
+  color:#666a70!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(.card-value,.module strong) {
+  color:#805c1f!important;
+}
+
+/* Form background/labels; exclude checkbox/radio and white signature canvas. */
+html.jims-57d6-light .jims-shell>.content :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,textarea
+) {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border:1px solid #cebea4!important;
+  color-scheme:light!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(input,textarea)::placeholder {
+  color:#85817a!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(
+  .field,.pv-field,.pv-list-filters
+) label,
+html.jims-57d6-light .jims-shell>.content :is(.panel label,legend) {
+  color:#464944!important;
+}
+html.jims-57d6-light .jims-shell>.content option {
+  color:#2b3033!important;
+  background:#fffefa!important;
+}
+html.jims-57d6-light .jims-shell>.content input[type="file"]::file-selector-button {
+  background:#f0e4cd!important;
+  color:#714e14!important;
+  border-color:#d5ba89!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(input,select,textarea):focus-visible {
+  outline:2px solid #aa8448!important;
+  outline-offset:2px;
+}
+
+/* Finance cards, PV actions; override the old mandatory dark !important. */
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-action-panel {
+  background:#fcf6eb!important;
+  color:#2b3033!important;
+  border-color:#ddcaa6!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-action-title,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-action-title strong {
+  color:#7e591c!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-action-title strong {
+  background:#f2e3c8!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-action-link {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#e3d8c7!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-action-link:hover {
+  background:#f7eddd!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-action-link strong {
+  color:#7b551a!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-home-card,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-mode-card {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#ddc9a6!important;
+  box-shadow:0 3px 12px rgba(95,75,39,.045);
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-home-card:hover,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-mode-card:hover {
+  background:#f7efdf!important;
+  border-color:#af8d57!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-home-card :is(strong,span),
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-mode-card strong {
+  color:#644714!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-home-card small,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme button.pv-mode-card span {
+  color:#60656c!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-mode-label,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-section,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-total-final {
+  background:#f5e9d2!important;
+  color:#70511b!important;
+  border-color:#c8a766!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme .pv-notice {
+  background:#eef4f8!important;
+  color:#394852!important;
+  border-color:#d0dee7!important;
+}
+
+/* 50E mandatory table surface colors and hover. */
+html.jims-57d6-light .jims-shell>.content .table-wrap,
+html.jims-57d6-light .jims-shell>.content :is(table,.pv-tracking-table) {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#e4d8c2!important;
+}
+html.jims-57d6-light .jims-shell>.content table thead th,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme th {
+  background:#f3ebdc!important;
+  color:#594622!important;
+  border-bottom-color:#dcccad!important;
+}
+html.jims-57d6-light .jims-shell>.content table tbody td,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme td {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-bottom-color:#ebe3d7!important;
+}
+html.jims-57d6-light .jims-shell>.content table tbody tr:hover td {
+  background:#f7f0e4!important;
+}
+html.jims-57d6-light .jims-shell>.content table td strong {
+  color:#755317!important;
+}
+
+/* Buttons: don't flatten semantic Paid/Overdue badges or approval permissions. */
+html.jims-57d6-light .jims-shell>.content .btn,
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme a.btn {
+  background:#f2e6d1!important;
+  color:#6e4e1c!important;
+  border-color:#cfaf79!important;
+}
+html.jims-57d6-light .jims-shell>.content .btn:hover:not(:disabled),
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme a.btn:hover {
+  background:#e8d7b9!important;
+  border-color:#b38c4e!important;
+  color:#51380f!important;
+}
+html.jims-57d6-light .jims-shell>.content button[style]:not(.btn):not(.pv-home-card):not(.pv-mode-card):not(.pv-action-link) {
+  background:#f5ead8!important;
+  color:#62491f!important;
+  border-color:#dfcaa5!important;
+}
+html.jims-57d6-light .jims-shell>.content button[style]:not(.btn):hover:not(:disabled) {
+  background:#ecddc0!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(.status.active,.pv-payment-label.paid) {
+  background:#e4f6e9!important;
+  color:#1d7044!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(.status.disabled,.pv-payment-label.unpaid) {
+  background:#fff0d0!important;
+  color:#82580c!important;
+}
+html.jims-57d6-light .jims-shell>.content .error,
+html.jims-57d6-light .jims-shell>.content [role="alert"] {
+  color:#b12f25!important;
+}
+
+/* 50E dark inline-card overrides; do not restyle the signature canvas. */
+html.jims-57d6-light .jims-shell>.content :is(
+  div[style*="background: rgb(255, 255, 255)"],
+  div[style*="background: #fff"],
+  div[style*="background: white"],
+  div[style*="background: rgb(242, 246, 252)"],
+  div[style*="background: rgb(243, 246, 251)"],
+  div[style*="border: 1px solid rgb(213, 226, 240)"],
+  div[style*="border: 1px solid #d5e2f0"],
+  div[style*="border: 1px solid #e0d6bd"],
+  form[style*="border: 1px solid #d5e2f0"]
+):not([data-jsync-cv-signature-capture]) {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#e1d3bb!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme section.panel > div[style*="grid-template-columns"] > button[style] {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#e1d3bb!important;
+}
+html.jims-57d6-light .jims-shell>.content.jims-finance-theme section.panel > div[style*="grid-template-columns"] > button[style] strong {
+  color:#72511a!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(h1,h2,h3,h4)[style*="color:"] {
+  color:#2b3033!important;
+}
+html.jims-57d6-light .jims-shell>.content :is(p,span,small,div)[style*="color: rgb(100, 116, 139)"],
+html.jims-57d6-light .jims-shell>.content :is(p,span,small,div)[style*="color: #64748b"] {
+  color:#687078!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-closed-history {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#d9c9ad!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-closed-history :is(h2,h3) {
+  color:#79571f!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-closed-history p {
+  color:#696e74!important;
+}
+html.jims-57d6-light .jims-shell>.content button.jims-closed-history-card,
+html.jims-57d6-light .jims-shell>.content .jims-closed-history details {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  border-color:#dfcfb2!important;
+}
+html.jims-57d6-light .jims-shell>.content button.jims-closed-history-card:hover:not(:disabled) {
+  background:#f7eddd!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-closed-history-card :is(strong,em),
+html.jims-57d6-light .jims-shell>.content .jims-closed-history summary {
+  color:#79571f!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-closed-history-card small {
+  color:#6c6f73!important;
+}
+
+/* Calendar has its own dark-coded day grid; retain layout and due/overdue rules. */
+html.jims-57d6-light .jims-shell>.content .jims-cal-page {
+  color:#2b3033!important;
+  --jims-cal-gold:#98702e;
+  --jims-cal-outline:rgba(166,132,71,.37);
+  --jims-cal-fill:#f8f0e2;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-day,
+html.jims-57d6-light .jims-shell>.content .jims-cal-empty {
+  background:#fffefa!important;
+  color:#2b3033!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-dayname {
+  background:#efe3ce!important;
+  color:#5c503b!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-day:hover {
+  background:#f5ead8!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-selected {
+  background:#f0ddb8!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-day:disabled,
+html.jims-57d6-light .jims-shell>.content .jims-cal-outside {
+  background:#e9e5dc!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-range-inputs input[type=date] {
+  background:#fffefa!important;
+  color:#2b3033!important;
+  color-scheme:light!important;
+}
+html.jims-57d6-light .jims-shell>.content .jims-cal-header :is(p,.jims-cal-visually-muted),
+html.jims-57d6-light .jims-shell>.content .jims-cal-footnote {
+  color:#696e74!important;
+}
+/* Keep signature canvas actually white and ink unchanged in both themes. */
+html.jims-57d6-light .jims-shell>.content canvas[style*="background"] {
+  background:#fff!important;
+  color-scheme:light!important;
+}
+
+/* Toggle itself should stay easy to find on the light topbar. */
+html.jims-57d6-light .jims-shell>.content>.topbar .jims-57d6-theme-toggle {
+  background:#fffefa!important;
+  color:#745118!important;
+  border-color:#b48b49!important;
+}
+
+/* No sizing or mobile-upload rules are modified. All responsive grids preserved. */

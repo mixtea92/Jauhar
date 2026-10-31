@@ -1,0 +1,16 @@
+/* JIMS STEP 51UI — Two financial payment entrances (display only).
+   5th Dashboard card adapts to screen size. Existing JIMS colours untouched.
+*/
+@media (min-width: 1500px) {
+  .jims-dashboard .jims-actions-grid {grid-template-columns:repeat(5,minmax(0,1fr));}
+}
+@media (min-width:1161px) and (max-width:1499px) {
+  .jims-dashboard .jims-actions-grid {grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media (min-width:541px) and (max-width:1160px) {
+  .jims-dashboard .jims-actions-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:540px) {
+  .jims-dashboard .jims-actions-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+.jims-shell>.content .pv-action-panel .pv-action-title strong{font-variant-numeric:tabular-nums;}

@@ -1,0 +1,107 @@
+/* JIMS_STEP57D6A_DARK_FINANCE_POLISH
+   Non-destructive visual refinement of LEGACY Payment Voucher home/list surfaces.
+   Strictly scoped: no JIMS login, sidebar, topbar, approval/payment controls, Calendar,
+   Petty Cash or modal dialogs. The approved black-gold dashboard stays untouched.
+   Light mode overlay (Step 57D6B) opts out of these dark-only rules.
+*/
+:root:not(.jims-57d6-light) #root {
+  --jims-57d6a-surface:#1e2126;
+  --jims-57d6a-hover:#292d32;
+  --jims-57d6a-muted:#aeb4bc;
+  --jims-57d6a-text:#eeeae2;
+  --jims-57d6a-border:rgba(198,161,92,.30);
+  --jims-57d6a-gold:#d6b470;
+  --jims-57d6a-gold-bg:rgba(198,161,92,.12);
+}
+
+/* PV HOME: remove legacy blue/white card accents, keep cards and click actions intact. */
+:root:not(.jims-57d6-light) #root .pv-home-card,
+:root:not(.jims-57d6-light) #root .pv-mode-card {
+  background:var(--jims-57d6a-surface);
+  border-color:var(--jims-57d6a-border);
+  color:var(--jims-57d6a-text);
+  box-shadow:0 3px 14px rgba(0,0,0,.10);
+}
+:root:not(.jims-57d6-light) #root .pv-home-card:hover,
+:root:not(.jims-57d6-light) #root .pv-mode-card:hover {
+  background:var(--jims-57d6a-hover);
+  border-color:rgba(214,180,112,.80);
+}
+:root:not(.jims-57d6-light) #root .pv-home-card:focus-visible,
+:root:not(.jims-57d6-light) #root .pv-mode-card:focus-visible {
+  outline:2px solid var(--jims-57d6a-gold);
+  outline-offset:2px;
+}
+:root:not(.jims-57d6-light) #root .pv-home-card small,
+:root:not(.jims-57d6-light) #root .pv-mode-card span {
+  color:var(--jims-57d6a-muted);
+}
+:root:not(.jims-57d6-light) #root .pv-home-card strong,
+:root:not(.jims-57d6-light) #root .pv-mode-card strong {
+  color:#f5e5c4;
+  font-variant-numeric:tabular-nums;
+}
+:root:not(.jims-57d6-light) #root .pv-mode-label {
+  background:var(--jims-57d6a-gold-bg);
+  color:var(--jims-57d6a-gold);
+  border:1px solid var(--jims-57d6a-border);
+}
+:root:not(.jims-57d6-light) #root .pv-workflow-title {
+  color:var(--jims-57d6a-gold);
+}
+
+/* PV dashboard action-required panel. Structural placement is unchanged. */
+:root:not(.jims-57d6-light) #root .pv-action-panel {
+  background:#24231f;
+  border-color:var(--jims-57d6a-border);
+  color:var(--jims-57d6a-text);
+}
+:root:not(.jims-57d6-light) #root .pv-action-title {
+  color:#f2dfb5;
+}
+:root:not(.jims-57d6-light) #root .pv-action-link {
+  background:transparent;
+  color:#eae4d9;
+  border-color:rgba(198,161,92,.23);
+}
+:root:not(.jims-57d6-light) #root .pv-action-link:hover,
+:root:not(.jims-57d6-light) #root .pv-action-link:focus-visible {
+  color:var(--jims-57d6a-gold);
+  text-decoration:underline;
+}
+
+/* Only the PV LIST controls; do not restyle live payment/detail forms or modals. */
+:root:not(.jims-57d6-light) #root .pv-list-filters input,
+:root:not(.jims-57d6-light) #root .pv-list-filters select {
+  color:var(--jims-57d6a-text);
+  background:#24282c;
+  border-color:rgba(198,161,92,.46);
+  color-scheme:dark;
+}
+:root:not(.jims-57d6-light) #root .pv-list-filters label {
+  color:#d7d1c5;
+}
+:root:not(.jims-57d6-light) #root .pv-list-filters input:focus-visible,
+:root:not(.jims-57d6-light) #root .pv-list-filters select:focus-visible {
+  outline:2px solid var(--jims-57d6a-gold);
+  outline-offset:2px;
+}
+
+/* Keep Paid/Pending semantic separation readable on charcoal surfaces. */
+:root:not(.jims-57d6-light) #root .pv-payment-label {
+  color:#d9d3ca;
+  background:#303236;
+}
+:root:not(.jims-57d6-light) #root .pv-payment-label.paid {
+  color:#8de4ae;
+  background:rgba(29,120,75,.22);
+}
+:root:not(.jims-57d6-light) #root .pv-payment-label.unpaid {
+  color:#f1cb7b;
+  background:rgba(162,110,30,.19);
+}
+
+@media (prefers-reduced-motion:reduce) {
+  :root:not(.jims-57d6-light) #root .pv-home-card,
+  :root:not(.jims-57d6-light) #root .pv-mode-card {transition:none}
+}

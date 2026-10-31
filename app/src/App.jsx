@@ -10,9 +10,9 @@ import './JIMSClosedLoopHistory.css'
 import './JIMSFinanceActionBadges.css'
 import {fetchJIMSActionNotifications} from './jimsActionNotifications'
 import { supabase } from './lib/supabase'
-import AddUser from './AddUser'
-import EditUser from './EditUser'
-import UserOrganizationAssignment from './UserOrganizationAssignment'
+import './AddUser'
+import './EditUser'
+import './UserOrganizationAssignment'
 import JSYNCUserAdminForm from './JSYNCUserAdminForm'
 // JAUHAR_STEP_47_3D_INLINE
 // JAUHAR_STEP_47_3B_USER_ORGANIZATION_UI

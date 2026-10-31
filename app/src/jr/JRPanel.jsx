@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { isMobileUploadBlocked, MOBILE_UPLOAD_NOTICE } from '../lib/mobileUploadGuard'
 
 // JAUHAR JR document and offline-meeting UI. Authentication and role decisions
 // remain authoritative in Supabase RPCs, not here.
 export default function JRPanel({voucher,documents,meetings,links,canUpload,
   canConfirmMeeting,uploading,opening,savingMeeting,message,onUpload,onOpen,onMeeting}) {
+  const mobileUploadsBlocked = isMobileUploadBlocked()
   const [reference,setReference] = useState('')
   const [date,setDate] = useState('')
   const [attested,setAttested] = useState(false)
@@ -27,9 +29,10 @@ export default function JRPanel({voucher,documents,meetings,links,canUpload,
       </div>)}
       {canUpload && <div className="pv-field" style={{marginTop:10}}>
         <label htmlFor="pv-jr-file">{isReturned ? 'Upload revised JR PDF (if justification changed)' : 'Upload JR PDF *'}</label>
-        <input id="pv-jr-file" type="file" accept=".pdf,application/pdf" disabled={uploading}
-          onChange={event=>{const f=event.target.files?.[0];event.target.value='';if(f)onUpload(f)}} />
+        <input id="pv-jr-file" type="file" accept=".pdf,application/pdf" disabled={mobileUploadsBlocked || uploading}
+          onChange={event=>{const f=event.target.files?.[0];event.target.value='';if(f && !isMobileUploadBlocked())onUpload(f)}} />
         <small>PDF only · maximum 5 MB · original versions are retained</small>
+        {mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}
       </div>}
       {recorded && <p className="pv-notice"><strong>Offline meeting evidence recorded:</strong>{' '}
         {recorded.meeting_reference} — {recorded.meeting_date} (Round {recorded.approval_round}).</p>}

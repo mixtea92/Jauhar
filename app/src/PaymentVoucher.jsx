@@ -13,6 +13,7 @@ import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'
 // JAUHAR_STEP_38_5P_PRESERVE_INVOICE_IDS
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
+import { isMobileUploadBlocked, MOBILE_UPLOAD_NOTICE } from './lib/mobileUploadGuard'
 import PVDelegationHistory from './PVDelegationHistory'
 // JAUHAR_STEP_46N2D_PV_HISTORY_AND_DELETE_UI
 import JRPanel from './jr/JRPanel'
@@ -422,6 +423,7 @@ function ChoiceField({ label, name, value, onChange, options }) {
 }
 
 export default function PaymentVoucher({ profile, openRequest = null, onOpenRequestHandled, reviewMode = "normal", onReviewClose, dashboardSection = "approval" }) {
+  const mobileUploadsBlocked = isMobileUploadBlocked()
   const canCreate = profile?.role === 'executive'
   const canManage = profile?.role === 'manager'
   const canApproveCEO = profile?.role === 'ceo'
@@ -1046,6 +1048,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
 
 
 async function uploadInvoice(line, file) {
+  if (isMobileUploadBlocked()) { setInvoiceMessage(MOBILE_UPLOAD_NOTICE); return }
   const voucher = viewingVoucher
 
   if (!file || !voucher || !line?.id) return
@@ -1128,6 +1131,7 @@ async function uploadInvoice(line, file) {
   }
 }
   async function uploadJR(file) {
+    if (isMobileUploadBlocked()) { setJrMessage(MOBILE_UPLOAD_NOTICE); return }
     const v=viewingVoucher
     if(!v || !JR_TIERS.includes(v.financial_tier) || !ownsVoucher(v) ||
       !['draft','returned'].includes(v.status) || jrUploading ||
@@ -2081,6 +2085,7 @@ async function uploadInvoice(line, file) {
   async function handleExcelImport(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
+    if (isMobileUploadBlocked()) { setError(MOBILE_UPLOAD_NOTICE); return }
     if (!file) return
     if (workspaceMode !== 'new' || editingVoucher) {
       setError('Excel upload is only allowed for a NEW Payment Voucher.')
@@ -2500,7 +2505,8 @@ async function uploadInvoice(line, file) {
               <div className="pv-field">
                 <label htmlFor="pv-import">Upload Completed Official PV Excel (.xlsx) — Optional</label>
                 <input id="pv-import" type="file" accept=".xlsx"
-                  disabled={importing || loading} onChange={handleExcelImport} />
+                  disabled={mobileUploadsBlocked || importing || loading} onChange={handleExcelImport} />
+                {mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}
               </div>
               <p className="muted">
                 For Rev1 Excel, use <strong>PV (T-Digital)</strong> and select PV Tier at L10. Legacy Blank Form remains accepted.
@@ -3120,11 +3126,12 @@ async function uploadInvoice(line, file) {
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png,.webp"
                           aria-label={`Upload invoice ${line.invoice_reference}`}
-                          disabled={invoiceUploadingId !== null}
+                          disabled={mobileUploadsBlocked || invoiceUploadingId !== null}
                           onChange={event => {
                             const file = event.target.files?.[0]
                             event.target.value = ''
-                            if (file) uploadInvoice(line, file)
+                            if (file && !isMobileUploadBlocked()) uploadInvoice(line, file)
+                            else if (file) setInvoiceMessage(MOBILE_UPLOAD_NOTICE)
                           }}
                         />
                       ) : (

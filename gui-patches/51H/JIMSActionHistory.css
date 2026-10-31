@@ -1,0 +1,69 @@
+/* JIMS Step 51H — action-only notifications and history sections.
+   All palette and spacing align with LOCKED JIMS Unified Dark V1.1.
+*/
+.jims-shell .nav-item.jims-action-nav {
+  display:flex;align-items:center;justify-content:space-between;gap:9px;
+}
+.jims-shell .jims-nav-notification,
+.jims-shell .jims-inline-notification{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:23px;height:22px;padding:0 7px;
+  border-radius:999px;
+  background:#4a3621;
+  color:#ffe0a6;
+  border:1px solid rgba(233,186,105,.35);
+  font-size:11px;font-weight:770;font-variant-numeric:tabular-nums;
+  line-height:1;white-space:nowrap;flex-shrink:0;
+}
+.jims-shell .jims-nav-notification[title="Action count unavailable"]{
+  background:#202329;color:#a9afb8;border-color:#474b52;
+}
+.jims-shell>.content .jims-history-section{
+  margin-top:23px;
+  padding:21px 23px;
+  border:1px solid rgba(216,180,112,.22);
+  border-radius:15px;
+  background:#17191d;
+}
+.jims-shell>.content .jims-history-section :is(h2,h3){
+  margin:0 0 7px;
+  color:#e4cc9c;
+  font-size:18px;font-weight:700;
+}
+.jims-shell>.content .jims-history-section p.muted {
+  margin:0 0 15px;
+  color:#afb4be;
+}
+.jims-shell>.content .jims-history-list{
+  display:flex;flex-direction:column;gap:9px;
+}
+.jims-shell>.content button.jims-history-link {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;width:100%;padding:15px 17px;
+  text-align:left;background:#202329!important;color:#f0ece5!important;
+  border:1px solid rgba(215,180,111,.17)!important;
+  border-radius:11px;cursor:pointer;transition:background .15s,border-color .15s;
+}
+.jims-shell>.content button.jims-history-link:hover {
+  background:#2b2a27!important;border-color:rgba(216,180,112,.46)!important;
+}
+.jims-shell>.content .jims-history-link span:first-child{
+  display:flex;flex-direction:column;gap:3px;
+}
+.jims-shell>.content .jims-history-link strong{font-size:13px;color:#f2e2c5;}
+.jims-shell>.content .jims-history-link small{color:#aeb5bf;font-size:11px;}
+.jims-shell>.content .jims-history-meta{
+  color:#d7b679;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.jims-shell>.content .jims-cv-history details{
+  background:#202329;border:1px solid rgba(216,180,112,.17);
+  border-radius:10px;padding:13px 15px;color:#f2e2c5;
+}
+.jims-shell>.content .jims-cv-history summary{
+  cursor:pointer;font-weight:650;color:#edd1a0;
+}
+@media(max-width:650px){
+  .jims-shell>.content .jims-history-section{padding:15px;}
+  .jims-shell>.content button.jims-history-link{padding:12px;}
+  .jims-shell>.content .jims-history-meta{font-size:11px;}
+}

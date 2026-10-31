@@ -28,11 +28,6 @@ function randomVerifier(){
   const pass=Array.from(seed,b=>b.toString(16).padStart(2,'0')).join('')
   return passwordVerifier(pass)
 }
-function before(element,tag,protection){
-  const anchor=unique(element,tag)[0]
-  if(!anchor)throw Error('Workbook is missing '+tag+'; cannot apply protection safely')
-  anchor.parentNode.insertBefore(protection,anchor)
-}
 export async function lockSignedCVWorkbook(zip,work,workRels,resolveSheetPath){
   // Never use or expose a global/shared protection password; independent
   // per-download verifier is intentionally not recoverable in the browser.
