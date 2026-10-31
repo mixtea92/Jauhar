@@ -172,6 +172,9 @@ export default function FinanceDocumentArchive({ profile }) {
   const refresh = useCallback(async () => {
     if (!allowed) return
     setLoading(true)
+    setRecords([])
+    setSelected([])
+    setPage(0)
     setError('')
     setNotice('')
     try {
@@ -184,7 +187,7 @@ export default function FinanceDocumentArchive({ profile }) {
     } finally {
       setLoading(false)
     }
-  }, [allowed])
+  }, [allowed, profile?.id])
 
   useEffect(() => { void refresh() }, [refresh])
 
