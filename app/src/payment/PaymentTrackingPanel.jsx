@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { isMobileUploadBlocked, MOBILE_UPLOAD_NOTICE } from '../lib/mobileUploadGuard'
 
 // JAUHAR STEP 45 — Private payment initiation, Finance Manager verification, final PDF receipt.
 // Authorization is enforced by Step 43B/43C Supabase storage policies and RPCs.
@@ -53,6 +54,7 @@ function money(n) {
 }
 
 export default function PaymentTrackingPanel({ voucher, profile, onVoucherChanged, onBusyChange, delegatedReviewPermissions = [], suspendedFinanceManager = false }) {
+  const mobileUploadsBlocked = isMobileUploadBlocked()
   const [proofs, setProofs] = useState([])
   const [proofFile, setProofFile] = useState(null)
   const [receiptFile, setReceiptFile] = useState(null)
@@ -132,6 +134,7 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
   }
 
   async function uploadProof() {
+    if (isMobileUploadBlocked()) { setMessage(MOBILE_UPLOAD_NOTICE); setFailed(true); return }
     if (!canInitiate || busy || !proofFile) return
     const ext = extensionOf(proofFile)
     if (!ext || !proofFile.size || proofFile.size > MAX_BYTES) {
@@ -216,6 +219,8 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
   }
 
   async function completePayment() {
+    // Existing desktop-uploaded receipt may still be finalized without a new file.
+    if (isMobileUploadBlocked() && !receiptPath) { setMessage(MOBILE_UPLOAD_NOTICE); setFailed(true); return }
     if (!canComplete || busy) return
     const ext = extensionOf(receiptFile)
     if (!receiptPath && (!receiptFile || ext !== 'pdf' || !receiptFile.size || receiptFile.size > MAX_BYTES)) {
@@ -286,9 +291,14 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
         <p className="muted">Upload proof of a payment REQUEST/INITIATION, not the final bank receipt. The payment is not yet recorded as Paid.</p>
         <div className="pv-field"><label htmlFor="pv-init-proof">Initiation proof · PDF/JPG/PNG/WEBP · max 5 MB</label>
           <input id="pv-init-proof" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
-            disabled={busy} onChange={e=>setProofFile(e.target.files?.[0] || null)}/></div>
+            disabled={busy || mobileUploadsBlocked} onChange={e=>{
+               const selected = e.target.files?.[0] || null
+               e.target.value = ''
+               if (isMobileUploadBlocked()) { setProofFile(null); setMessage(MOBILE_UPLOAD_NOTICE); setFailed(true); return }
+               setProofFile(selected)
+             }}/>{mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}</div>
         <div className="pv-actions">
-          <button type="button" className="btn" disabled={busy || !proofFile} onClick={uploadProof}>1. Upload & Register Proof</button>
+          <button type="button" className="btn" disabled={busy || mobileUploadsBlocked || !proofFile} onClick={uploadProof}>1. Upload & Register Proof</button>
           <button type="button" className="btn" disabled={busy || !latest || newerProofRequired} onClick={submitInitiation}>2. Submit Payment Initiation</button>
         </div>
         {decision === 'returned' && <p className="pv-notice">Finance Manager returned the initiation. Upload and register a NEW proof version before resubmitting.</p>}
@@ -319,11 +329,17 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
             <input id="pv-final-amount" inputMode="decimal" value={amount} disabled={busy}
               onChange={e=>setAmount(e.target.value)}/><small>Must equal {money(voucher.amount)} (no partial payment).</small></div>
           <div className="pv-field"><label htmlFor="pv-final-pdf">Final Bank Receipt PDF *</label>
-            <input id="pv-final-pdf" type="file" accept=".pdf,application/pdf" disabled={busy || Boolean(receiptPath)}
-              onChange={e=>{setReceiptFile(e.target.files?.[0] || null);setReceiptPath('')}}/>
-            {receiptPath && <small>PDF uploaded; retry completion without uploading again.</small>}</div>
+            <input id="pv-final-pdf" type="file" accept=".pdf,application/pdf" disabled={busy || mobileUploadsBlocked || Boolean(receiptPath)}
+              onChange={e=>{
+                const selected = e.target.files?.[0] || null
+                e.target.value = ''
+                if (isMobileUploadBlocked()) { setReceiptFile(null); setMessage(MOBILE_UPLOAD_NOTICE); setFailed(true); return }
+                setReceiptFile(selected);setReceiptPath('')
+              }}/>
+            {receiptPath && <small>PDF uploaded; retry completion without uploading again.</small>}
+            {mobileUploadsBlocked && !receiptPath && <small>{MOBILE_UPLOAD_NOTICE}</small>}</div>
         </div>
-        <div className="pv-actions"><button type="button" className="btn" disabled={busy || (!receiptFile && !receiptPath)}
+        <div className="pv-actions"><button type="button" className="btn" disabled={busy || (mobileUploadsBlocked && !receiptPath) || (!receiptFile && !receiptPath)}
           onClick={completePayment}>Upload Final PDF & Mark Paid</button></div>
       </div>}
       {eligible && voucher.receipt_path && <div className="pv-actions">
