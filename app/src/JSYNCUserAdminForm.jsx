@@ -15,7 +15,7 @@ const ROLES = [
 ]
 
 const normalize = v => ({
-  'Sales & Marketing': 'Sales and Marketing',
+  'Sales and Marketing': 'Sales & Marketing',
   'System, Project & Infra': 'System, Project & Infrastructure',
   'System, Project & Infrastructure Department':
     'System, Project & Infrastructure'
