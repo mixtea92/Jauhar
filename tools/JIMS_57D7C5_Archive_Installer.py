@@ -24,7 +24,7 @@ IMPORT = """import FinanceDocumentArchive, { canAccessFinanceDocumentArchive } f
 NAV = """
               {canAccessFinanceDocumentArchive(profile) && (
                 <button type="button"
-                  className={'nav-item nav-subitem ' + (activePage === 'finance_document_archive' ? 'nav-active' : '')}
+                  className={'nav-item jims-57d6c1-row nav-subitem jims-action-nav ' + (activePage === 'finance_document_archive' ? 'nav-active' : '')}
                   onClick={() => setActivePage('finance_document_archive')}>
                   Finance Document Archive
                 </button>
@@ -46,21 +46,46 @@ def apply_to(source):
         "import CashVoucher from './CashVoucher'\n" + IMPORT.rstrip(),
         1
     )
-    # Locate the Petty Cash sidebar BUTTON, not the title or payment body.
-    matches = []
-    for m in re.finditer(r'\bPetty Cash\b', source):
-        start = max(0, m.start() - 750)
-        preceding = source[start:m.start()]
-        if "setActivePage('cash_voucher')" not in preceding and 'setActivePage("cash_voucher")' not in preceding:
-            continue
-        end = source.find('</button>', m.end())
-        if end == -1 or end - m.end() > 250:
-            continue
-        matches.append(end + len('</button>'))
-    if len(matches) != 1:
-        raise RuntimeError('Petty Cash navigation anchor not found uniquely (found %s). Inspect App.jsx before changing anything.' % len(matches))
-    pos = matches[0]
+    # Anchor to the actual Cash Voucher / Petty Cash navigation BUTTON.
+    # The latest JIMS sidebar may render a notification badge inside the button.
+    # Insert AFTER the enclosing role guard, never INSIDE its conditional.
+    nav_buttons = list(re.finditer(
+        r'<button\\b[^>]*>(?:(?!</button>).)*?setActivePage\\([\\x27\\x22]cash_voucher[\\x27\\x22]\\)(?:(?!</button>).)*?</button>',
+        source,
+        flags=re.DOTALL
+    ))
+    # In actual JIMS, onClick and CSS template contain >, so use a simpler
+    # boundary scan if the conservative regex cannot match a JSX attribute.
+    if len(nav_buttons) == 1:
+        end = nav_buttons[0].end()
+    else:
+        matches = []
+        for m in re.finditer(r"setActivePage\\(['\\x22]cash_voucher['\\x22]\\)", source):
+            start = source.rfind('<button', max(0, m.start() - 1000), m.start())
+            close = source.find('</button>', m.end())
+            if start < 0 or close < 0 or close - m.start() > 2500:
+                continue
+            # Verify this button is a named Petty Cash nav button, not an action.
+            if not re.search(r'\\bPetty Cash\\b', source[m.end():close]):
+                continue
+            matches.append(close + len('</button>'))
+        if len(matches) != 1:
+            raise RuntimeError('Petty Cash navigation anchor not found uniquely (found %s). No files changed.' % len(matches))
+        end = matches[0]
+
+    # The Petty Cash button is wrapped by a JIMS role guard (... && (...)).
+    guard = re.match(r'\\s*\\)\\}', source[end:])
+    if not guard:
+        raise RuntimeError('Petty Cash role-guard closing not recognized. No files changed.')
+    pos = end + guard.end()
     source = source[:pos] + NAV + source[pos:]
+
+    # Keep the finance group highlight AND finance main-panel theme on Archive.
+    old_list = "'cash_voucher', 'delegation_workspace'"
+    updated_count = source.count(old_list)
+    if updated_count < 2 or updated_count > 5:
+        raise RuntimeError('Finance active-page lists differ (found %s). No files changed.' % updated_count)
+    source = source.replace(old_list, "'cash_voucher', 'finance_document_archive', 'delegation_workspace'")
 
     # Existing App navigation uses a JSX conditional chain for content pages.
     pattern = r'\)\s*:\s*activePage\s*===\s*["\x27]cash_voucher["\x27]\s*\?\s*\('
@@ -70,17 +95,16 @@ def apply_to(source):
     match = content_matches[0]
     source = source[:match.start()] + ')' + PAGE + source[match.start()+1:]
 
-    # Optional heading and group-active enhancement; no other UI copy touched.
-    marker = ": activePage === 'cash_voucher' ?"
-    if marker in source:
-        heading_marker = ": activePage === 'cash_voucher' ? '"
-        if heading_marker in source:
-            source = source.replace(
-                heading_marker,
-                ": activePage === 'finance_document_archive' ? 'Finance Document Archive'\n"
-                "                   " + heading_marker,
-                1
-            )
+    # Page heading must display the exact locked title.
+    heading_marker = ": activePage === 'cash_voucher' ? 'Petty Cash'"
+    if source.count(heading_marker) != 1:
+        raise RuntimeError('Petty Cash heading anchor missing/ambiguous. No files changed.')
+    source = source.replace(
+        heading_marker,
+        ": activePage === 'finance_document_archive' ? 'Finance Document Archive'\n"
+        "                  " + heading_marker,
+        1
+    )
     return source
 
 def main():
