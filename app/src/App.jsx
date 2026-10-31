@@ -23,6 +23,7 @@ import PaymentVoucher from './PaymentVoucher'
 import JIMSHistoryExports from './JIMSHistoryExports'
 import JIMSApproverSummary from './JIMSApproverSummary'
 import CashVoucher from './CashVoucher'
+import FinanceDocumentArchive, { canAccessFinanceDocumentArchive } from './FinanceDocumentArchive'
 // JSYNC_STEP_48C_CASH_VOUCHER_FULL_STACK
 import DelegationHub from './DelegationHub'
 import SystemAdminDelegationViewer from './SystemAdminDelegationViewer'
@@ -471,7 +472,7 @@ function App() {
           <button
             type="button"
             className={`nav-item jims-57d6c1-row jims-57d6c1-group jims-57d6c1-finance nav-group-toggle ${
-              ['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
+              ['payment_voucher', 'payment_process', 'cash_voucher', 'finance_document_archive', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'nav-group-active' : ''
             }`}
             aria-expanded={financeOpen}
             aria-controls="finance-approval-submenu"
@@ -566,6 +567,21 @@ function App() {
                 ) : null}
               </button>
               )}
+              {canAccessFinanceDocumentArchive(profile) && (
+                <button type="button"
+                  className={'nav-item jims-57d6c1-row nav-subitem jims-action-nav jims-archive-nav ' + (activePage === 'finance_document_archive' ? 'nav-active' : '')}
+                  onClick={() => setActivePage('finance_document_archive')}>
+                  <svg className="jims-archive-nav-icon" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="1.8"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 8V6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2" />
+                    <rect x="3" y="9" width="18" height="11" rx="2" />
+                    <path d="M9 13h6M11 16h2" />
+                  </svg>
+                  <span className="jims-archive-nav-label">Finance Document Archive</span>
+                </button>
+              )}
+
               {/* Step 46G: one financial-only Delegation section, reusable when Budgeting launches. */}
               <button type="button" className={`nav-item jims-57d6c1-row jims-57d6c1-delegation nav-subitem nav-delegation-heading ${
                 ['delegation_workspace','delegation_review','manage_delegation'].includes(activePage) ? 'nav-group-active' : ''}`}
@@ -661,7 +677,7 @@ function App() {
           </div>
         </aside>
 
-        <main className={['payment_voucher', 'payment_process', 'cash_voucher', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'content jims-finance-theme' : 'content'}>
+        <main className={['payment_voucher', 'payment_process', 'cash_voucher', 'finance_document_archive', 'delegation_workspace', 'delegation_review', 'manage_delegation'].includes(activePage) ? 'content jims-finance-theme' : 'content'}>
           <div className="topbar">
             <div>
               <h1>
@@ -673,6 +689,7 @@ function App() {
                   : activePage === 'history_exports' ? 'Report Generation'
                   : activePage === 'payment_calendar' ? 'Payment Calendar'
                   : activePage === 'payment_voucher' ? 'Payment Voucher'
+                  : activePage === 'finance_document_archive' ? 'Finance Document Archive'
                   : activePage === 'cash_voucher' ? 'Petty Cash'
                   : profile.role === 'system_admin' && activePage === 'users'
                     ? 'User Management'
@@ -762,6 +779,10 @@ function App() {
                 setVoucherOpenRequest(null)
                 setActivePage('delegation_workspace')
               }} />
+          ) : activePage === 'finance_document_archive' ? (
+              canAccessFinanceDocumentArchive(profile)
+                ? <FinanceDocumentArchive profile={profile} />
+                : <section className="panel" role="alert">Access Restricted</section>
           ) : activePage === 'cash_voucher' ? (
             <CashVoucher profile={profile} />
           ) : activePage === 'manage_delegation' ? (
