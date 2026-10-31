@@ -24,9 +24,16 @@ IMPORT = """import FinanceDocumentArchive, { canAccessFinanceDocumentArchive } f
 NAV = """
               {canAccessFinanceDocumentArchive(profile) && (
                 <button type="button"
-                  className={'nav-item jims-57d6c1-row nav-subitem jims-action-nav ' + (activePage === 'finance_document_archive' ? 'nav-active' : '')}
+                  className={'nav-item jims-57d6c1-row nav-subitem jims-action-nav jims-archive-nav ' + (activePage === 'finance_document_archive' ? 'nav-active' : '')}
                   onClick={() => setActivePage('finance_document_archive')}>
-                  Finance Document Archive
+                  <svg className="jims-archive-nav-icon" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" strokeWidth="1.8"
+                    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 8V6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2" />
+                    <rect x="3" y="9" width="18" height="11" rx="2" />
+                    <path d="M9 13h6M11 16h2" />
+                  </svg>
+                  <span className="jims-archive-nav-label">Finance Document Archive</span>
                 </button>
               )}
 """
