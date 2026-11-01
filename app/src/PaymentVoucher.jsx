@@ -84,6 +84,26 @@ const documentTypes = [
   { value: 'Other', label: 'Other' }
 ]
 
+// Feature 57D7C7: one invoice must contain complete saved items matching its amount.
+function invoiceBreakdownProblem(line, allItems) {
+  const items=allItems.filter(item=>item.line_item_id===line.id)
+  if(!items.length)return 'Item breakdown missing'
+  if(items.some(item=>
+    !String(item.item_description||'').trim()||
+    !String(item.category||'').trim()||
+    !Number.isFinite(Number(item.quantity))||Number(item.quantity)<=0||
+    !Number.isFinite(Number(item.unit_price))||Number(item.unit_price)<0
+  ))return 'Item details incomplete'
+  const actualCents=items.reduce((s,item)=>s+Math.round(Number(item.total_amount)*100),0)
+  const expectedCents=Math.round(Number(line.amount)*100)
+  if(!Number.isFinite(expectedCents)||expectedCents<=0)return 'Invoice amount invalid'
+  if(actualCents!==expectedCents)
+    return 'Mismatch: expected '+money(expectedCents/100)+
+      ', entered '+money(actualCents/100)+
+      ' (difference '+money(Math.abs(expectedCents-actualCents)/100)+')'
+  return ''
+}
+
 function blankInvoiceLine() {
   return { invoice_reference: '', description: '', gl_code: '', amount: '' }
 }
@@ -474,6 +494,9 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [invoiceLinks, setInvoiceLinks] = useState({})
   const [invoiceMessage, setInvoiceMessage] = useState('')
   const [invoiceDetailsLineId, setInvoiceDetailsLineId] = useState(null)
+  const [invoiceBreakdownRows, setInvoiceBreakdownRows] = useState([])
+  const [invoiceBreakdownLoading, setInvoiceBreakdownLoading] = useState(false)
+  const [invoiceDetailsDirty, setInvoiceDetailsDirty] = useState(false)
   const [jrDocuments,setJrDocuments] = useState([])
   const [jrMeetings,setJrMeetings] = useState([])
   const [jrLinks,setJrLinks] = useState({})
@@ -719,6 +742,8 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     setInvoiceLinks({})
     setInvoiceMessage('')
     setInvoiceDetailsLineId(null)
+    setInvoiceBreakdownRows([])
+    setInvoiceDetailsDirty(false)
     setJrDocuments([])
     setJrMeetings([])
     setJrLinks({})
@@ -901,6 +926,21 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     }
   }
 
+  // Read the invoice item records from the database; preview state is never trusted for Submit.
+  async function refreshInvoiceBreakdown(lines=viewLines){
+    setInvoiceBreakdownLoading(true)
+    try{
+      const ids=(lines||[]).map(l=>l.id).filter(Boolean)
+      if(!ids.length){setInvoiceBreakdownRows([]);return []}
+      const {data,error:e}=await supabase.from('pv_invoice_item_details')
+        .select('line_item_id,item_no,item_description,category,quantity,unit_price,total_amount')
+        .in('line_item_id',ids)
+      if(e)throw e
+      setInvoiceBreakdownRows(data||[])
+      return data||[]
+    }finally{setInvoiceBreakdownLoading(false)}
+  }
+
   // Retrieve a saved voucher and its invoice lines in read-only mode.
   // RLS on the database determines which vouchers the logged-in user can read.
   async function openVoucher(voucherId) {
@@ -932,6 +972,8 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     setInvoiceLinks({})
     setInvoiceMessage('')
     setInvoiceDetailsLineId(null)
+    setInvoiceBreakdownRows([])
+    setInvoiceDetailsDirty(false)
     setJrDocuments([])
     setJrMeetings([])
     setJrLinks({})
@@ -968,6 +1010,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
         if (documentsError) throw documentsError
 
         setInvoiceDocuments(documents || [])
+        await refreshInvoiceBreakdown(lines||[])
 
       if (JR_TIERS.includes(voucher.financial_tier)) {
         const { data: jrRows, error: jrError } = await supabase.from('pv_justification_reports')
@@ -1306,9 +1349,36 @@ async function uploadInvoice(line, file) {
     if (jrPilot && !jrDocuments.length) {
       setSubmitMessage('Upload and register a JR PDF before submission.');return
     }
-    if (financePilot && (!viewLines.length || !viewLines.every(line =>
-      invoiceDocuments.some(doc => doc.line_item_id === line.id)))) {
-      setSubmitMessage('Upload one registered invoice PDF/image for every invoice line before submitting.')
+    if (!viewLines.length || !viewLines.every(line =>
+      invoiceDocuments.some(doc => doc.line_item_id === line.id))) {
+      setSubmitMessage('Upload one registered invoice PDF/image for every invoice before submitting.')
+      return
+    }
+    if (invoiceBreakdownLoading || invoiceDetailsDirty) {
+      setSubmitMessage('Complete and save Invoice Details before submitting.')
+      return
+    }
+    // Fresh server read: never rely only on React's disabled button or cached details.
+    try {
+      const {data:freshLines,error:linesError}=await supabase.from('pv_line_items')
+        .select('id,amount,invoice_reference,description')
+        .eq('voucher_id',voucher.id)
+      if(linesError)throw linesError
+      if(!freshLines?.length)throw new Error('At least one invoice is required.')
+      const {data:freshItems,error:itemsError}=await supabase.from('pv_invoice_item_details')
+        .select('line_item_id,item_description,category,quantity,unit_price,total_amount')
+        .in('line_item_id',freshLines.map(line=>line.id))
+      if(itemsError)throw itemsError
+      for(const line of freshLines){
+        const issue=invoiceBreakdownProblem(line,freshItems||[])
+        if(issue)throw new Error('Invoice '+(line.invoice_reference||'unknown')+': '+issue)
+      }
+      const total=freshLines.reduce((sum,line)=>sum+Number(line.amount||0),0)
+        +Number(voucher.sst_amount||0)
+      if(Math.round(total*100)!==Math.round(Number(voucher.amount)*100))
+        throw new Error('Invoice totals + SST do not match PV total.')
+    }catch(e){
+      setSubmitMessage('Cannot Submit PV: '+(e.message||'Incomplete invoice details.'))
       return
     }
 
@@ -3126,7 +3196,13 @@ async function uploadInvoice(line, file) {
                 mobileBlocked={mobileUploadsBlocked}
                 signedUrl={invoiceLinks[invoiceDetailsLineId]||null}
                 invoiceMessage={invoiceMessage}
-                onClose={()=>setInvoiceDetailsLineId(null)}
+                onDirtyChange={setInvoiceDetailsDirty}
+                onSaved={()=>refreshInvoiceBreakdown()}
+                onClose={()=>{
+                  if(invoiceDetailsDirty && !window.confirm('Discard unsaved Invoice Details changes?'))return
+                  setInvoiceDetailsDirty(false)
+                  setInvoiceDetailsLineId(null)
+                }}
                 onUpload={file=>uploadInvoice(
                   viewLines.find(l=>l.id===invoiceDetailsLineId),file)}
                 onView={viewInvoice}
@@ -3696,15 +3772,26 @@ async function uploadInvoice(line, file) {
                         <div>
                           <button type="button" className="btn"
                             style={{background:'#167347'}}
-                            disabled={submittingVoucher || (JR_TIERS.includes(viewingVoucher.financial_tier) && !jrDocuments.length) || !viewLines.length ||
-                              !viewLines.every(line => invoiceDocuments.some(
-                                doc => doc.line_item_id === line.id))}
+                            disabled={submittingVoucher || invoiceBreakdownLoading || invoiceDetailsDirty ||
+                              (JR_TIERS.includes(viewingVoucher.financial_tier) && !jrDocuments.length) ||
+                              !viewLines.length ||
+                              !viewLines.every(line => invoiceDocuments.some(doc => doc.line_item_id === line.id)) ||
+                              viewLines.some(line=>Boolean(invoiceBreakdownProblem(line,invoiceBreakdownRows)))}
                             onClick={submitAndVerify}>
                             {submittingVoucher ? 'Submitting...' : nonFinanceExecutive
                               ? 'Submit → Department HOD' : viewingVoucher.status === 'returned'
                               ? 'Resubmit → Finance Manager' : 'Submit & Verify → Finance Manager'}
                           </button>
-                          {!viewLines.length || !viewLines.every(line =>
+                          {invoiceBreakdownLoading ? (
+                            <p className="muted">Checking invoice item breakdown...</p>
+                          ) : invoiceDetailsDirty ? (
+                            <p className="muted">Save Invoice Details changes before Submit.</p>
+                          ) : viewLines.find(line=>invoiceBreakdownProblem(line,invoiceBreakdownRows)) ? (
+                            <p className="muted">Submit blocked: {viewLines.filter(line=>
+                              invoiceBreakdownProblem(line,invoiceBreakdownRows)).map(line=>
+                              (line.invoice_reference||'Invoice')+': '+
+                              invoiceBreakdownProblem(line,invoiceBreakdownRows)).join(' | ')}</p>
+                          ) : !viewLines.length || !viewLines.every(line =>
                             invoiceDocuments.some(doc => doc.line_item_id === line.id)) ? (
                             <p className="muted">Upload each invoice attachment before Submit.</p>
                           ) : null}
@@ -3718,7 +3805,10 @@ async function uploadInvoice(line, file) {
                     ) : (
                       <button type="button" className="btn"
                         style={{background:'#167347'}}
-                        disabled={submittingVoucher}
+                        disabled={submittingVoucher||invoiceBreakdownLoading||invoiceDetailsDirty||
+                          !viewLines.length||
+                          !viewLines.every(line=>invoiceDocuments.some(doc=>doc.line_item_id===line.id))||
+                          viewLines.some(line=>Boolean(invoiceBreakdownProblem(line,invoiceBreakdownRows)))}
                         onClick={submitAndVerify}>
                         {submittingVoucher ? 'Submitting...' : 'Submit & Verify (Legacy PV)'}
                       </button>
