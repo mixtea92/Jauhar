@@ -133,14 +133,15 @@ function jimsCanSeeMyApprovals(p) {
 function jimsAPModuleAccess(p) {
   if(p?.is_active !== true) return false
   if(p.role === 'system_admin') return true // read-only oversight, no finance approvals
+  if(p.role === 'manager' && p.department === 'Finance') return true // UAT-FIX-01 FM Finance access
   return p.department === 'Finance' && ['executive','manager'].includes(p.role) &&
     (p.subdepartment == null || p.subdepartment === '' ||
       ['Accounts Payable','Accounting'].includes(p.subdepartment))
 }
 function jimsAPExcelAccess(p) {
   return p?.is_active === true && p.department === 'Finance' &&
-    ['executive','manager'].includes(p.role) &&
-    ['Accounts Payable','Accounting'].includes(p.subdepartment)
+    (p.role === 'manager' ||
+      (p.role === 'executive' && ['Accounts Payable','Accounting'].includes(p.subdepartment)))
 }
 
 // JIMS 57D5: calendar menu visibility only; Supabase RPC enforces actual access.
