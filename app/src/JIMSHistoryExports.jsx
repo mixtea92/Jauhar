@@ -7,6 +7,7 @@ import { supabase } from './lib/supabase'
 const AP_UNITS = ['Accounts Payable','Accounting']
 const AP_REPORTS = [
   {id:'pv_history',label:'Payment Voucher Report',sheet:'Payment Vouchers'},
+  {id:'invoice_details',label:'Invoice Details Report (3 Excel sheets)',sheet:'Invoice Summary'},
   {id:'payment_process_history',label:'Payment Process / Tranche Report',sheet:'Payment Process'},
   {id:'petty_cash_history',label:'Petty Cash Report',sheet:'Petty Cash'},
   {id:'pv_operational_events_history',label:'PV Operational Timeline',sheet:'PV Operations'},
@@ -20,6 +21,30 @@ const EVIDENCE = [
   {id:'jr_meeting',label:'Offline JR Meeting Records (Excel)'}
 ]
 const COLUMNS = {
+  invoice_summary:[
+    ['pv_number','PV Number'],['invoice_no','Invoice No'],['supplier','Supplier'],
+    ['invoice_description','Description'],['invoice_gl_code','GL Code'],
+    ['invoice_amount','Invoice Amount (RM)'],['item_count','Item Count'],
+    ['breakdown_total','Item Breakdown Total (RM)'],
+    ['branch','Branch'],['department','Department'],['subdepartment','Subdepartment'],
+    ['cost_center','Cost Center'],['financial_tier','Tier'],
+    ['pv_status','PV Status'],['payment_status','Payment Status'],
+    ['pv_created_at','PV Created'],['proof_exists','Invoice Proof Exists']],
+  invoice_item_details:[
+    ['pv_number','PV Number'],['invoice_no','Invoice No'],['supplier','Supplier'],
+    ['invoice_description','Invoice Description'],['invoice_amount','Invoice Amount (RM)'],
+    ['item_no','Item No'],['item_description','Item / Service'],
+    ['category','Category'],['quantity','Quantity'],
+    ['unit_price','Unit Price (RM)'],['total_amount','Item Total (RM)'],
+    ['gl_code','GL Code'],['branch','Branch'],['department','Department'],
+    ['subdepartment','Subdepartment'],['cost_center','Cost Center'],
+    ['pv_status','PV Status'],['payment_status','Payment Status'],
+    ['pv_created_at','PV Created']],
+  invoice_proof_register:[
+    ['pv_number','PV Number'],['invoice_no','Invoice No'],['supplier','Supplier'],
+    ['branch','Branch'],['invoice_amount','Invoice Amount (RM)'],
+    ['proof_status','Invoice Proof Status'],['proof_storage_path','Private Storage Path'],
+    ['proof_uploaded_at','Uploaded At'],['pv_created_at','PV Created']],
   pv_history:[['pv_number','PV Number'],['financial_tier','Tier'],['tier_version','Policy'],['department','Origin Department'],
     ['charge_department','Charge Department'],['charge_subdepartment','Charge Subdept'],
     ['branch','Branch'],['cost_center','Cost Center'],['budget_code','Budget Code'],['payee','Payee'],
@@ -73,10 +98,10 @@ const valueText = v=>{
   return /^[\s]*[=+\-@\r\t]/.test(txt)?"'"+txt:txt
 }
 const safeFolder = value=>String(value||'Unknown').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,72)
-const moneyCols=new Set(['amount','requested_amount','settled_amount'])
-const numberCols=new Set(['installment_no','approval_round','round','receipt_count','size_bytes'])
+const moneyCols=new Set(['amount','requested_amount','settled_amount','invoice_amount','breakdown_total','unit_price','total_amount'])
+const numberCols=new Set(['installment_no','approval_round','round','receipt_count','size_bytes','item_count','item_no','quantity'])
 const dateCols=new Set(['created_at','submitted_at','closed_at','event_time','recorded_at','approval_time',
-  'initiated_at','reviewed_at','completed_at','voided_at','final_approval_date'])
+  'initiated_at','reviewed_at','completed_at','voided_at','final_approval_date','pv_created_at','proof_uploaded_at'])
 function excelValue(key,v){
   if(v==null)return ''
   if(typeof v==='boolean')return v?'Yes':'No'
@@ -214,7 +239,7 @@ export default function JIMSHistoryExports({profile}){
   function filterReports(data){
     if(!Array.isArray(data?.pv_history))throw new Error('PV index not returned')
     const index=new Map(data.pv_history.map(r=>[r.pv_number,r]))
-    return selectedReports.map(key=>{
+    return selectedReports.filter(key=>key!=='invoice_details').map(key=>{
       const config=AP_REPORTS.find(r=>r.id===key)
       if(!config||!Array.isArray(data[key]))throw new Error('Unknown report dataset '+key)
       let rows=data[key]
@@ -237,9 +262,37 @@ export default function JIMSHistoryExports({profile}){
     setBusy('excel');setError('');setNotice('')
     try{
       if(dateFrom&&dateTo&&dateFrom>dateTo)throw new Error('Invalid date range')
-      const {data,error:e}=await supabase.rpc('jims_finance_ap_operational_history_export_v1')
-      if(e)throw e
-      const groups=filterReports(data)
+      // Existing operational reports remain untouched.
+      const hasOperational=selectedReports.some(id=>id!=='invoice_details')
+      let groups=[]
+      if(hasOperational){
+        const {data,error:e}=await supabase.rpc('jims_finance_ap_operational_history_export_v1')
+        if(e)throw e
+        groups=filterReports(data)
+      }
+
+      if(selectedReports.includes('invoice_details')){
+        // Dedicated Finance-authorised backend report, not an unrestricted client table scan.
+        const {data,error:e}=await supabase.rpc('jims_invoice_details_report_v1',{
+          p_pv_number:pvSearch.trim()||null,
+          p_date_from:dateFrom||null,
+          p_date_to:dateTo||null,
+          p_branch:branch||null,
+          p_tier:tier||null,
+          p_payment_status:paymentStatus||null
+        })
+        if(e)throw e
+        for(const [key,sheet] of [
+          ['invoice_summary','Invoice Summary'],
+          ['invoice_item_details','Invoice Item Details'],
+          ['invoice_proof_register','Invoice Proof Register']
+        ]){
+          if(!Array.isArray(data?.[key]))
+            throw new Error('Incomplete Invoice Details Report response: '+key)
+          groups.push({key,sheet,rows:data[key]})
+        }
+      }
+
       const total=groups.reduce((n,g)=>n+g.rows.length,0)
       downloadBlob(await makeExcel(groups),'JIMS_AP_Report_'+stamp()+'.xlsx')
       setNotice('Excel downloaded: '+total+' records across '+groups.length+' sheet(s).')
