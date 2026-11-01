@@ -45,7 +45,7 @@ const validItems=[
  {item_description:'Syringes',category:'Consumables',quantity:'10',unit_price:'100',gl_code:'5001'},
  {item_description:'Gloves',category:'Consumables',quantity:'20',unit_price:'25',gl_code:'5001'}
 ]
-const bootstrap=String.raw\`
+const bootstrap=String.raw`
 DO $roles$BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF;
@@ -88,7 +88,7 @@ CREATE OR REPLACE FUNCTION public.jauhar_is_current_requester_v1(p_id uuid)
  SELECT EXISTS(SELECT 1 FROM public.payment_vouchers
  WHERE id=p_id AND created_by=auth.uid())
 $fn$;
-\`;
+`;
 try{
  await exec(bootstrap);
  await test('Apply actual Invoice Details item / audit / trigger migration',async()=>{
