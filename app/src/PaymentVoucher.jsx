@@ -1,5 +1,6 @@
 import JIMS57D2OfficialPVDownload from './JIMS57D2OfficialPVDownload'
 import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'
+import JIMSInvoiceDetailsPanel from './JIMSInvoiceDetailsPanel'
 // JAUHAR_STEP_46_DELEGATION_HANDOVER_ALL
 // JAUHAR_STEP_45_PAYMENT_TRACKING_COMPLETE
 // JAUHAR_STEP_44F_ALL_NINE_CROSSDEPARTMENT
@@ -472,6 +473,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [invoiceOpeningId, setInvoiceOpeningId] = useState(null)
   const [invoiceLinks, setInvoiceLinks] = useState({})
   const [invoiceMessage, setInvoiceMessage] = useState('')
+  const [invoiceDetailsLineId, setInvoiceDetailsLineId] = useState(null)
   const [jrDocuments,setJrDocuments] = useState([])
   const [jrMeetings,setJrMeetings] = useState([])
   const [jrLinks,setJrLinks] = useState({})
@@ -3086,57 +3088,17 @@ async function uploadInvoice(line, file) {
                       <td>{money(line.amount)}</td>
                       
                     <td>
-                      {invoiceDocuments.some(
-                        doc => doc.line_item_id === line.id
-                      ) ? (
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6
+                      <button type="button" className="btn"
+                        onClick={() => {
+                          setInvoiceDetailsLineId(line.id)
+                          setInvoiceMessage('')
                         }}>
-                          <strong style={{ color: '#167347' }}>Uploaded</strong>
-
-                          <button
-                            type="button"
-                            className="btn"
-                            disabled={invoiceOpeningId !== null}
-                            onClick={() => viewInvoice(
-                              invoiceDocuments.find(
-                                doc => doc.line_item_id === line.id
-                              )
-                            )}
-                          >
-                            View Invoice
-                          </button>
-
-                          {invoiceLinks[line.id] && (
-                            <a
-                              href={invoiceLinks[line.id]}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              Open Invoice (60s)
-                            </a>
-                          )}
-                        </div>
-                      ) : ownsVoucher(viewingVoucher) &&
-                          (viewingVoucher.status === 'draft' || (viewingVoucher.status === 'returned' &&
-        ['T01','T02','T04','T08','T03','T05','T06','T07','T09'].includes(viewingVoucher.financial_tier))) ? (
-                        <input
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png,.webp"
-                          aria-label={`Upload invoice ${line.invoice_reference}`}
-                          disabled={mobileUploadsBlocked || invoiceUploadingId !== null}
-                          onChange={event => {
-                            const file = event.target.files?.[0]
-                            event.target.value = ''
-                            if (file && !isMobileUploadBlocked()) uploadInvoice(line, file)
-                            else if (file) setInvoiceMessage(MOBILE_UPLOAD_NOTICE)
-                          }}
-                        />
-                      ) : (
-                        <span className="muted">Missing</span>
-                      )}
+                        Invoice Details
+                      </button>
+                      <div className="muted" style={{fontSize:12,marginTop:5}}>
+                        {invoiceDocuments.some(doc=>doc.line_item_id===line.id)
+                          ? 'Proof attached' : 'Proof missing'}
+                      </div>
                     </td>
                     </tr>
                   ))}
@@ -3147,8 +3109,30 @@ async function uploadInvoice(line, file) {
               </table>
             </div>
 
+            {/* 57D7C7-T2-D: invoice attachment and optional breakdown share one detail panel. */}
+            {invoiceDetailsLineId && viewLines.some(l=>l.id===invoiceDetailsLineId) && (
+              <JIMSInvoiceDetailsPanel
+                key={viewingVoucher.id+'/'+invoiceDetailsLineId}
+                line={viewLines.find(l=>l.id===invoiceDetailsLineId)}
+                doc={invoiceDocuments.find(d=>d.line_item_id===invoiceDetailsLineId)||null}
+                canEdit={ownsVoucher(viewingVoucher) &&
+                  (viewingVoucher.status==='draft' ||
+                   (viewingVoucher.status==='returned' &&
+                    ['T01','T02','T04','T08','T03','T05','T06','T07','T09']
+                      .includes(viewingVoucher.financial_tier)))}
+                busy={invoiceUploadingId!==null||invoiceOpeningId!==null}
+                mobileBlocked={mobileUploadsBlocked}
+                signedUrl={invoiceLinks[invoiceDetailsLineId]||null}
+                invoiceMessage={invoiceMessage}
+                onClose={()=>setInvoiceDetailsLineId(null)}
+                onUpload={file=>uploadInvoice(
+                  viewLines.find(l=>l.id===invoiceDetailsLineId),file)}
+                onView={viewInvoice}
+              />
+            )}
+
             {/* INVOICE UPLOAD MESSAGE */}
-            {invoiceMessage && (
+            {invoiceMessage && !invoiceDetailsLineId && (
               <p className="pv-notice" role="status">
                 {invoiceMessage}
               </p>
