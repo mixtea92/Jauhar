@@ -17,7 +17,7 @@ const labelStyle = {fontSize:12,fontWeight:600,display:'block',marginBottom:4}
 
 export default function JIMSInvoiceDetailsPanel({
   line, doc, canEdit, busy, mobileBlocked, signedUrl, invoiceMessage,
-  onClose, onUpload, onView
+  onClose, onUpload, onView, onSaved, onDirtyChange
 }){
   const [items,setItems]=useState([])
   const [loading,setLoading]=useState(false)
@@ -44,10 +44,11 @@ export default function JIMSInvoiceDetailsPanel({
         gl_code:item.gl_code||''
       })))
       setLoaded(true)
+      onDirtyChange?.(false)
     }catch(e){
       setError('Unable to load invoice item details: '+(e.message||'Unknown error'))
     }finally{setLoading(false)}
-  },[line?.id])
+  },[line?.id,onDirtyChange])
 
   useEffect(()=>{void load()},[load])
 
@@ -55,14 +56,26 @@ export default function JIMSInvoiceDetailsPanel({
     items.reduce((sum,item)=>sum+moneyCents(Number(item.quantity)*Number(item.unit_price)),0)
   ,[items])
   const targetCents=moneyCents(line?.amount)
-  const matches=items.length===0||calculatedCents===targetCents
-  const editItem=(index,key,value)=>setItems(old=>old.map((row,i)=>
-    i===index?{...row,[key]:value}:row))
+  const matches=items.length>0&&calculatedCents===targetCents
+  const fieldsValid=items.length>0&&items.every(item=>{
+    const qty=String(item.quantity).trim()
+    const price=String(item.unit_price).trim()
+    return item.item_description.trim()&&item.category.trim()&&
+      /^[0-9]{1,10}([.][0-9]{1,3})?$/.test(qty)&&Number(qty)>0&&
+      /^[0-9]{1,10}([.][0-9]{1,4})?$/.test(price)
+  })
+  const readyToSave=fieldsValid&&matches
+  const editItem=(index,key,value)=>{
+    onDirtyChange?.(true)
+    setNotice('')
+    setItems(old=>old.map((row,i)=>i===index?{...row,[key]:value}:row))
+  }
 
   async function save(){
     if(!canEdit||saving||!loaded)return
     setError('');setNotice('')
     try{
+      if(!items.length)throw new Error('Add at least one invoice item before saving.')
       if(items.length>300)throw new Error('Maximum 300 items per invoice.')
       for(const [index,item] of items.entries()){
         const qty=String(item.quantity).trim()
@@ -87,8 +100,9 @@ export default function JIMSInvoiceDetailsPanel({
       })
       if(e)throw e
       if(data?.success!==true)throw new Error('Invoice item save could not be confirmed.')
-      setNotice('Invoice item breakdown saved with audit trail.')
       await load()
+      await onSaved?.()
+      setNotice('Invoice item breakdown saved with audit trail.')
     }catch(e){setError(e.message||'Could not save invoice details.')}
     finally{setSaving(false)}
   }
@@ -114,18 +128,18 @@ export default function JIMSInvoiceDetailsPanel({
       </div>
       <hr style={{border:'none',borderTop:'1px solid #88888844'}}/>
       <div style={{display:'flex',gap:10,justifyContent:'space-between',alignItems:'center'}}>
-        <h4 style={{margin:'14px 0'}}>Item Breakdown <small className="muted">(Optional)</small></h4>
+        <h4 style={{margin:'14px 0'}}>Item Breakdown <small style={{color:'#d9534f'}}>(Required)</small></h4>
         {canEdit&&<button type="button" className="btn" disabled={saving||loading||!loaded}
-          onClick={()=>setItems(a=>[...a,emptyItem()])}>+ Add Item</button>}
+          onClick={()=>{onDirtyChange?.(true);setItems(a=>[...a,emptyItem()]);setNotice('')}}>+ Add Item</button>}
       </div>
       {loading&&<p className="muted">Loading invoice breakdown...</p>}
-      {loaded&&!items.length&&<p className="muted">No item breakdown. Invoice total will remain {currency(line.amount)}.</p>}
+      {loaded&&!items.length&&<p className="muted">No item breakdown entered. Add at least one item; PV submission will remain blocked.</p>}
       {loaded&&items.map((item,index)=>(
         <div key={index} style={{border:'1px solid #99999944',borderRadius:8,padding:12,marginBottom:8}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
             <strong>Item {index+1}</strong>
             {canEdit&&<button className="btn" type="button" disabled={saving}
-              onClick={()=>setItems(a=>a.filter((_,i)=>i!==index))}>Remove</button>}
+              onClick={()=>{onDirtyChange?.(true);setItems(a=>a.filter((_,i)=>i!==index));setNotice('')}}>Remove</button>}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
             <label><span style={labelStyle}>Product / Service</span>
@@ -153,11 +167,19 @@ export default function JIMSInvoiceDetailsPanel({
       ))}
       {loaded&&<div style={{textAlign:'right',margin:'14px 0'}}>
         <strong>Breakdown Total: {currency(calculatedCents/100)}</strong>
-        {items.length>0&&<p style={{margin:'4px 0',color:matches?'#198754':'#d9534f'}}>
-          {matches?'Matches invoice amount':'Must match '+currency(line.amount)}</p>}
+        <p style={{margin:'4px 0',color:readyToSave?'#198754':'#d9534f'}}>
+          {!items.length
+            ? 'Enter invoice item details before submitting.'
+            : !fieldsValid
+            ? 'Complete every item: description, category, quantity and unit price.'
+            : matches
+            ? 'Matches invoice amount.'
+            : 'Mismatch — expected '+currency(line.amount)+', entered '+currency(calculatedCents/100)+
+              ' (difference '+currency(Math.abs(targetCents-calculatedCents)/100)+').'}
+        </p>
       </div>}
       {canEdit&&loaded&&<button type="button" className="btn"
-        disabled={saving||loading||!matches} onClick={save}>
+        disabled={saving||loading||!readyToSave} onClick={save}>
         {saving?'Saving...':'Save Item Breakdown'}
       </button>}
       {notice&&<p role="status" style={{color:'#198754'}}>{notice}</p>}
@@ -188,7 +210,7 @@ export default function JIMSInvoiceDetailsPanel({
       ):<p style={{color:'#d9534f'}}>Invoice proof missing. Submission is blocked.</p>}
       {invoiceMessage&&<p className="pv-notice" role="status">{invoiceMessage}</p>}
       <p className="muted" style={{fontSize:12,marginTop:12}}>
-        Save PV Draft first. Invoice item details are optional; invoice proof is mandatory for each invoice.
+        Save PV Draft first. Every invoice needs completed, matching item details and mandatory invoice proof before submission.
       </p>
     </section>
   )
