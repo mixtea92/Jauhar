@@ -34,15 +34,16 @@ try{
  const current=run('git',['rev-parse','--short','HEAD']).trim()
  console.log('Feature commit: '+current)
  const suites=[
-  {title:'F1 - ExcelJS / UI / static validation',args:['--test','tests/invoiceDetailsFeatureSmoke.test.mjs'],pattern:/tests 6\s*\n.*pass 6\s*\n.*fail 0/},
+  {title:'F1 - ExcelJS / UI / static validation',args:['--test','tests/invoiceDetailsFeatureSmoke.test.mjs'],patterns:[/tests 6(?:\r?\n)/,/pass 6(?:\r?\n)/,/fail 0(?:\r?\n)/]},
   {title:'F3 - real SQL PGlite isolated DB',args:['tests/invoiceDetailsIsolatedDbF3.mjs'],pattern:/F3 isolated PostgreSQL: 14\/14 checks PASS/},
   {title:'F4 - isolated role and RLS',args:['tests/invoiceDetailsPermissionsF4.mjs'],pattern:/F4 role\/RLS checks: 20\/20 PASS/},
-  {title:'F5A - unchanged PV/payment regression sources',args:['--test','tests/invoiceDetailsRegressionF5.test.mjs'],pattern:/tests 15\s*\n.*pass 15\s*\n.*fail 0/}
+  {title:'F5A - unchanged PV/payment regression sources',args:['--test','tests/invoiceDetailsRegressionF5.test.mjs'],patterns:[/tests 15(?:\r?\n)/,/pass 15(?:\r?\n)/,/fail 0(?:\r?\n)/]}
  ]
  for(const s of suites){
   console.log('\nRunning '+s.title+'...')
   const output=run('node',s.args,app)
-  if(!s.pattern.test(output)){
+  const expected=s.patterns||[s.pattern]
+  if(expected.some(p=>!p.test(output))){
    console.log(output)
    throw new Error('Expected PASS count not found in '+s.title)
   }
