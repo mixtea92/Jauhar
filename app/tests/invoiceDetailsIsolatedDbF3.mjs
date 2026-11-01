@@ -167,7 +167,7 @@ try{
    const q=await query("UPDATE public.payment_vouchers SET status='paid' WHERE id=$1 RETURNING status",[voucher])
    assert.equal(q.rows[0].status,'paid')
  });
- console.log('\nF3 isolated PostgreSQL: '+passed+'/13 checks PASS')
+ console.log('\nF3 isolated PostgreSQL: '+passed+'/14 checks PASS')
  console.log('This is NOT Supabase Cloud UAT, auth/RLS end-to-end testing, or approval regression.')
 }finally{
  await db.close()
