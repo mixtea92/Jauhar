@@ -48,9 +48,12 @@ test('UI preview rejects missing, partial and unsaved invoice details',()=>{
 })
 
 test('UI preview keeps proof mandatory before Submit PV',()=>{
- assert.match(previewSrc,/\$('submitpv'\)\.disabled=failures\.length>0/)
- assert.match(previewSrc,/if\(!v\.proof\)problems\.push/)
- assert.match(previewSrc,/if\(invoices\.some\(v=>!validate\(v\)\.valid\|\|!v\.proof\)\)return/)
+ assert.ok(previewSrc.includes("$('submitpv').disabled=failures.length>0"),
+   'Submit PV button should be disabled on invalid invoices or missing proof')
+ assert.ok(previewSrc.includes("if(!v.proof)problems.push"),
+   'Missing proof must appear in submission readiness')
+ assert.ok(previewSrc.includes("if(invoices.some(v=>!validate(v).valid||!v.proof))return"),
+   'Submit handler must recheck item breakdown and invoice proof')
 })
 
 test('Actual ExcelJS writer creates the three correct invoice worksheets',async()=>{
