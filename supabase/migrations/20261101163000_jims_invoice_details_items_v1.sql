@@ -136,8 +136,8 @@ BEGIN
     IF length(v_description) NOT BETWEEN 1 AND 500
        OR length(v_category) NOT BETWEEN 1 AND 120
        OR (v_gl IS NOT NULL AND length(v_gl) > 64)
-       OR v_qty_text !~ '^[0-9]{1,10}(\\.[0-9]{1,3})?$'
-       OR v_price_text !~ '^[0-9]{1,10}(\\.[0-9]{1,4})?$' THEN
+       OR v_qty_text !~ '^[0-9]{1,10}([.][0-9]{1,3})?$'
+       OR v_price_text !~ '^[0-9]{1,10}([.][0-9]{1,4})?$' THEN
       RAISE EXCEPTION 'Item description, category, quantity or price is invalid';
     END IF;
 
