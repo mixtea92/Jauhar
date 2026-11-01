@@ -139,7 +139,7 @@ BEGIN
         'payment_status', s.payment_status,
         'pv_created_at', s.pv_created_at
       ) ORDER BY s.pv_created_at, s.pv_number, s.line_no, i.item_no)
-      FROM invoices s LEFT JOIN public.pv_invoice_item_details i
+      FROM invoices s JOIN public.pv_invoice_item_details i
         ON i.line_item_id = s.line_item_id
     ), '[]'::jsonb),
 
