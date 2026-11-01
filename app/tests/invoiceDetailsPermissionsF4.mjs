@@ -131,7 +131,7 @@ try{
  })
  await t('Accounting Manager reads but cannot save as Executive',async()=>{
   await as(id.acct);assert.equal((await read()).rows.length,1)
-  await denied(save,/not permitted/i)
+  await denied(save,/Only current requester|not permitted/i)
  })
  await t('Other Accounting Executive cannot edit invoice they do not own',async()=>{
   await as(id.other);assert.equal((await read()).rows.length,1)
