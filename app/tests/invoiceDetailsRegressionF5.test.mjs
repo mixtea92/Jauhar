@@ -95,6 +95,7 @@ test('Committed changes stay strictly scoped to Invoice Details feature',()=>{
   /^app\/src\/JIMSHistoryExports\.jsx$/,
   /^app\/src\/JIMSInvoiceDetailsPanel\.jsx$/,
   /^app\/tests\/invoiceDetails[A-Za-z0-9_.-]+\.mjs$/,
+  /^docs\/JIMS_57D7C7_F5B_PreIntegration_Audit\.md$/,
   /^supabase\/migrations\/\d+_jims_invoice_(details|required)[A-Za-z0-9_]*\.sql$/
  ]
  const changed=git('diff','--name-only',BASE+'..HEAD').trim().split('\n').filter(Boolean)
