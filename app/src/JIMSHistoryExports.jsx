@@ -158,7 +158,7 @@ function downloadBlob(blob,filename){
 function stamp(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Kuala_Lumpur',
   day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date())}
 function isAP(p){return p?.is_active===true&&p.department==='Finance'&&
-  ['executive','manager'].includes(p.role)&&AP_UNITS.includes(p.subdepartment)}
+  (p.role==='manager'||(p.role==='executive'&&AP_UNITS.includes(p.subdepartment)))}
 const toggle=(values,key)=>values.includes(key)?values.filter(v=>v!==key):[...values,key]
 const canCompareDate=(date,from,to)=>{
   const day=toLocalDate(date)
@@ -379,7 +379,7 @@ export default function JIMSHistoryExports({profile}){
   if(!ap&&!owner)return <section className="panel">
     <h2>Report Generation</h2>
     <p className="muted">{checking?'Checking System Owner permission...':
-      'Access restricted. AP/Accounting operational reports or designated System Owner approval exports only.'}</p>
+      'Access restricted. Finance Manager, AP/Accounting operational reports, or designated System Owner approval exports only.'}</p>
   </section>
 
   return <section className="panel" aria-label="JIMS Report Generation">
