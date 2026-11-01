@@ -718,6 +718,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     setInvoiceDocuments([])
     setInvoiceLinks({})
     setInvoiceMessage('')
+    setInvoiceDetailsLineId(null)
     setJrDocuments([])
     setJrMeetings([])
     setJrLinks({})
@@ -930,6 +931,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     setInvoiceDocuments([])
     setInvoiceLinks({})
     setInvoiceMessage('')
+    setInvoiceDetailsLineId(null)
     setJrDocuments([])
     setJrMeetings([])
     setJrLinks({})
@@ -3075,7 +3077,7 @@ async function uploadInvoice(line, file) {
                     <th>Description</th>
                     <th>GL Code</th>
                     <th>Amount (RM)</th>   
-                    <th>Invoice Attachment</th>
+                    <th>Invoice Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3103,7 +3105,7 @@ async function uploadInvoice(line, file) {
                     </tr>
                   ))}
                   {viewLines.length === 0 && (
-                    <tr><td colSpan="5">No invoice lines found.</td></tr>
+                    <tr><td colSpan="6">No invoice lines found.</td></tr>
                   )}
                 </tbody>
               </table>
