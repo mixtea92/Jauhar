@@ -20,7 +20,7 @@
  <div class="card"><div class="head"><h3 class="card-title">INVOICE / PAYMENT LINES</h3><span class="small">Invoice Details replaces Upload Invoice</span></div>
  <div style="overflow:auto"><table><thead><tr><th>No.</th><th>Invoice No.</th><th>Description</th><th>GL Code</th><th>Amount (RM)</th><th>Proof</th><th>Action</th></tr></thead><tbody id="invoice-rows"></tbody></table></div>
  <div class="total"><span class="muted">Total PV</span><strong>RM 2,200.00</strong></div>
- </div><div class="card footer"><div><div class="card-title">Submission Readiness</div><div class="small" id="submit-readiness">Each invoice must have proof before submission.</div></div><button class="btn" id="submitpv" disabled>Submit PV</button></div></div>
+ </div><div class="card footer"><div><div class="card-title">Submission Readiness</div><div class="small" id="submit-readiness">Every invoice needs matching saved items and proof before submission.</div></div><button class="btn" id="submitpv" disabled>Submit PV</button></div></div>
  <div id="reportview" class="hidden"><div class="card"><div class="row"><h3 class="card-title">INVOICE DETAILS REPORT</h3><span class="pill">Excel .xlsx · Planned</span></div>
  <p class="small">One workbook with three tabs. Real export is implemented in the feature branch and requires authenticated database testing.</p>
  <div class="report-summary"><div><strong>01 · Invoice Summary</strong><div class="small">PV, invoice, supplier, amount, branch and status</div></div><div><strong>02 · Invoice Item Details</strong><div class="small">Item, category, quantity, unit price and GL code</div></div><div><strong>03 · Proof Register</strong><div class="small">Proof status and private file reference</div></div></div>
@@ -29,43 +29,132 @@
 <div id="overlay" class="overlay" role="presentation"><section class="drawer" role="dialog" aria-modal="true" aria-labelledby="dialogtitle">
  <div class="row"><div><div class="kicker">PAYMENT VOUCHER / INVOICE</div><h2 id="dialogtitle">Invoice Details</h2><div class="small" id="drawerinv"></div></div><button id="close" class="btn subtle">Close</button></div>
  <div class="drawer-section"><h3 class="card-title" style="margin-bottom:13px">INVOICE INFORMATION</h3><div class="detail-grid"><div class="field"><label>Invoice No.</label><div id="invno"></div></div><div class="field"><label>Description</label><div id="invdesc"></div></div><div class="field"><label>Invoice Amount</label><strong id="invamount" class="gold"></strong></div></div></div>
- <div class="drawer-section"><div class="row"><div><h3 class="card-title">ITEM BREAKDOWN</h3><div class="small">Optional · Item totals must match invoice amount</div></div><button id="additem" class="btn ghost">+ Add Item</button></div><div id="items"></div><div class="row" style="margin-top:18px"><div class="small" id="reconcile"></div><strong id="breaktotal"></strong></div><div class="row" style="margin-top:15px"><span class="small">Changes are local to this preview</span><button id="saveitems" class="btn ghost">Save Breakdown</button></div><div id="item-message" class="message"></div></div>
- <div class="drawer-section"><h3 class="card-title">INVOICE PROOF <span style="color:#e9bc6e">(REQUIRED)</span></h3><div class="upload"><div><strong id="proofstatus">No invoice proof</strong><div class="small">PDF, JPG, PNG or WEBP · file stays in your browser</div></div><input id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"/></div><div class="small-note">In real JIMS, proof is uploaded to private Storage and validated again by the backend.</div></div>
+ <div class="drawer-section"><div class="row"><div><h3 class="card-title">ITEM BREAKDOWN</h3><div class="small">Required · Every item must be complete, saved and total must match invoice amount</div></div><button id="additem" class="btn ghost">+ Add Item</button></div><div id="items"></div><div class="row" style="margin-top:18px"><div class="small" id="reconcile"></div><strong id="breaktotal"></strong></div><div class="row" style="margin-top:15px"><span class="small">Changes are local to this preview</span><button id="saveitems" class="btn ghost">Save Breakdown</button></div><div id="item-message" class="message"></div></div>
+ <div class="drawer-section"><h3 class="card-title">INVOICE PROOF <span style="color:#e9bc6e">(REQUIRED)</span></h3><div class="upload"><div><strong id="proofstatus">No invoice proof</strong><div class="small">PDF, JPG, PNG or WEBP · demo file stays in your browser</div></div><input id="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"/></div><div class="small-note">In real JIMS, proof is uploaded to private Storage and validated again by the backend.</div></div>
  </section></div>
 <script>
 const invoices=[
-  {number:'INV-001',desc:'Medical Supplies',gl:'5001',amount:1500,proof:null,items:[{name:'Syringe 5ml',cat:'Consumables',qty:100,price:1,gl:'5001'},{name:'Examination Gloves',cat:'Consumables',qty:20,price:25,gl:'5001'},{name:'ECG Paper',cat:'Medical Supplies',qty:10,price:40,gl:'5001'},{name:'Medical Equipment',cat:'Equipment',qty:1,price:500,gl:'6001'}]},
-  {number:'INV-002',desc:'Laboratory Services',gl:'5102',amount:700,proof:null,items:[]}
+ {number:'INV-001',desc:'Medical Supplies',gl:'5001',amount:1500,proof:null,saved:true,items:[
+  {name:'Syringe 5ml',cat:'Consumables',qty:'100',price:'1',gl:'5001'},
+  {name:'Examination Gloves',cat:'Consumables',qty:'20',price:'25',gl:'5001'},
+  {name:'ECG Paper',cat:'Medical Supplies',qty:'10',price:'40',gl:'5001'},
+  {name:'Medical Equipment',cat:'Equipment',qty:'1',price:'500',gl:'6001'}]},
+ {number:'INV-002',desc:'Laboratory Services',gl:'5102',amount:700,proof:null,saved:false,items:[]}
 ];
-const $=id=>document.getElementById(id),fmt=n=>'RM '+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2}),clean=s=>String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+const $=id=>document.getElementById(id);
+const fmt=n=>'RM '+Number(n||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+const clean=s=>String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 let active=-1;
-function renderMain(){
- $('invoice-rows').innerHTML=invoices.map((v,i)=>'<tr><td>'+(i+1)+'</td><td>'+clean(v.number)+'</td><td>'+clean(v.desc)+'</td><td>'+clean(v.gl)+'</td><td>'+fmt(v.amount)+'</td><td><span class="tag '+(v.proof?'ok':'warn')+'">'+(v.proof?'Attached':'Missing')+'</span></td><td><button class="btn ghost" data-open="'+i+'">Invoice Details</button></td></tr>').join('');
- const missing=invoices.filter(v=>!v.proof);
- $('submitpv').disabled=missing.length>0;
- $('submit-readiness').textContent=missing.length?missing.length+' invoice(s) missing proof. Submission blocked.':'All invoice proofs attached. Ready to submit (demo).';
+function validate(v){
+ const expected=Math.round(Number(v.amount)*100);
+ const sum=v.items.reduce((s,x)=>s+Math.round(Number(x.qty||0)*Number(x.price||0)*100),0);
+ if(!Number.isFinite(expected)||expected<=0)return {valid:false,sum,reason:'Invalid invoice amount'};
+ if(!v.items.length)return {valid:false,sum,reason:'Item breakdown missing'};
+ for(let i=0;i<v.items.length;i++){
+  const x=v.items[i];
+  if(!String(x.name).trim()||!String(x.cat).trim()||
+     !/^[0-9]{1,10}([.][0-9]{1,3})?$/.test(String(x.qty))||
+     !/^[0-9]{1,10}([.][0-9]{1,4})?$/.test(String(x.price))||
+     Number(x.qty)<=0){
+   return {valid:false,sum,reason:'Item '+(i+1)+' is incomplete (name, category, quantity or unit price)'};
+  }
+ }
+ if(sum!==expected)return {valid:false,sum,reason:'Mismatch: expected '+fmt(expected/100)+', entered '+fmt(sum/100)+', difference '+fmt(Math.abs(expected-sum)/100)};
+ if(!v.saved)return {valid:false,sum,reason:'Item breakdown not saved'};
+ return {valid:true,sum,reason:'Invoice breakdown complete'};
 }
-function total(v){return Math.round(v.items.reduce((s,x)=>s+Math.round(Number(x.qty||0)*Number(x.price||0)*100),0))/100}
+function renderMain(){
+ $('invoice-rows').innerHTML=invoices.map((v,i)=>{
+  const check=validate(v);
+  return '<tr><td>'+(i+1)+'</td><td>'+clean(v.number)+'</td><td>'+clean(v.desc)+
+   '</td><td>'+clean(v.gl)+'</td><td>'+fmt(v.amount)+'</td><td><span class="tag '+(v.proof?'ok':'warn')+'">'+
+   (v.proof?'Attached':'Missing')+'</span></td><td><button class="btn ghost" data-open="'+i+'">Invoice Details</button><div class="small" style="margin-top:7px;color:'+
+   (check.valid?'#9adaae':'#e9bc6e')+'">'+clean(check.reason)+'</div></td></tr>';
+ }).join('');
+ const failures=invoices.flatMap(v=>{
+  const check=validate(v),problems=[];
+  if(!check.valid)problems.push(v.number+': '+check.reason);
+  if(!v.proof)problems.push(v.number+': Invoice proof missing');
+  return problems;
+ });
+ $('submitpv').disabled=failures.length>0;
+ $('submit-readiness').textContent=failures.length?failures.join(' | '):'All invoice details reconciled, saved and proof attached. Ready to submit (demo).';
+}
+function total(v){return v.items.reduce((s,x)=>s+Math.round(Number(x.qty||0)*Number(x.price||0)*100),0)/100}
+function renderItemStatus(){
+ const v=invoices[active];if(!v)return;
+ const check=validate(v),sum=total(v),expected=fmt(v.amount);
+ $('breaktotal').textContent=fmt(sum);
+ $('reconcile').textContent=check.valid?'✓ Reconciled and saved':
+   !v.items.length?'⚠ Add invoice items (required)':
+   check.reason==='Item breakdown not saved'?'✓ Total matches '+expected+' — save breakdown':
+   '⚠ '+check.reason;
+ $('reconcile').style.color=check.valid?'#9adaae':'#efaa88';
+ // A draft can be saved only when item data is complete and matches the invoice amount.
+ const amountsMatch=Math.round(sum*100)===Math.round(v.amount*100);
+ const fieldsValid=v.items.length>0&&v.items.every(x=>
+  String(x.name).trim()&&String(x.cat).trim()&&
+  /^[0-9]{1,10}([.][0-9]{1,3})?$/.test(String(x.qty))&&Number(x.qty)>0&&
+  /^[0-9]{1,10}([.][0-9]{1,4})?$/.test(String(x.price)));
+ $('saveitems').disabled=!(amountsMatch&&fieldsValid);
+ renderMain();
+}
 function renderItems(){
  const v=invoices[active];if(!v)return;
- $('items').innerHTML=v.items.length?v.items.map((x,i)=>'<div class="line"><div class="field"><label>Product / Service</label><input data-idx="'+i+'" data-key="name" value="'+clean(x.name)+'"/></div><div class="field"><label>Category</label><input data-idx="'+i+'" data-key="cat" value="'+clean(x.cat)+'"/></div><div class="field"><label>Qty</label><input type="number" min="0.001" step="0.001" data-idx="'+i+'" data-key="qty" value="'+clean(x.qty)+'"/></div><div class="field"><label>Unit Price</label><input type="number" min="0" step="0.0001" data-idx="'+i+'" data-key="price" value="'+clean(x.price)+'"/></div><div class="field"><label>GL Code</label><input data-idx="'+i+'" data-key="gl" value="'+clean(x.gl)+'"/></div><button data-remove="'+i+'" title="Remove item">×</button></div>').join(''):'<p class="small">No breakdown entered. Optional for this invoice.</p>';
- const sum=total(v),matched=!v.items.length||Math.round(sum*100)===Math.round(v.amount*100);
- $('breaktotal').textContent=fmt(sum);$('reconcile').textContent=v.items.length?(matched?'✓ Reconciled with invoice':'⚠ Total does not match '+fmt(v.amount)):'Breakdown optional';
- $('reconcile').style.color=matched?'#9adaae':'#efaa88';
- $('saveitems').disabled=!matched;
+ $('items').innerHTML=v.items.length?v.items.map((x,i)=>
+  '<div class="line"><div class="field"><label>Product / Service</label><input data-idx="'+i+'" data-key="name" value="'+clean(x.name)+'"/></div>'+
+  '<div class="field"><label>Category</label><input data-idx="'+i+'" data-key="cat" value="'+clean(x.cat)+'"/></div>'+
+  '<div class="field"><label>Qty</label><input type="number" min="0.001" step="0.001" data-idx="'+i+'" data-key="qty" value="'+clean(x.qty)+'"/></div>'+
+  '<div class="field"><label>Unit Price</label><input type="number" min="0" step="0.0001" data-idx="'+i+'" data-key="price" value="'+clean(x.price)+'"/></div>'+
+  '<div class="field"><label>GL Code</label><input data-idx="'+i+'" data-key="gl" value="'+clean(x.gl)+'"/></div>'+
+  '<button data-remove="'+i+'" title="Remove item">×</button></div>').join(''):
+  '<p class="small" style="color:#e9bc6e">No invoice items. Enter at least one item before submitting.</p>';
+ renderItemStatus();
 }
-function open(i){active=i;const v=invoices[i];$('drawerinv').textContent=v.number+' · '+v.desc;$('invno').textContent=v.number;$('invdesc').textContent=v.desc;$('invamount').textContent=fmt(v.amount);$('proofstatus').textContent=v.proof||'No invoice proof';$('file').value='';$('item-message').textContent='';renderItems();$('overlay').classList.add('show')}
+function open(i){active=i;const v=invoices[i];$('drawerinv').textContent=v.number+' · '+v.desc;
+ $('invno').textContent=v.number;$('invdesc').textContent=v.desc;$('invamount').textContent=fmt(v.amount);
+ $('proofstatus').textContent=v.proof?'Selected: '+v.proof:'No invoice proof';
+ $('file').value='';$('item-message').textContent='';renderItems();$('overlay').classList.add('show');
+}
 function close(){$('overlay').classList.remove('show');active=-1;renderMain()}
 $('invoice-rows').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)open(Number(b.dataset.open))});
 $('close').onclick=close;
 $('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))close()});
-$('additem').onclick=()=>{invoices[active].items.push({name:'',cat:'',qty:1,price:0,gl:''});renderItems()};
-$('items').addEventListener('click',e=>{const b=e.target.closest('[data-remove]');if(!b)return;invoices[active].items.splice(Number(b.dataset.remove),1);renderItems()});
-$('items').addEventListener('input',e=>{const el=e.target;if(el.dataset.idx===undefined)return;const row=invoices[active].items[Number(el.dataset.idx)];row[el.dataset.key]=el.type==='number'?Number(el.value):el.value;const v=invoices[active],sum=total(v),matched=!v.items.length||Math.round(sum*100)===Math.round(v.amount*100);$('breaktotal').textContent=fmt(sum);$('reconcile').textContent=v.items.length?(matched?'✓ Reconciled with invoice':'⚠ Total does not match '+fmt(v.amount)):'Breakdown optional';$('reconcile').style.color=matched?'#9adaae':'#efaa88';$('saveitems').disabled=!matched});
-$('saveitems').onclick=()=>{$('item-message').textContent='Demo save complete. No database updated.';$('item-message').className='message ok'};
-$('file').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f||active<0)return;const type=/\.(pdf|jpg|jpeg|png|webp)$/i.test(f.name);if(!type||f.size>5*1024*1024){alert('Choose PDF/JPG/PNG/WEBP under 5 MB');e.target.value='';return}invoices[active].proof=f.name;$('proofstatus').textContent='Selected: '+f.name;renderMain()});
-$('submitpv').onclick=()=>alert('Demo only: submission is validated visually. No real PV submitted.');
-$('navreport').onclick=()=>{$('pvview').classList.add('hidden');$('reportview').classList.remove('hidden');$('pagetitle').textContent='Report Generation';$('navreport').classList.add('active');$('navpv').classList.remove('active')};
-$('navpv').onclick=()=>{$('reportview').classList.add('hidden');$('pvview').classList.remove('hidden');$('pagetitle').textContent='Payment Voucher';$('navpv').classList.add('active');$('navreport').classList.remove('active')};
+$('additem').onclick=()=>{
+ const v=invoices[active];v.items.push({name:'',cat:'',qty:'1',price:'0',gl:''});v.saved=false;renderItems();
+};
+$('items').addEventListener('click',e=>{
+ const b=e.target.closest('[data-remove]');if(!b)return;
+ const v=invoices[active];v.items.splice(Number(b.dataset.remove),1);v.saved=false;renderItems();
+});
+$('items').addEventListener('input',e=>{
+ const el=e.target;if(el.dataset.idx===undefined)return;
+ const v=invoices[active];v.items[Number(el.dataset.idx)][el.dataset.key]=el.value;
+ v.saved=false;renderItemStatus();
+});
+$('saveitems').onclick=()=>{
+ const v=invoices[active];if($('saveitems').disabled)return;
+ v.saved=true;$('item-message').textContent='Breakdown saved (UI simulation only).';
+ $('item-message').className='message ok';renderItemStatus();
+};
+$('file').addEventListener('change',e=>{
+ const f=e.target.files?.[0];if(!f||active<0)return;
+ if(!/\.(pdf|jpg|jpeg|png|webp)$/i.test(f.name)||f.size===0||f.size>5*1024*1024){
+  alert('Choose PDF/JPG/PNG/WEBP under 5 MB');e.target.value='';return;
+ }
+ invoices[active].proof=f.name;$('proofstatus').textContent='Selected: '+f.name;renderMain();
+});
+$('submitpv').onclick=()=>{
+ if(invoices.some(v=>!validate(v).valid||!v.proof))return;
+ alert('Demo only: all invoices reconciled and supported. No real PV submitted.');
+};
+$('navreport').onclick=()=>{
+ $('pvview').classList.add('hidden');$('reportview').classList.remove('hidden');
+ $('pagetitle').textContent='Report Generation';$('navreport').classList.add('active');$('navpv').classList.remove('active');
+};
+$('navpv').onclick=()=>{
+ $('reportview').classList.add('hidden');$('pvview').classList.remove('hidden');
+ $('pagetitle').textContent='Payment Voucher';$('navpv').classList.add('active');$('navreport').classList.remove('active');
+};
 renderMain();
 </script></body></html>
