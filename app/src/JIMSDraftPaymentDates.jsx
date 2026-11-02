@@ -36,6 +36,11 @@ export default function JIMSDraftPaymentDates({voucherId}){
 
   async function save(){
     if(saving||loading||!due||!proposed||validated)return
+    if(proposed>due){
+      setError('Proposed Payment Date cannot be later than Supplier Due Date.')
+      setNotice('')
+      return
+    }
     setSaving(true);setError('');setNotice('')
     try{
       const {data,error:failure}=await supabase.rpc('jims_57d8_draft_payment_dates_v1',{
@@ -63,7 +68,7 @@ export default function JIMSDraftPaymentDates({voucherId}){
       </label>
       <label style={{fontSize:13,fontWeight:600}}>
         Proposed Payment Date *
-        <input type="date" required style={{...field,marginTop:5}} value={proposed}
+        <input type="date" required max={due||undefined} style={{...field,marginTop:5}} value={proposed}
           disabled={loading||saving||validated}
           onChange={e=>{setProposed(e.target.value);setNotice('')}}/>
       </label>
@@ -75,6 +80,9 @@ export default function JIMSDraftPaymentDates({voucherId}){
       </button>
       <small className="muted">Both dates are required. FM validation remains unchanged.</small>
     </div>
+    {due&&proposed&&proposed>due&&<p className="error" role="alert">
+      Proposed Payment Date cannot be later than Supplier Due Date.
+    </p>}
     {loading&&<p className="muted">Loading payment dates...</p>}
     {validated&&<p className="muted">Finance Manager has already validated these dates.</p>}
     {notice&&<p role="status" style={{color:'#198754'}}>{notice}</p>}

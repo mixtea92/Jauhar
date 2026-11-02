@@ -422,12 +422,12 @@ function validateImportedPV(form) {
 }
 
 function InputField({ label, name, value, onChange, placeholder = '', required = false,
-  disabled = false, type = 'text' }) {
+  disabled = false, type = 'text', max }) {
   return (
     <div className="pv-field">
       <label htmlFor={`pv-${name}`}>{label}{required ? ' *' : ''}</label>
       <input id={`pv-${name}`} name={name} value={value} onChange={onChange}
-        placeholder={placeholder} required={required} disabled={disabled} type={type} />
+        placeholder={placeholder} required={required} disabled={disabled} type={type} max={max} />
     </div>
   )
 }
@@ -2375,6 +2375,10 @@ async function uploadInvoice(line, file) {
         setError('Proposed Payment Date is required before saving the PV Draft.')
         return
       }
+      if (form.proposed_payment_date > form.due_date) {
+        setError('Proposed Payment Date cannot be later than Supplier Due Date.')
+        return
+      }
     }
 
     setLoading(true)
@@ -2835,9 +2839,16 @@ async function uploadInvoice(line, file) {
                     value={form.due_date || ''} onChange={update} />
                   <InputField label="Proposed Payment Date"
                     name="proposed_payment_date" type="date"
+                    max={form.due_date || undefined}
                     required={!editPaymentDatesLocked} disabled={editPaymentDatesLocked}
                     value={form.proposed_payment_date || ''} onChange={update} />
                 </div>
+                {form.due_date && form.proposed_payment_date &&
+                  form.proposed_payment_date > form.due_date && (
+                  <p className="error" role="alert">
+                    Proposed Payment Date cannot be later than Supplier Due Date.
+                  </p>
+                )}
                 {editPaymentDatesLocked && <p className="muted">
                   Finance Manager has validated these dates. Planning is read-only.
                 </p>}
