@@ -2,6 +2,8 @@ import JIMS57D2OfficialPVDownload from './JIMS57D2OfficialPVDownload'
 import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'
 import JIMSInvoiceDetailsPanel from './JIMSInvoiceDetailsPanel'
 import JIMSDraftPaymentDates from './JIMSDraftPaymentDates'
+import JIMSPVPlanningSummary from './JIMSPVPlanningSummary'
+import JIMSPaymentPlanning57D3 from './JIMSPaymentPlanning57D3'
 // JAUHAR_STEP_46_DELEGATION_HANDOVER_ALL
 // JAUHAR_STEP_45_PAYMENT_TRACKING_COMPLETE
 // JAUHAR_STEP_44F_ALL_NINE_CROSSDEPARTMENT
@@ -491,6 +493,40 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [uploadedTemplateName, setUploadedTemplateName] = useState('')
   // Open saved PV, and edit an existing draft without creating a new PV number.
   const [viewingVoucher, setViewingVoucher] = useState(null)
+  const [viewPlanningDates, setViewPlanningDates] = useState(null)
+  const [viewPlanningLoading, setViewPlanningLoading] = useState(false)
+  const [viewPlanningError, setViewPlanningError] = useState('')
+  const [fmPlanningOpen, setFmPlanningOpen] = useState(false)
+  const isFMPlanningViewer = profile?.role === 'manager' && profile?.department === 'Finance'
+  const canSeePVPlanning = Boolean(
+    (profile?.role==='executive' && profile?.department==='Finance' &&
+      profile?.subdepartment==='Accounts Payable') ||
+    isFMPlanningViewer || ['ceo','bod','system_admin'].includes(profile?.role)
+  )
+  useEffect(()=>{
+    const id=viewingVoucher?.id
+    if(!id||!canSeePVPlanning){
+      setViewPlanningDates(null)
+      setViewPlanningLoading(false)
+      setViewPlanningError('')
+      return
+    }
+    let active=true
+    setViewPlanningDates(null)
+    setViewPlanningLoading(true)
+    setViewPlanningError('')
+    supabase.rpc('jims_57d8_read_payment_dates_v1',{p_voucher_id:id})
+      .then(({data,error})=>{
+        if(!active)return
+        if(error)throw error
+        setViewPlanningDates(data)
+      })
+      .catch(error=>{
+        if(active)setViewPlanningError(error?.message||'Unable to load payment dates')
+      })
+      .finally(()=>{if(active)setViewPlanningLoading(false)})
+    return ()=>{active=false}
+  },[viewingVoucher?.id,canSeePVPlanning])
   const [viewLines, setViewLines] = useState([])
   const [invoiceDocuments, setInvoiceDocuments] = useState([])
   const [invoiceUploadingId, setInvoiceUploadingId] = useState(null)
@@ -971,6 +1007,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
     setViewLoading(true)
     setViewError('')
     setViewingVoucher(null)
+    setFmPlanningOpen(false)
     setViewLines([])
     setInvoiceDocuments([])
     setInvoiceLinks({})
@@ -3292,6 +3329,12 @@ async function uploadInvoice(line, file) {
               </table>
             </div>
 
+            {canSeePVPlanning && <JIMSPVPlanningSummary
+              data={viewPlanningDates} loading={viewPlanningLoading}
+              error={viewPlanningError}
+              awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
+              onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
+                ? ()=>setFmPlanningOpen(true):null}/>}
             {/* UAT-FIX-02: record existing Payment Planning dates in the invoice entry area. */}
             {ownsVoucher(viewingVoucher) &&
               ['draft','returned'].includes(viewingVoucher.status) &&
@@ -3306,6 +3349,13 @@ async function uploadInvoice(line, file) {
               <JIMSInvoiceDetailsPanel
                 key={viewingVoucher.id+'/'+invoiceDetailsLineId}
                 line={viewLines.find(l=>l.id===invoiceDetailsLineId)}
+                showPlanning={canSeePVPlanning}
+                planningDates={viewPlanningDates}
+                planningLoading={viewPlanningLoading}
+                planningError={viewPlanningError}
+                awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
+                onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
+                  ? ()=>setFmPlanningOpen(true):null}
                 doc={invoiceDocuments.find(d=>d.line_item_id===invoiceDetailsLineId)||null}
                 canEdit={ownsVoucher(viewingVoucher) &&
                   (viewingVoucher.status==='draft' ||
@@ -3329,6 +3379,9 @@ async function uploadInvoice(line, file) {
               />
             )}
 
+            {fmPlanningOpen && isFMPlanningViewer && viewingVoucher.status==='fully_approved' &&
+              <JIMSPaymentPlanning57D3 voucher={viewingVoucher} profile={profile}
+                onClose={()=>setFmPlanningOpen(false)}/>}
             {/* INVOICE UPLOAD MESSAGE */}
             {invoiceMessage && !invoiceDetailsLineId && (
               <p className="pv-notice" role="status">

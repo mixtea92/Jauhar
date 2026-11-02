@@ -175,13 +175,25 @@ export default function JIMSPaymentPlanning57D3({voucher,profile,transactions=[]
             {schedule&&data.due?.current_due_date&&schedule>data.due.current_due_date&&
               <p style={{color:'#dfb95f'}}>Scheduled date exceeds contractual due date.
                 The PV will still be flagged overdue until settled.</p>}
+            {canFM && selected?.proposed_date && <div style={{marginTop:10}}>
+              <button type="button" className="btn"
+                disabled={busy||!data.due?.fm_validated_at||
+                  (((selected.approved_date && selected.approved_date!==selected.proposed_date) ||
+                    selected.proposed_date>data.due.current_due_date) && reason.trim().length<8)}
+                onClick={()=>save('jims_57d3_manager_schedule_v1',{
+                  p_scheduled_date:selected.proposed_date,
+                  p_transaction_id:txn||null,p_reason:reason.trim()||null
+                },'Finance Manager accepted the AP Proposed Payment Date.')}>
+                Accept Proposed Date
+              </button>
+            </div>}
             <button type="button" className="btn" style={{marginTop:10}} disabled={busy||!data.due||!schedule||(canFM&&!data.due.fm_validated_at)||
               (canFM&&((selected?.approved_date&&selected.approved_date!==schedule)||
                 (schedule>data.due.current_due_date))&&reason.trim().length<8)}
               onClick={()=>save(canAP?'jims_57d3_propose_schedule_v1':'jims_57d3_manager_schedule_v1',
                 {p_scheduled_date:schedule,p_transaction_id:txn||null,...(canFM?{p_reason:reason}:{})},
                 canAP?'Schedule proposed to Finance Manager.':'Finance Manager schedule approved and audit saved.')}>
-              {busy?'Saving...':canAP?'Submit Schedule Proposal':'Approve / Reschedule'}
+              {busy?'Saving...':canAP?'Submit Schedule Proposal':'Change / Approve Payment Date'}
             </button>
           </>}
         </div>

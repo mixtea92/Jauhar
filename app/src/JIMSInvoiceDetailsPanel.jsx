@@ -1,6 +1,7 @@
 // 57D7C7-T2-D — One invoice, one detail panel. Separate from PV approval/payment flow.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
+import JIMSPVPlanningSummary from './JIMSPVPlanningSummary'
 
 const emptyItem = () => ({
   item_description: '', category: '', quantity: '1', unit_price: '0', gl_code: ''
@@ -17,6 +18,8 @@ const labelStyle = {fontSize:12,fontWeight:600,display:'block',marginBottom:4}
 
 export default function JIMSInvoiceDetailsPanel({
   line, doc, canEdit, busy, mobileBlocked, signedUrl, invoiceMessage,
+  showPlanning=false,planningDates=null,planningLoading=false,planningError='',
+  awaitingFinalApproval=false,onManagePlanning=null,
   onClose, onUpload, onView, onSaved, onDirtyChange
 }){
   const [items,setItems]=useState([])
@@ -126,6 +129,9 @@ export default function JIMSInvoiceDetailsPanel({
         <div><span className="muted">GL Code</span><div>{line.gl_code||'—'}</div></div>
         <div><span className="muted">Invoice Total</span><div><strong>{currency(line.amount)}</strong></div></div>
       </div>
+      {showPlanning && <JIMSPVPlanningSummary data={planningDates}
+        loading={planningLoading} error={planningError}
+        awaitingFinalApproval={awaitingFinalApproval} onManagePlanning={onManagePlanning}/>}
       <hr style={{border:'none',borderTop:'1px solid #88888844'}}/>
       <div style={{display:'flex',gap:10,justifyContent:'space-between',alignItems:'center'}}>
         <h4 style={{margin:'14px 0'}}>Item Breakdown <small style={{color:'#d9534f'}}>(Required)</small></h4>
