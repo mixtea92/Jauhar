@@ -10,6 +10,7 @@ import './JIMSClosedLoopHistory.css'
 import './JIMSFinanceActionBadges.css'
 import {fetchJIMSActionNotifications} from './jimsActionNotifications'
 import { supabase } from './lib/supabase'
+import { isFinanceManagerActual, loadPendingFmPartialApprovals } from './lib/jimsFmPartialApprovalQueue'
 import './AddUser'
 import './EditUser'
 import './UserOrganizationAssignment'
@@ -191,14 +192,16 @@ function App() {
       return
     }
     try {
-      const { data, error: badgeError } =
-        await supabase.rpc('jims_actual_approver_summary_v1')
+      const [summary, partialRows] = await Promise.all([
+        supabase.rpc('jims_actual_approver_summary_v1'),
+        isFinanceManagerActual(profile) ? loadPendingFmPartialApprovals() : Promise.resolve([])
+      ])
       if (sequence !== myApprovalBadgeSequence.current) return
-      if (badgeError || !Array.isArray(data?.rows)) {
+      if (summary.error || !Array.isArray(summary.data?.rows)) {
         setMyApprovalBadge(null)
         return
       }
-      setMyApprovalBadge(data.rows.length)
+      setMyApprovalBadge(summary.data.rows.length + partialRows.length)
     } catch {
       if (sequence === myApprovalBadgeSequence.current) setMyApprovalBadge(null)
     }

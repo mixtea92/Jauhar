@@ -31,3 +31,8 @@
 .jims-approval-empty{text-align:center!important;padding:24px!important;color:#aaa;}
 .jims-approval-footnote{font-size:12px;color:#999;margin-top:12px;}
 @media(max-width:720px){.jims-approval-head{flex-wrap:wrap}.jims-approval-metrics{grid-template-columns:1fr}}
+/* JIMS UAT-12: FM-only pending installment actions in My Approval. */
+.jims-fm-partial-queue{margin:12px 0 22px;padding:16px;border:1px solid #786343;border-radius:10px;background:#242321;}
+.jims-fm-partial-queue h3,.jims-fm-pv-approval-heading{color:#eac888;margin:0 0 9px;font-size:16px;}
+.jims-fm-partial-queue .muted{margin:0 0 12px;}
+.jims-fm-pv-approval-heading{margin:0 0 12px;}
