@@ -496,6 +496,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [viewPlanningDates, setViewPlanningDates] = useState(null)
   const [viewPlanningLoading, setViewPlanningLoading] = useState(false)
   const [viewPlanningError, setViewPlanningError] = useState('')
+  const [viewPlanningRefresh, setViewPlanningRefresh] = useState(0)
   const [fmPlanningOpen, setFmPlanningOpen] = useState(false)
   const isFMPlanningViewer = profile?.role === 'manager' && profile?.department === 'Finance'
   const canSeePVPlanning = Boolean(
@@ -526,7 +527,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
       })
       .finally(()=>{if(active)setViewPlanningLoading(false)})
     return ()=>{active=false}
-  },[viewingVoucher?.id,canSeePVPlanning])
+  },[viewingVoucher?.id,canSeePVPlanning,viewPlanningRefresh])
   const [viewLines, setViewLines] = useState([])
   const [invoiceDocuments, setInvoiceDocuments] = useState([])
   const [invoiceUploadingId, setInvoiceUploadingId] = useState(null)
@@ -3381,7 +3382,10 @@ async function uploadInvoice(line, file) {
 
             {fmPlanningOpen && isFMPlanningViewer && viewingVoucher.status==='fully_approved' &&
               <JIMSPaymentPlanning57D3 voucher={viewingVoucher} profile={profile}
-                onClose={()=>setFmPlanningOpen(false)}/>}
+                onClose={()=>{
+                  setFmPlanningOpen(false)
+                  setViewPlanningRefresh(n=>n+1)
+                }}/>}
             {/* INVOICE UPLOAD MESSAGE */}
             {invoiceMessage && !invoiceDetailsLineId && (
               <p className="pv-notice" role="status">
