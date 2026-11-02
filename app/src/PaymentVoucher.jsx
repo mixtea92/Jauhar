@@ -3334,6 +3334,9 @@ async function uploadInvoice(line, file) {
               data={viewPlanningDates} loading={viewPlanningLoading}
               error={viewPlanningError}
               awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
+              pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
+              voucherId={viewingVoucher.id}
+              onDatesSaved={()=>setViewPlanningRefresh(n=>n+1)}
               onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
                 ? ()=>setFmPlanningOpen(true):null}/>}
             {/* UAT-FIX-02: record existing Payment Planning dates in the invoice entry area. */}
@@ -3355,6 +3358,9 @@ async function uploadInvoice(line, file) {
                 planningLoading={viewPlanningLoading}
                 planningError={viewPlanningError}
                 awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
+                pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
+                planningVoucherId={viewingVoucher.id}
+                onPlanningSaved={()=>setViewPlanningRefresh(n=>n+1)}
                 onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
                   ? ()=>setFmPlanningOpen(true):null}
                 doc={invoiceDocuments.find(d=>d.line_item_id===invoiceDetailsLineId)||null}

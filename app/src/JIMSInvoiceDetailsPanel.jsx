@@ -19,7 +19,8 @@ const labelStyle = {fontSize:12,fontWeight:600,display:'block',marginBottom:4}
 export default function JIMSInvoiceDetailsPanel({
   line, doc, canEdit, busy, mobileBlocked, signedUrl, invoiceMessage,
   showPlanning=false,planningDates=null,planningLoading=false,planningError='',
-  awaitingFinalApproval=false,onManagePlanning=null,
+  awaitingFinalApproval=false,onManagePlanning=null,pendingFMReview=false,
+  planningVoucherId=null,onPlanningSaved=null,
   onClose, onUpload, onView, onSaved, onDirtyChange
 }){
   const [items,setItems]=useState([])
@@ -131,7 +132,9 @@ export default function JIMSInvoiceDetailsPanel({
       </div>
       {showPlanning && <JIMSPVPlanningSummary data={planningDates}
         loading={planningLoading} error={planningError}
-        awaitingFinalApproval={awaitingFinalApproval} onManagePlanning={onManagePlanning}/>}
+        awaitingFinalApproval={awaitingFinalApproval} onManagePlanning={onManagePlanning}
+        pendingFMReview={pendingFMReview} voucherId={planningVoucherId}
+        onDatesSaved={onPlanningSaved}/>}
       <hr style={{border:'none',borderTop:'1px solid #88888844'}}/>
       <div style={{display:'flex',gap:10,justifyContent:'space-between',alignItems:'center'}}>
         <h4 style={{margin:'14px 0'}}>Item Breakdown <small style={{color:'#d9534f'}}>(Required)</small></h4>

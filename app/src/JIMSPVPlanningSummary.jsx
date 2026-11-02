@@ -1,9 +1,10 @@
-// UAT-FIX-07: PV-level planned dates, read-only; FM actions keep existing 57D3 governance.
+// UAT-FIX-08: PV-level planning readout; FM can now review dates during pending Finance Manager.
+import JIMSFMDateReview from './JIMSFMDateReview'
 const dateMY = value => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''))
   return match ? match[3]+'/'+match[2]+'/'+match[1] : '—'
 }
-export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false}) {
+export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false,pendingFMReview=false,voucherId=null,onDatesSaved=null}) {
   return <section aria-label="Payment Planning" style={{border:'1px solid #9f8c5a88',
     borderRadius:10,padding:'12px 14px',margin:'14px 0',background:'var(--jims-card-bg,transparent)',color:'inherit'}}>
     <strong style={{color:'#d9b45c'}}>PAYMENT PLANNING</strong>
@@ -24,8 +25,10 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
     <small className="muted" style={{display:'block',marginTop:9}}>
       Dates apply to this PV, not individual invoice lines. These are not actual payment dates.
     </small>
-    {awaitingFinalApproval && <p className="muted">
-      Finance Manager can review dates now. Confirm the payment plan after the PV is fully approved.
+    {pendingFMReview && !loading && !error && voucherId &&
+      <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}/>}
+    {awaitingFinalApproval && !pendingFMReview && <p className="muted">
+      Payment Planning can be reviewed here. Final schedule management remains under Finance Manager.
     </p>}
     {onManagePlanning && <button type="button" className="btn" style={{marginTop:10}}
       onClick={onManagePlanning}>FM — Accept / Change Payment Date</button>}
