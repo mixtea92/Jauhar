@@ -2366,10 +2366,15 @@ async function uploadInvoice(line, file) {
       return
     }
 
-    if (canEditPlanningDates && !editPaymentDatesLocked &&
-        (!form.due_date || !/^\d{4}-\d{2}-\d{2}$/.test(form.due_date))) {
-      setError('Supplier Due Date is required before Save Draft.')
-      return
+    if (canEditPlanningDates && !editPaymentDatesLocked) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(form.due_date || '')) {
+        setError('Supplier Due Date is required before saving the PV Draft.')
+        return
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(form.proposed_payment_date || '')) {
+        setError('Proposed Payment Date is required before saving the PV Draft.')
+        return
+      }
     }
 
     setLoading(true)
@@ -2828,9 +2833,9 @@ async function uploadInvoice(line, file) {
                   <InputField label="Supplier Due Date" name="due_date" type="date"
                     required={!editPaymentDatesLocked} disabled={editPaymentDatesLocked}
                     value={form.due_date || ''} onChange={update} />
-                  <InputField label="Proposed Payment Date (Optional)"
+                  <InputField label="Proposed Payment Date"
                     name="proposed_payment_date" type="date"
-                    disabled={editPaymentDatesLocked}
+                    required={!editPaymentDatesLocked} disabled={editPaymentDatesLocked}
                     value={form.proposed_payment_date || ''} onChange={update} />
                 </div>
                 {editPaymentDatesLocked && <p className="muted">

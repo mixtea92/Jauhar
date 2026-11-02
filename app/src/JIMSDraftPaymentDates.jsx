@@ -35,7 +35,7 @@ export default function JIMSDraftPaymentDates({voucherId}){
   },[voucherId])
 
   async function save(){
-    if(saving||loading||!due||validated)return
+    if(saving||loading||!due||!proposed||validated)return
     setSaving(true);setError('');setNotice('')
     try{
       const {data,error:failure}=await supabase.rpc('jims_57d8_draft_payment_dates_v1',{
@@ -56,24 +56,24 @@ export default function JIMSDraftPaymentDates({voucherId}){
     <h4 style={{margin:'0 0 8px'}}>Payment Planning</h4>
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
       <label style={{fontSize:13,fontWeight:600}}>
-        Supplier Due Date
-        <input type="date" style={{...field,marginTop:5}} value={due}
+        Supplier Due Date *
+        <input type="date" required style={{...field,marginTop:5}} value={due}
           disabled={loading||saving||validated}
           onChange={e=>{setDue(e.target.value);setNotice('')}}/>
       </label>
       <label style={{fontSize:13,fontWeight:600}}>
-        Proposed Payment Date (Optional)
-        <input type="date" style={{...field,marginTop:5}} value={proposed}
+        Proposed Payment Date *
+        <input type="date" required style={{...field,marginTop:5}} value={proposed}
           disabled={loading||saving||validated}
           onChange={e=>{setProposed(e.target.value);setNotice('')}}/>
       </label>
     </div>
     <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:10}}>
       <button type="button" className="btn" onClick={save}
-        disabled={loading||saving||validated||!due}>
+        disabled={loading||saving||validated||!due||!proposed}>
         {saving?'Saving...':'Save Payment Dates'}
       </button>
-      <small className="muted">Fill once per PV while entering invoice details. FM validation remains unchanged.</small>
+      <small className="muted">Both dates are required. FM validation remains unchanged.</small>
     </div>
     {loading&&<p className="muted">Loading payment dates...</p>}
     {validated&&<p className="muted">Finance Manager has already validated these dates.</p>}
