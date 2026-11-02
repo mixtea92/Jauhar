@@ -24,10 +24,11 @@ export default function JIMSFMDateReview({voucherId,data,onSaved}){
 
   const dueChanged=!!data?.supplier_due_date&&due!==data.supplier_due_date
   const dueEvidenceReady=!dueChanged||(reason.trim().length>=8&&evidence.trim().length>=5)
-  const dateBeyondDue=!!due&&!!payment&&payment>due
+  const acceptBeyondDue=!!due&&!!data?.proposed_payment_date&&data.proposed_payment_date>due
+  const changeBeyondDue=!!due&&!!payment&&payment>due
   const acceptReady=!busy&&!!due&&dueEvidenceReady&&
     !!data?.proposed_payment_date&&!data?.fm_approved_payment_date&&
-    (!dateBeyondDue||reason.trim().length>=8)
+    (!acceptBeyondDue||reason.trim().length>=8)
   const changeReady=!busy&&!!due&&!!payment&&dueEvidenceReady&&
     reason.trim().length>=8&&payment!==(data?.fm_approved_payment_date||data?.proposed_payment_date)
 
@@ -75,7 +76,7 @@ export default function JIMSFMDateReview({voucherId,data,onSaved}){
     {dueChanged&&<p style={{color:'#dfb95f',fontSize:12}}>
       Supplier Due Date amendment requires a reason and supplier evidence reference.
     </p>}
-    {dateBeyondDue&&<p role="status" style={{color:'#dfb95f',fontSize:12}}>
+    {(acceptBeyondDue||changeBeyondDue)&&<p role="status" style={{color:'#dfb95f',fontSize:12}}>
       FM Payment Date is after Supplier Due Date. Approval requires a reason;
       the payment remains flagged overdue until settled.
     </p>}
