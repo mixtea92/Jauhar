@@ -1,6 +1,7 @@
 import JIMS57D2OfficialPVDownload from './JIMS57D2OfficialPVDownload'
 import JIMS57D4DuplicateInvoiceWarning from './JIMS57D4DuplicateInvoiceWarning'
 import JIMSInvoiceDetailsPanel from './JIMSInvoiceDetailsPanel'
+import JIMSDraftPaymentDates from './JIMSDraftPaymentDates'
 // JAUHAR_STEP_46_DELEGATION_HANDOVER_ALL
 // JAUHAR_STEP_45_PAYMENT_TRACKING_COMPLETE
 // JAUHAR_STEP_44F_ALL_NINE_CROSSDEPARTMENT
@@ -3180,6 +3181,15 @@ async function uploadInvoice(line, file) {
                 </tbody>
               </table>
             </div>
+
+            {/* UAT-FIX-02: record existing Payment Planning dates in the invoice entry area. */}
+            {ownsVoucher(viewingVoucher) &&
+              ['draft','returned'].includes(viewingVoucher.status) &&
+              profile?.role==='executive' &&
+              profile?.department==='Finance' &&
+              profile?.subdepartment==='Accounts Payable' && (
+                <JIMSDraftPaymentDates key={viewingVoucher.id} voucherId={viewingVoucher.id}/>
+              )}
 
             {/* 57D7C7-T2-D: invoice attachment and optional breakdown share one detail panel. */}
             {invoiceDetailsLineId && viewLines.some(l=>l.id===invoiceDetailsLineId) && (
