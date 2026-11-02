@@ -122,6 +122,7 @@ function blankForm() {
     lines: blankLines(), sst_amount: '0',
     supporting_types: [], supporting_other_text: '', remarks: '',
     source_voucher_no: '', source_pv_date: '',
+    due_date: '', proposed_payment_date: '',
     imported_transaction_no: '', imported_payment_date: ''
   }
 }
@@ -455,6 +456,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const isAPFinance = canCreate && profile?.department === 'Finance'
   // JSYNC_FINANCE_ONLY_NEW_PV_V1: new vouchers only; legacy non-Finance PV actions stay unchanged.
   const canRaisePV = isAPFinance && profile?.is_active === true
+  const canEditPlanningDates = isAPFinance && profile?.subdepartment === 'Accounts Payable'
   // 51UI: two visual entrances, one unchanged PV approval and payment process.
   const paymentLanding = dashboardSection === 'payment' && reviewMode !== 'delegated'
   // Payment Voucher always opens its OWN dashboard under Finance Approval.
@@ -485,6 +487,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [success, setSuccess] = useState('')
   const [importNote, setImportNote] = useState('')
   const [newPvValidated, setNewPvValidated] = useState(false)
+  const [editPaymentDatesLocked, setEditPaymentDatesLocked] = useState(false)
   const [uploadedTemplateName, setUploadedTemplateName] = useState('')
   // Open saved PV, and edit an existing draft without creating a new PV number.
   const [viewingVoucher, setViewingVoucher] = useState(null)
@@ -1999,11 +2002,37 @@ async function uploadInvoice(line, file) {
 
   // Refill the same form using an existing Draft. Save Changes calls
   // update_pv_draft_v3; the server checks ownership and status again.
-  function startEditDraft() {
+  async function startEditDraft() {
     const voucher = viewingVoucher
     if (!ownsVoucher(voucher) || !['draft','returned'].includes(voucher.status)) return
     if (voucher.status === 'returned' &&
         !['T01','T02','T04','T08','T03','T05','T06','T07','T09'].includes(voucher.financial_tier)) return
+
+    // Load planning before showing Edit Draft, so saving cannot erase existing dates.
+    let savedDates = { due_date: '', proposed_payment_date: '' }
+    let planningLocked = false
+    if (canEditPlanningDates) {
+      setLoading(true)
+      setError('')
+      try {
+        const { data: dates, error: datesError } = await supabase.rpc(
+          'jims_57d8_draft_payment_dates_v1', { p_voucher_id: voucher.id }
+        )
+        if (datesError) throw datesError
+        savedDates = {
+          due_date: dates?.due_date || '',
+          proposed_payment_date: dates?.proposed_payment_date || ''
+        }
+        planningLocked = Boolean(dates?.fm_validated || dates?.fm_approved_date)
+      } catch (e) {
+        setError('Unable to load existing payment planning. Edit Draft not opened: ' +
+          (e.message || 'Unknown error'))
+        return
+      } finally {
+        setLoading(false)
+      }
+    }
+    setEditPaymentDatesLocked(planningLocked)
 
     // IMPORTANT: Rehydrate every stored line; never silently truncate after line five.
     const restoredLines = [...viewLines]
@@ -2040,7 +2069,8 @@ async function uploadInvoice(line, file) {
       supporting_other_text: voucher.supporting_other_text || '',
       remarks: voucher.remarks || '',
       source_voucher_no: voucher.source_voucher_no || '',
-      source_pv_date: voucher.source_pv_date || ''
+      source_pv_date: voucher.source_pv_date || '',
+      ...savedDates
     })
 
     setEditingVoucher({
@@ -2059,6 +2089,7 @@ async function uploadInvoice(line, file) {
 
   function clearForm() {
     setForm(blankForm())
+    setEditPaymentDatesLocked(false)
     setEditingVoucher(null)
     setError('')
     setSuccess('')
@@ -2223,7 +2254,9 @@ async function uploadInvoice(line, file) {
       // T08/T09 may now import for Draft only; Submit is independently blocked.
       const validationError = validateImportedPV(parsed)
       if (validationError) throw new Error(validationError)
-      setForm(parsed)
+      setForm(current => ({ ...blankForm(), ...parsed,
+        due_date: current.due_date || '',
+        proposed_payment_date: current.proposed_payment_date || '' }))
       setUploadedTemplateName(file.name)
       setNewPvValidated(true)
       setImportNote(
@@ -2246,6 +2279,32 @@ async function uploadInvoice(line, file) {
     (Number(parseAmount(line.amount)) || 0), 0)
   const sst = Number(parseAmount(form.sst_amount)) || 0
   const total = subtotal + sst
+
+  // Save the AP planning against the PV ID returned by the unchanged Draft RPC.
+  // A planning failure must never make a successfully created PV look unsaved,
+  // which would encourage creating duplicate PV numbers on retry.
+  async function persistDraftPaymentDates(voucherId) {
+    if (!canEditPlanningDates || editPaymentDatesLocked) return ''
+    if (!voucherId) return 'Saved PV ID was not returned'
+    try {
+      const { data: dates, error: datesError } = await supabase.rpc(
+        'jims_57d8_draft_payment_dates_v1', {
+          p_voucher_id: voucherId,
+          p_save: true,
+          p_due_date: form.due_date,
+          p_proposed_date: form.proposed_payment_date || null
+        }
+      )
+      if (datesError) throw datesError
+      if (!dates?.saved || dates.due_date !== form.due_date ||
+          (dates.proposed_payment_date || '') !== (form.proposed_payment_date || '')) {
+        throw new Error('Database did not confirm the planned dates')
+      }
+      return ''
+    } catch (e) {
+      return e.message || 'Unable to save planned payment dates'
+    }
+  }
 
   async function handleSave(event) {
     event.preventDefault()
@@ -2307,6 +2366,12 @@ async function uploadInvoice(line, file) {
       return
     }
 
+    if (canEditPlanningDates && !editPaymentDatesLocked &&
+        (!form.due_date || !/^\d{4}-\d{2}-\d{2}$/.test(form.due_date))) {
+      setError('Supplier Due Date is required before Save Draft.')
+      return
+    }
+
     setLoading(true)
     try {
       // Editing must UPDATE the original voucher, NEVER create a new one.
@@ -2349,8 +2414,12 @@ async function uploadInvoice(line, file) {
           throw new Error('PV update and financial tier storage could not be confirmed. Reopen and check the Draft.')
         }
 
-        setSuccess(`${updated.pv_number} updated successfully (${money(updated.amount)}).`)
+        const planningError = await persistDraftPaymentDates(updated.id || editingVoucher.id)
+        setSuccess(`${updated.pv_number} updated as Draft (${money(updated.amount)}).`)
+        if (planningError) setError('PV changes were saved, but Payment Planning dates were NOT saved: ' +
+          planningError + '. Open the existing Draft to complete the dates; do not create a second PV.')
         setEditingVoucher(null)
+        setEditPaymentDatesLocked(false)
         setForm(blankForm())
         setImportNote('')
         setListCategory('draft')
@@ -2392,7 +2461,11 @@ async function uploadInvoice(line, file) {
           data.source_template_version !== form.template_version) {
         throw new Error('PV save and financial tier/template metadata could not be confirmed. Check Existing Drafts before retrying to avoid duplicates.')
       }
-      setSuccess(`${data.pv_number} saved successfully as Draft (${money(data.amount)}).`)
+      const planningError = await persistDraftPaymentDates(data.id)
+      setSuccess(`${data.pv_number} saved as Draft (${money(data.amount)}).`)
+      if (planningError) setError('Draft was created, but Payment Planning dates were NOT saved: ' +
+        planningError + '. Open this existing Draft to complete the dates; do not create a second PV.')
+      setEditPaymentDatesLocked(false)
       setForm(blankForm())
       setImportNote('')
       setListCategory('draft')
@@ -2748,6 +2821,27 @@ async function uploadInvoice(line, file) {
               supplierTin={form.supplier_tin}
               lines={form.lines}
               excludeVoucherId={editingVoucher?.id||null}/>
+            {canEditPlanningDates && (
+              <>
+                <div className="pv-section">PAYMENT PLANNING — WITH INVOICE ENTRY</div>
+                <div className="pv-grid">
+                  <InputField label="Supplier Due Date" name="due_date" type="date"
+                    required={!editPaymentDatesLocked} disabled={editPaymentDatesLocked}
+                    value={form.due_date || ''} onChange={update} />
+                  <InputField label="Proposed Payment Date (Optional)"
+                    name="proposed_payment_date" type="date"
+                    disabled={editPaymentDatesLocked}
+                    value={form.proposed_payment_date || ''} onChange={update} />
+                </div>
+                {editPaymentDatesLocked && <p className="muted">
+                  Finance Manager has validated these dates. Planning is read-only.
+                </p>}
+                <p className="muted">
+                  Planning dates are saved with this Draft. These are not the actual Payment Date.
+                  Finance Manager validation and payment controls remain unchanged.
+                </p>
+              </>
+            )}
             <div className="pv-totals">
               <div className="pv-total-row"><span>Subtotal (RM)</span><strong>{money(subtotal)}</strong></div>
               <div className="pv-total-row">
