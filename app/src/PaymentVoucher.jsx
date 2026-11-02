@@ -3336,6 +3336,7 @@ async function uploadInvoice(line, file) {
               awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
               pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
               voucherId={viewingVoucher.id}
+              invoiceDocuments={invoiceDocuments} invoiceLines={viewLines}
               onDatesSaved={()=>setViewPlanningRefresh(n=>n+1)}
               onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
                 ? ()=>setFmPlanningOpen(true):null}/>}
@@ -3360,6 +3361,7 @@ async function uploadInvoice(line, file) {
                 awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
                 pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
                 planningVoucherId={viewingVoucher.id}
+                planningInvoiceDocuments={invoiceDocuments} planningInvoiceLines={viewLines}
                 onPlanningSaved={()=>setViewPlanningRefresh(n=>n+1)}
                 onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
                   ? ()=>setFmPlanningOpen(true):null}

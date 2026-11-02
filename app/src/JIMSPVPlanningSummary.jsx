@@ -4,7 +4,7 @@ const dateMY = value => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''))
   return match ? match[3]+'/'+match[2]+'/'+match[1] : '—'
 }
-export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false,pendingFMReview=false,voucherId=null,onDatesSaved=null}) {
+export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false,pendingFMReview=false,voucherId=null,onDatesSaved=null,invoiceDocuments=[],invoiceLines=[]}) {
   return <section aria-label="Payment Planning" style={{border:'1px solid #9f8c5a88',
     borderRadius:10,padding:'12px 14px',margin:'14px 0',background:'var(--jims-card-bg,transparent)',color:'inherit'}}>
     <strong style={{color:'#d9b45c'}}>PAYMENT PLANNING</strong>
@@ -26,7 +26,8 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
       Dates apply to this PV, not individual invoice lines. These are not actual payment dates.
     </small>
     {pendingFMReview && !loading && !error && voucherId &&
-      <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}/>}
+      <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}
+        invoiceDocuments={invoiceDocuments} invoiceLines={invoiceLines}/>}
     {awaitingFinalApproval && !pendingFMReview && <p className="muted">
       Payment Planning can be reviewed here. Final schedule management remains under Finance Manager.
     </p>}

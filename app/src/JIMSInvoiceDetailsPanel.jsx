@@ -21,6 +21,7 @@ export default function JIMSInvoiceDetailsPanel({
   showPlanning=false,planningDates=null,planningLoading=false,planningError='',
   awaitingFinalApproval=false,onManagePlanning=null,pendingFMReview=false,
   planningVoucherId=null,onPlanningSaved=null,
+  planningInvoiceDocuments=[],planningInvoiceLines=[],
   onClose, onUpload, onView, onSaved, onDirtyChange
 }){
   const [items,setItems]=useState([])
@@ -134,6 +135,7 @@ export default function JIMSInvoiceDetailsPanel({
         loading={planningLoading} error={planningError}
         awaitingFinalApproval={awaitingFinalApproval} onManagePlanning={onManagePlanning}
         pendingFMReview={pendingFMReview} voucherId={planningVoucherId}
+        invoiceDocuments={planningInvoiceDocuments} invoiceLines={planningInvoiceLines}
         onDatesSaved={onPlanningSaved}/>}
       <hr style={{border:'none',borderTop:'1px solid #88888844'}}/>
       <div style={{display:'flex',gap:10,justifyContent:'space-between',alignItems:'center'}}>
