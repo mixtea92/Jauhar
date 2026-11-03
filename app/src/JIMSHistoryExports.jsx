@@ -78,7 +78,7 @@ const COLUMNS = {
     ['meeting_reference','Meeting Reference'],['meeting_date','Meeting Date'],
     ['jr_document_id','Linked JR Document ID'],['recorded_at','Recorded At']],
   evidence_register:[['pv_number','PV Number'],['tier','Tier'],['branch','Branch'],
-    ['kind','File Category'],['filename','Original Filename'],['size_bytes','Size (Bytes)'],
+    ['kind','File Category'],['filename','Exported Filename'],['size_bytes','Size (Bytes)'],
     ['exists_in_storage','File Exists'],['archive_path','ZIP Path']]
 }
 const OWNER_REPORTS=[
@@ -331,7 +331,12 @@ export default function JIMSHistoryExports({profile}){
       for(let i=0;i<files.length;i++){
         const f=files[i]
         const folder=safeFolder(f.pv_number)+'/'+safeFolder(f.kind)+'/'
-        const filename=safeFolder(f.filename||f.storage_path.split('/').pop()||'document')
+        // Some tranche manifests return an installment UUID instead of a file name.
+        // Preserve the actual PDF/image extension from the storage object name.
+        const recordedName=String(f.filename||'').trim()
+        const storedName=String(f.storage_path||'').split('/').pop()||''
+        const filename=safeFolder(/\.[a-z0-9]{2,8}$/i.test(recordedName)
+          ? recordedName : (storedName||recordedName||'document'))
         const target=folder+String(i+1).padStart(3,'0')+'_'+filename
         const {data:blob,error:e}=await supabase.storage.from(f.bucket).download(f.storage_path)
         if(e||!blob)throw new Error('Cannot access '+f.pv_number+' / '+f.kind+
@@ -339,7 +344,7 @@ export default function JIMSHistoryExports({profile}){
         actualBytes+=blob.size
         if(actualBytes>maxZipBytes)throw new Error('Downloaded evidence exceeds 100 MB. Apply a tighter filter.')
         zip.file(target,blob)
-        list.push({...f,archive_path:target})
+        list.push({...f,filename,archive_path:target})
       }
       const register=await makeExcel([
         {key:'evidence_register',sheet:'Evidence Register',rows:list},
