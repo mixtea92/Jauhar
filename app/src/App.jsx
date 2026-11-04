@@ -750,7 +750,8 @@ function App() {
             )
           ) : activePage === 'payment_calendar' ? (
               jimsCalendarEligible(profile) ? (
-                <JIMSPaymentCalendar57D5 profile={profile} />
+                <JIMSPaymentCalendar57D5 profile={profile}
+                   onPreparePV={()=>setActivePage('payment_voucher')} />
               ) : (
                 <section className="panel" role="alert">
                   <h2>Access Restricted</h2>

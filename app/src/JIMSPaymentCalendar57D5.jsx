@@ -36,10 +36,23 @@ function monthGrid(year,month){
 const statusText={upcoming:'Upcoming',due_today:'Due Today',overdue:'Overdue',
   paid:'Paid',missing_due:'Due Date Not Set'}
 function sumCents(rows){return rows.reduce((n,r)=>n+Math.round(Number(r.outstanding_amount||0)*100),0)/100}
+const dayGap=(date,today)=>Math.round((Date.parse(date+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000)
+const branchLabels={GP:'Gelang Patah',KM:'Kota Masai',PM:'Pulai Mutiara',TD:'Taman Daya'}
+const isAPExecutive=p=>p?.is_active===true&&p.role==='executive'&&
+  p.department==='Finance'&&p.subdepartment==='Accounts Payable'
 
-export default function JIMSPaymentCalendar57D5({profile}){
+export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
   const fmOnly=isFinanceManagerActual(profile)
+  const apOnly=isAPExecutive(profile)
+  const recurringEligible=fmOnly||apOnly
   const [workspaceTab,setWorkspaceTab]=useState('calendar')
+  const [recurringFeed,setRecurringFeed]=useState(null)
+  const [recurringLoading,setRecurringLoading]=useState(false)
+  const [recurringError,setRecurringError]=useState('')
+  const [recurringNotice,setRecurringNotice]=useState('')
+  const [recurringPvNumbers,setRecurringPvNumbers]=useState({})
+  const [recurringLinkBusy,setRecurringLinkBusy]=useState('')
+  const [showRecurringOverdue,setShowRecurringOverdue]=useState(true)
   const [feed,setFeed]=useState(null)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
@@ -74,6 +87,27 @@ export default function JIMSPaymentCalendar57D5({profile}){
       .catch(e=>{if(active){setError(e?.message||'Calendar unavailable');setLoading(false)}})
     return()=>{active=false}
   },[refreshToken])
+  // Independent recurring feed: calendar PVs remain usable if this separate RPC fails.
+  useEffect(()=>{
+    let active=true
+    if(!recurringEligible){setRecurringFeed(null);setRecurringError('');return}
+    setRecurringLoading(true);setRecurringError('')
+    supabase.rpc('jims_recurring_calendar_v1')
+      .then(({data,error:e})=>{
+        if(!active)return
+        if(e)throw e
+        if(!Array.isArray(data?.records)||!data?.today)
+          throw new Error('Recurring calendar data incomplete')
+        setRecurringFeed(data)
+        setRecurringLoading(false)
+      })
+      .catch(e=>{
+        if(!active)return
+        setRecurringError(e?.message||'Recurring payment schedule unavailable')
+        setRecurringFeed(null);setRecurringLoading(false)
+      })
+    return()=>{active=false}
+  },[recurringEligible,refreshToken])
   useEffect(()=>{
     const focus=()=>reload()
     window.addEventListener('focus',focus)
@@ -84,8 +118,23 @@ export default function JIMSPaymentCalendar57D5({profile}){
   const mIndex=Number((month||today||'2026-01').slice(5,7))-1
   const calDays=useMemo(()=>monthGrid(year,mIndex),[year,mIndex])
   const records=feed?.records||[]
-  const branches=useMemo(()=>[...new Set(records.map(r=>r.branch).filter(Boolean))].sort(),[records])
+  const recurringRows=recurringFeed?.records||[]
+  const branches=useMemo(()=>[...new Set([
+    ...records.map(r=>r.branch),...recurringRows.map(r=>r.branch_code)
+  ].filter(Boolean))].sort(),[records,recurringRows])
   const visible=useMemo(()=>records.filter(r=>!branch||r.branch===branch),[records,branch])
+  // Linked fully-approved PVs are shown as PVs, never twice as recurring entries.
+  const recurringVisible=useMemo(()=>recurringRows.filter(r=>
+    (!branch||r.branch_code===branch)&&(
+      r.source==='projection'||r.status==='pending_ap'||
+      (r.status==='pv_linked'&&r.linked_pv_status!=='fully_approved')
+    )
+  ),[recurringRows,branch])
+  const recurringPending=recurringVisible.filter(r=>r.source==='task'&&r.status==='pending_ap')
+  const recurringDueSoon=recurringPending.filter(r=>today&&dayGap(r.due_date,today)>=0&&dayGap(r.due_date,today)<=7)
+  const recurringOverdue=recurringPending.filter(r=>today&&r.due_date<today)
+    .sort((a,b)=>a.due_date.localeCompare(b.due_date))
+  const recurringProjected=recurringVisible.filter(r=>r.source==='projection')
   const overdue=useMemo(()=>visible.filter(r=>r.calendar_status==='overdue')
     .sort((a,b)=>String(a.current_due_date).localeCompare(String(b.current_due_date))||
       String(a.pv_number).localeCompare(String(b.pv_number))),[visible])
@@ -112,6 +161,17 @@ export default function JIMSPaymentCalendar57D5({profile}){
   },[withinMonth])
   const selectedRows=(byDay.get(selectedDay)||[]).sort((a,b)=>
     String(a.pv_number).localeCompare(String(b.pv_number)))
+  const recurringByDay=useMemo(()=>{
+    const map=new Map()
+    for(const r of recurringVisible){
+      if(!r.due_date?.startsWith(month||'')||
+        !dueInRange(r.due_date,dueRange.from,dueRange.to))continue
+      if(!map.has(r.due_date))map.set(r.due_date,[])
+      map.get(r.due_date).push(r)
+    }
+    return map
+  },[recurringVisible,month,dueRange.from,dueRange.to])
+  const selectedRecurring=recurringByDay.get(selectedDay)||[]
   // Month arrows are explicit month filters: full target month, except
   // Current Month resets to KL today -> end of month.
   const changeMonth=offset=>{
@@ -139,6 +199,64 @@ export default function JIMSPaymentCalendar57D5({profile}){
   }
   const openPlanning=record=>setSelectedPV(record)
   const closePlanning=()=>{setSelectedPV(null);reload()}
+  const openCalendarTab=()=>{setWorkspaceTab('calendar');reload()}
+  async function linkRecurringPV(task){
+    if(!apOnly||task.status!=='pending_ap'||task.source!=='task')return
+    const pvNumber=String(recurringPvNumbers[task.id]||'').trim()
+    if(!pvNumber){setRecurringError('Enter the PV number after creating the voucher.');return}
+    setRecurringLinkBusy(task.id);setRecurringError('');setRecurringNotice('')
+    try{
+      const {error:e}=await supabase.rpc('jims_recurring_ap_link_pv_v1',{
+        p_task_id:task.id,p_pv_number:pvNumber
+      })
+      if(e)throw e
+      setRecurringNotice('PV linked to recurring task. Normal PV approval and payment workflow continue.')
+      reload()
+    }catch(e){setRecurringError(e?.message||'Could not link the PV')}
+    finally{setRecurringLinkBusy('')}
+  }
+  const recurringLabel=t=>t.source==='projection'?'Scheduled (Forecast)':
+    t.status==='pending_ap'?(t.due_date<today?'Overdue Task':'Pending AP'):
+    t.status==='pv_linked'?'PV Created':'Inactive'
+  const recurringCard=t=><div className="jims-cal-record jims-cal-recurring-card" key={t.id}>
+    <div className="jims-cal-record-main">
+      <div className="jims-cal-record-heading">
+        <strong>↻ {t.supplier_name}</strong>
+        <span className={'jims-cal-chip jims-cal-recurring-status '+
+          (t.status==='pending_ap'&&t.due_date<today?'recurring-late':'')}>
+          {recurringLabel(t)}
+        </span>
+      </div>
+      <span className="jims-cal-supplier">
+        {t.category_name} · {branchLabels[t.branch_code]||t.branch_code}
+        {fmOnly?' · AP: '+(t.assigned_ap_name||'Not assigned'):''}
+      </span>
+      <div className="jims-cal-record-metrics">
+        <span>Supplier Due <b>{fmt(t.due_date)}</b></span>
+        <span>{t.amount_type==='fixed'?'Fixed instruction':'Variable invoice'}
+          <b>{t.amount_type==='fixed'?amount(t.fixed_amount):'Amount pending bill'}</b></span>
+        {t.linked_pv_number&&<span>Linked PV <b>{t.linked_pv_number}</b></span>}
+      </div>
+      <small className="jims-cal-recurring-disclaimer">
+        {t.source==='projection'?'Future schedule preview — AP task not issued yet.':
+        t.status==='pv_linked'?'PV created; awaiting its normal approval process.':
+        'FM task only — not a Payment Voucher or paid obligation.'}
+      </small>
+    </div>
+    {apOnly&&t.source==='task'&&t.status==='pending_ap'&&
+      <div className="jims-cal-recurring-actions">
+        <button type="button" className="btn" onClick={onPreparePV}>+ Prepare PV</button>
+        <label>Link Created PV
+          <input type="text" placeholder="PV Number" maxLength={100}
+            value={recurringPvNumbers[t.id]||''} disabled={!!recurringLinkBusy}
+            onChange={e=>setRecurringPvNumbers(p=>({...p,[t.id]:e.target.value}))}/>
+        </label>
+        <button type="button" className="btn" disabled={!!recurringLinkBusy}
+          onClick={()=>linkRecurringPV(t)}>
+          {recurringLinkBusy===t.id?'Linking...':'Link PV'}
+        </button>
+      </div>}
+  </div>
   const countStatus=(rows)=>rows.length+' PV'
   const chipStatus=code=><span className={'jims-cal-chip jims-cal-'+code}>
     {statusText[code]||code}</span>
@@ -162,7 +280,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
   return <section className="panel jims-cal-page" aria-label="Payment Calendar">
     {fmOnly&&<nav className="jims-recurring-tabs" role="group" aria-label="Finance Manager payment workspace" style={{marginBottom:16}}>
       <button type="button" className={workspaceTab==='calendar'?'selected':''}
-        aria-pressed={workspaceTab==='calendar'} onClick={()=>setWorkspaceTab('calendar')}>Payment Calendar</button>
+        aria-pressed={workspaceTab==='calendar'} onClick={openCalendarTab}>Payment Calendar</button>
       <button type="button" className={workspaceTab==='recurring'?'selected':''}
         aria-pressed={workspaceTab==='recurring'} onClick={()=>setWorkspaceTab('recurring')}>Recurring Payment</button>
     </nav>}
@@ -221,6 +339,23 @@ export default function JIMSPaymentCalendar57D5({profile}){
         <div className="jims-cal-stat"><span>Due Date Missing</span><b>{countStatus(missing)}</b>
           <small>Needs payment planning</small></div>
       </div>
+      {recurringEligible&&<section className="jims-cal-recurring-monitor" aria-label="Recurring Payment Monitoring">
+        <div className="jims-cal-recurring-heading">
+          <div>
+            <h3>{fmOnly?'Recurring Payment Monitoring — FM':'My Assigned Recurring Tasks — AP'}</h3>
+            <p>Recurring tasks and forecasts are separate from approved PV outstanding amounts.</p>
+          </div>
+          {recurringLoading&&<small>Loading recurring tasks...</small>}
+        </div>
+        {recurringError&&<p role="alert" className="error">{recurringError}</p>}
+        {recurringNotice&&<p role="status" className="pv-success">{recurringNotice}</p>}
+        <div className="jims-cal-recurring-stats">
+          <div><span>{fmOnly?'Pending AP Tasks':'My Pending Tasks'}</span><b>{recurringFeed?recurringPending.length:'—'}</b></div>
+          <div><span>Due Today / Next 7 Days</span><b>{recurringFeed?recurringDueSoon.length:'—'}</b></div>
+          <div><span>Overdue AP Tasks</span><b>{recurringFeed?recurringOverdue.length:'—'}</b></div>
+          <div><span>Scheduled Forecasts</span><b>{recurringFeed?recurringProjected.length:'—'}</b></div>
+        </div>
+      </section>}
       <div className="jims-cal-toolbar">
         <div className="jims-cal-month-nav">
           <button type="button" aria-label="Previous month" onClick={()=>changeMonth(-1)}>‹</button>
@@ -235,12 +370,14 @@ export default function JIMSPaymentCalendar57D5({profile}){
           {calDays.map((day,index)=>{
             if(!day)return <div className="jims-cal-empty" key={'empty'+index}/>;
             const entries=byDay.get(day.key)||[]
+            const recurringEntries=recurringByDay.get(day.key)||[]
             const outside=!inSelectedRange(day.key)
             const upcomingN=entries.filter(r=>r.calendar_status==='upcoming').length
             const todayN=entries.filter(r=>r.calendar_status==='due_today').length
             const paidN=entries.filter(r=>r.calendar_status==='paid').length
             return <button key={day.key} role="gridcell" type="button"
-              aria-label={day.key+(outside?' outside date range': ' '+entries.length+' voucher(s)')}
+              aria-label={day.key+(outside?' outside date range':
+                ' '+entries.length+' voucher(s), '+recurringEntries.length+' recurring task(s)')}
               aria-selected={selectedDay===day.key}
               disabled={outside}
               className={'jims-cal-day'+(selectedDay===day.key?' jims-cal-selected':'')+
@@ -252,8 +389,10 @@ export default function JIMSPaymentCalendar57D5({profile}){
                 {upcomingN>0&&<i className="jims-cal-dot green" title={upcomingN+' upcoming'}/>}
                 {todayN>0&&<i className="jims-cal-dot yellow" title={todayN+' due today'}/>}
                 {paidN>0&&<i className="jims-cal-dot subdued" title={paidN+' paid'}/>}
+                {recurringEntries.length>0&&<i className="jims-cal-dot recurring" title={recurringEntries.length+' recurring task(s)'}/>}
               </span>
               {entries.length>0&&<small>{entries.length} PV</small>}
+              {recurringEntries.length>0&&<small className="jims-cal-recurring-count">↻ {recurringEntries.length} Recurring</small>}
             </button>
           })}
         </div>
@@ -262,12 +401,15 @@ export default function JIMSPaymentCalendar57D5({profile}){
         <span><i className="jims-cal-dot green"/>Upcoming</span>
         <span><i className="jims-cal-dot yellow"/>Due Today</span>
         <span><i className="jims-cal-dot subdued"/>Paid</span>
-        <span className="jims-cal-legend-note">Overdue payments always shown below, regardless of date filter</span>
+        {recurringEligible&&<span><i className="jims-cal-dot recurring"/>Recurring Task / Forecast</span>}
+        <span className="jims-cal-legend-note">Overdue payments and overdue recurring AP tasks are shown below regardless of date filter</span>
       </div>
       <section className="jims-cal-details">
         <h3>{selectedDay?'Due on '+fmt(selectedDay):'Select a date'}</h3>
-        {selectedDay&&selectedRows.length===0&&<p className="muted">No scheduled supplier obligations for this day.</p>}
+        {selectedDay&&selectedRows.length===0&&selectedRecurring.length===0&&
+          <p className="muted">No supplier obligations or recurring tasks for this day.</p>}
         {selectedRows.map(recordCard)}
+        {selectedRecurring.map(recurringCard)}
       </section>
       <details className="jims-cal-expand" open={showOverdue}
         onToggle={e=>setShowOverdue(e.currentTarget.open)}>
@@ -276,6 +418,15 @@ export default function JIMSPaymentCalendar57D5({profile}){
           {overdue.length===0?<p className="muted">No overdue payments.</p>:overdue.map(recordCard)}
         </div>
       </details>
+      {recurringEligible&&recurringOverdue.length>0&&
+        <details className="jims-cal-expand jims-cal-recurring-overdue" open={showRecurringOverdue}
+          onToggle={e=>setShowRecurringOverdue(e.currentTarget.open)}>
+          <summary><span>Overdue Recurring AP Tasks · All Dates</span>
+            <strong>{recurringOverdue.length} Task(s)</strong></summary>
+          <div className="jims-cal-expand-content">
+            {recurringOverdue.map(recurringCard)}
+          </div>
+        </details>}
       <details className="jims-cal-expand" open={showUnplanned}
         onToggle={e=>setShowUnplanned(e.currentTarget.open)}>
         <summary><span>Due Date Not Set</span><strong>{countStatus(missing)}</strong></summary>
@@ -283,7 +434,7 @@ export default function JIMSPaymentCalendar57D5({profile}){
           {missing.length===0?<p className="muted">All unpaid PVs have a due date.</p>:missing.map(recordCard)}
         </div>
       </details>
-      <p className="jims-cal-footnote">Calendar uses Supplier Due Date, not the FM schedule.</p>
+      <p className="jims-cal-footnote">PV payment figures use Supplier Due Date and exclude recurring task amounts. Forecasts are informational; recurring tasks never create, approve or pay a PV automatically.</p>
     </>}
     {selectedPV&&<JIMSPaymentPlanning57D3
       voucher={selectedPV} profile={profile}

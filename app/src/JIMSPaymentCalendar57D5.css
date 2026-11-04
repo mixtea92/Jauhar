@@ -87,3 +87,26 @@
  .jims-cal-toolbar{flex-wrap:wrap}
  .jims-cal-toolbar-note{width:100%;text-align:left}
 }
+
+/* JIMS UAT-R04: FM/AP scoped recurring visualization, financially separate from PV summary. */
+.jims-cal-recurring-monitor{margin:0 0 20px;padding:16px;border:1px solid rgba(198,161,92,.35);border-radius:12px;background:rgba(198,161,92,.04)}
+.jims-cal-recurring-heading{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.jims-cal-recurring-heading h3{font-size:15px;margin:0 0 6px}
+.jims-cal-recurring-heading p{font-size:12px;color:#aaa;margin:0}
+.jims-cal-recurring-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.jims-cal-recurring-stats>div{display:flex;flex-direction:column;gap:7px;border:1px solid rgba(184,145,57,.3);border-radius:9px;padding:11px 12px}
+.jims-cal-recurring-stats span{font-size:11px;color:#bbb}
+.jims-cal-recurring-stats b{font-size:21px}
+.jims-cal-dot.recurring{background:#cda25d;box-shadow:0 0 0 1px #513d21}
+.jims-cal-recurring-count{color:#e5bd75!important;font-weight:650}
+.jims-cal-recurring-card{border-left:3px solid #b89550;padding-left:12px;gap:15px;flex-wrap:wrap}
+.jims-cal-recurring-status{color:#f0c671;border-color:#8c7134}
+.jims-cal-recurring-status.recurring-late{color:#f08a82;border-color:#a94f48}
+.jims-cal-recurring-disclaimer{color:#aeb4bc;font-size:11px}
+.jims-cal-recurring-actions{display:flex;flex-wrap:wrap;align-items:end;gap:8px}
+.jims-cal-recurring-actions label{display:grid;gap:4px;font-size:11px}
+.jims-cal-recurring-actions input{padding:9px;min-height:34px;min-width:150px;max-width:180px;border-radius:8px;border:1px solid #8c7134;background:#22262c;color:#f0ede8}
+.jims-cal-recurring-actions .btn{font-size:12px;white-space:nowrap}
+.jims-cal-recurring-overdue{border-color:rgba(240,138,130,.4)}
+@media(max-width:850px){.jims-cal-recurring-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.jims-cal-recurring-actions{align-items:stretch;width:100%}.jims-cal-recurring-actions input{max-width:none;width:100%}}
