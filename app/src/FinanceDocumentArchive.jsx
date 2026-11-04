@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 import './FinanceDocumentArchive.css'
+import {isMobileUploadBlocked,MOBILE_UPLOAD_NOTICE} from './lib/mobileUploadGuard'
 
 // JIMS 57D7C5 — Read-only archive. Never writes to PV, CV or Storage.
 // Metadata is filtered by existing database RLS; each file download is
@@ -13,6 +14,7 @@ const TYPES = [
   ['final', 'Final Bank Receipt'],
   ['partial', 'Partial Payment Proof'],
   ['petty', 'Petty Cash Receipt'],
+  ['recurring_supporting','Recurring Payment Supporting Documents'],
 ]
 const LABELS = Object.fromEntries(TYPES)
 const BUCKETS = {
@@ -21,6 +23,7 @@ const BUCKETS = {
   initiation: 'jauhar-pv-payment-initiation',
   final: 'jauhar-pv-receipts',
   petty: 'jsync-cv-receipts',
+  recurring_supporting: 'jauhar-recurring-supporting',
 }
 const PAGE_SIZE = 500
 const MAX_PER_TABLE = 20000
@@ -123,7 +126,7 @@ function createArchiveRows(source) {
   return [...collected.values()].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '') || a.reference.localeCompare(b.reference))
 }
 
-async function getArchiveData() {
+async function getArchiveData(includeRecurring=false) {
   const [pvs, cvs] = await Promise.all([
     readAll('payment_vouchers', 'id,pv_number,branch_department,payee_name,payment_mode,payment_initiation_proof_path,receipt_path'),
     readAll('cash_vouchers', 'id,cv_number,form_data'),
@@ -136,7 +139,25 @@ async function getArchiveData() {
     readAll('jims_v2_payment_documents', 'id,voucher_id,transaction_id,kind,storage_path,created_at'),
     readAll('cash_voucher_receipts', 'id,voucher_id,storage_path,original_file_name,uploaded_at,line_index'),
   ])
-  return createArchiveRows({ pvs, cvs, invoices, jrs, proofs, transactions, v2docs, cvReceipts })
+  const rows=createArchiveRows({ pvs, cvs, invoices, jrs, proofs, transactions, v2docs, cvReceipts })
+  if(includeRecurring){
+    const {data,error}=await supabase.rpc('jims_recurring_documents_list_v1')
+    if(error)throw new Error('Recurring archive: '+error.message)
+    if(!Array.isArray(data?.documents))throw new Error('Recurring archive data invalid')
+    for(const d of data.documents){
+      const suffix=(d.original_filename||'file.pdf').split('.').pop()?.toLowerCase()||'pdf'
+      rows.push({
+        key:BUCKETS.recurring_supporting+'::'+d.storage_path,
+        bucket:BUCKETS.recurring_supporting,path:d.storage_path,
+        type:'recurring_supporting',
+        filename:cleanName(d.document_name,'Recurring Document')+'.'+suffix,
+        originalFilename:d.original_filename,reference:d.document_name,
+        branch:d.branch_code||'',supplier:d.supplier_name||'',
+        createdAt:d.confirmed_at||'',voucherId:''
+      })
+    }
+  }
+  return rows.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''))
 }
 
 async function authorizedDownload(row) {
@@ -156,6 +177,9 @@ function indexCsv(rows) {
 
 export default function FinanceDocumentArchive({ profile }) {
   const allowed = canAccessFinanceDocumentArchive(profile)
+  const fmOnly=profile?.is_active===true&&profile?.role==='manager'&&profile?.department==='Finance'
+  const recurringDocView=fmOnly||['ceo','bod','system_admin'].includes(profile?.role)||
+    (profile?.role==='executive'&&profile?.department==='Finance'&&profile?.subdepartment==='Accounts Payable')
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [working, setWorking] = useState(false)
@@ -168,6 +192,14 @@ export default function FinanceDocumentArchive({ profile }) {
   const [toDate, setToDate] = useState('')
   const [selected, setSelected] = useState([])
   const [page, setPage] = useState(0)
+  const [docName,setDocName]=useState('')
+  const [docSupplier,setDocSupplier]=useState('')
+  const [docBranch,setDocBranch]=useState('')
+  const [docFrom,setDocFrom]=useState('')
+  const [docTo,setDocTo]=useState('')
+  const [docFile,setDocFile]=useState(null)
+  const [docFileKey,setDocFileKey]=useState(0)
+  const [uploading,setUploading]=useState(false)
 
   const refresh = useCallback(async () => {
     if (!allowed) return
@@ -178,7 +210,7 @@ export default function FinanceDocumentArchive({ profile }) {
     setError('')
     setNotice('')
     try {
-      const result = await getArchiveData()
+      const result = await getArchiveData(recurringDocView)
       setRecords(result)
       setSelected([])
       setPage(0)
@@ -187,9 +219,47 @@ export default function FinanceDocumentArchive({ profile }) {
     } finally {
       setLoading(false)
     }
-  }, [allowed, profile?.id])
+  }, [allowed, profile?.id, recurringDocView])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  async function uploadRecurringSupport(event){
+    event.preventDefault()
+    if(!fmOnly||uploading||working)return
+    setNotice('');setError('')
+    const name=docName.trim()
+    const ext=docFile?.name.split('.').pop()?.toLowerCase()||''
+    if(name.length<3||name.length>120){setError('Document Name (3–120 characters) is mandatory.');return}
+    if(!docFile||!['pdf','png','jpg','jpeg','webp'].includes(ext)||
+      docFile.size===0||docFile.size>10485760){
+      setError('Select a PDF/image file (maximum 10 MB).');return
+    }
+    if(isMobileUploadBlocked()){setError(MOBILE_UPLOAD_NOTICE);return}
+    setUploading(true)
+    let prepared=null
+    try{
+      const {data:prep,error:pe}=await supabase.rpc('jims_recurring_document_prepare_v1',{
+        p_name:name,p_original_filename:docFile.name,p_supplier:docSupplier.trim(),
+        p_branch:docBranch||null,p_from:docFrom||null,p_to:docTo||null,p_ext:ext
+      })
+      if(pe)throw pe
+      if(!prep?.path||!prep?.id)throw new Error('Document upload token missing')
+      prepared=prep
+      const {error:se}=await supabase.storage.from('jauhar-recurring-supporting')
+        .upload(prep.path,docFile,{upsert:false,contentType:docFile.type||(
+          ext==='pdf'?'application/pdf':ext==='png'?'image/png':ext==='webp'?'image/webp':'image/jpeg')})
+      if(se)throw se
+      const {error:ce}=await supabase.rpc('jims_recurring_document_confirm_v1',{p_id:prep.id})
+      if(ce)throw ce
+      setDocName('');setDocSupplier('');setDocBranch('');setDocFrom('');setDocTo('')
+      setDocFile(null);setDocFileKey(k=>k+1)
+      await refresh()
+      setNotice('Recurring support document "'+name+'" saved in Finance Document Archive.')
+    }catch(err){
+      setError('Recurring document upload failed: '+(err.message||'Unknown error')+
+        (prepared?' (Prepared ID '+prepared.id+'). Do not assume it was registered.':''))
+    }finally{setUploading(false)}
+  }
 
   const branches = useMemo(() => [...new Set(records.map(r => r.branch).filter(Boolean))].sort(), [records])
   const filtered = useMemo(() => {
@@ -276,6 +346,46 @@ export default function FinanceDocumentArchive({ profile }) {
         <div><h2>Finance Document Archive</h2><p>Uploaded financial supporting documents</p></div>
         <button className="btn" type="button" disabled={loading || working} onClick={refresh}>{loading ? 'Loading...' : 'Refresh'}</button>
       </header>
+      {fmOnly&&<form className="jims-fa-recurring-upload" onSubmit={uploadRecurringSupport}>
+        <h3>Upload — Recurring Payment Supporting Documents</h3>
+        <p className="muted">A custom Document Name is required and controls the download filename.
+          The category does not default to any particular agreement type.</p>
+        <div className="jims-fa-recurring-fields">
+          <label>Document Name *
+            <input required minLength={3} maxLength={120} value={docName}
+              onChange={e=>setDocName(e.target.value)} placeholder="e.g. Service Agreement"/>
+          </label>
+          <label>Supplier (Optional)
+            <input maxLength={150} value={docSupplier}
+              onChange={e=>setDocSupplier(e.target.value)}/>
+          </label>
+          <label>Branch (Optional)
+            <select value={docBranch} onChange={e=>setDocBranch(e.target.value)}>
+              <option value="">All Branches</option>
+              <option value="GP">Gelang Patah</option>
+              <option value="KM">Kota Masai</option>
+              <option value="PM">Pulai Mutiara</option>
+              <option value="TD">Taman Daya</option>
+            </select>
+          </label>
+          <label>Valid From (Optional)
+            <input type="date" value={docFrom} onChange={e=>setDocFrom(e.target.value)}/>
+          </label>
+          <label>Valid Until (Optional)
+            <input type="date" value={docTo} min={docFrom||undefined}
+              onChange={e=>setDocTo(e.target.value)}/>
+          </label>
+          <label>Supporting File * (PDF/Image, max 10 MB)
+            <input key={docFileKey} required type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"
+              disabled={uploading||isMobileUploadBlocked()}
+              onChange={e=>setDocFile(e.target.files?.[0]||null)}/>
+          </label>
+        </div>
+        <button className="btn" type="submit" disabled={uploading||!docName.trim()||!docFile}>
+          {uploading?'Uploading...':'Upload Named Supporting Document'}
+        </button>
+        {isMobileUploadBlocked()&&<small>{MOBILE_UPLOAD_NOTICE}</small>}
+      </form>}
       <div className="jims-fa-stats">
         <div><span>Total Documents</span><strong>{records.length}</strong></div>
         <div><span>Selected Documents</span><strong>{selected.length}</strong></div>

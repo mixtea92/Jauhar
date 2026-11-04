@@ -63,10 +63,10 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
         <strong>{t.supplier_name} — {String(t.period_month).slice(0,7)}</strong>
         <small>{t.category_name} · Branch {t.branch_code} · Supplier Due {t.due_date}</small>
         <small>{t.amount_type==='fixed'?money(t.fixed_amount):'Variable: use actual monthly invoice'}</small>
-        <small>FM instruction only: AP must create a normal PV and upload the invoice.</small>
+        <small>FM instruction only: AP must complete required invoice or archive-linked supporting evidence in the PV.</small>
       </div>
       <div className="jims-recurring-actions">
-        <button className="btn" type="button" onClick={onPreparePV}>+ Prepare PV</button>
+        <button className="btn" type="button" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
         <input aria-label={'PV number for '+t.supplier_name} placeholder="Created PV number"
           maxLength={100} value={pvNumbers[t.id]||''} disabled={!!busy}
           onChange={e=>setPvNumbers(x=>({...x,[t.id]:e.target.value}))}/>

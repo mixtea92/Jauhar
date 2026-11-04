@@ -166,6 +166,12 @@ function App() {
   const [error, setError] = useState('')
   const [usersError, setUsersError] = useState('')
   const [activePage, setActivePage] = useState('dashboard')
+  const [recurringPrepareRequest,setRecurringPrepareRequest]=useState(null)
+  const prepareRecurringPV=taskId=>{
+    if(!taskId)return
+    setRecurringPrepareRequest({id:taskId,key:Date.now()})
+    setActivePage('payment_voucher')
+  }
   // JIMS_STEP57C8B_REPORT_GENERATION: shared report center, same role checks.
   const [jimsOwnerExportAllowed,setJimsOwnerExportAllowed] = useState(false)
   useEffect(()=>{
@@ -387,6 +393,7 @@ function App() {
     setResetUser(null)
     setFinanceOpen(true)
     setActivePage('dashboard')
+    setRecurringPrepareRequest(null)
     setUsername('')
     setPassword('')
     setError('')
@@ -751,7 +758,7 @@ function App() {
           ) : activePage === 'payment_calendar' ? (
               jimsCalendarEligible(profile) ? (
                 <JIMSPaymentCalendar57D5 profile={profile}
-                   onPreparePV={()=>setActivePage('payment_voucher')} />
+                   onPreparePV={prepareRecurringPV} />
               ) : (
                 <section className="panel" role="alert">
                   <h2>Access Restricted</h2>
@@ -761,10 +768,12 @@ function App() {
             ) : activePage === 'payment_voucher' ? (
             <PaymentVoucher key="pv-approval-route" profile={profile}
               dashboardSection="approval" openRequest={voucherOpenRequest}
-              onOpenRequestHandled={() => setVoucherOpenRequest(null)} />
+              onOpenRequestHandled={() => setVoucherOpenRequest(null)}
+              recurringTaskRequest={recurringPrepareRequest}
+              onRecurringTaskHandled={()=>setRecurringPrepareRequest(null)} />
           ) : activePage === 'payment_process' ? (
             <PaymentVoucher key="pv-payment-route" profile={profile}
-              dashboardSection="payment" />
+              dashboardSection="payment" onPrepareRecurringTask={prepareRecurringPV} />
           ) : activePage === 'delegation_workspace' ? (
             <DelegationWorkspace profile={profile}
               onGoPaymentVoucher={() => setActivePage('payment_voucher')}

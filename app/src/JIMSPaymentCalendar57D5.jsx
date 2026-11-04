@@ -245,7 +245,7 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
     </div>
     {apOnly&&t.source==='task'&&t.status==='pending_ap'&&
       <div className="jims-cal-recurring-actions">
-        <button type="button" className="btn" onClick={onPreparePV}>+ Prepare PV</button>
+        <button type="button" className="btn" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
         <label>Link Created PV
           <input type="text" placeholder="PV Number" maxLength={100}
             value={recurringPvNumbers[t.id]||''} disabled={!!recurringLinkBusy}

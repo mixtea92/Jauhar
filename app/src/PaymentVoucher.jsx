@@ -4,6 +4,7 @@ import JIMSInvoiceDetailsPanel from './JIMSInvoiceDetailsPanel'
 import JIMSDraftPaymentDates from './JIMSDraftPaymentDates'
 import JIMSPVPlanningSummary from './JIMSPVPlanningSummary'
 import JIMSPaymentPlanning57D3 from './JIMSPaymentPlanning57D3'
+import JIMSRecurringPVSupport from './JIMSRecurringPVSupport'
 // JAUHAR_STEP_46_DELEGATION_HANDOVER_ALL
 // JAUHAR_STEP_45_PAYMENT_TRACKING_COMPLETE
 // JAUHAR_STEP_44F_ALL_NINE_CROSSDEPARTMENT
@@ -448,7 +449,9 @@ function ChoiceField({ label, name, value, onChange, options }) {
   )
 }
 
-export default function PaymentVoucher({ profile, openRequest = null, onOpenRequestHandled, reviewMode = "normal", onReviewClose, dashboardSection = "approval" }) {
+export default function PaymentVoucher({ profile, openRequest = null, onOpenRequestHandled,
+  reviewMode = "normal", onReviewClose, dashboardSection = "approval",
+  recurringTaskRequest=null,onRecurringTaskHandled,onPrepareRecurringTask }) {
   const mobileUploadsBlocked = isMobileUploadBlocked()
   const canCreate = profile?.role === 'executive'
   const canManage = profile?.role === 'manager'
@@ -481,6 +484,7 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [dashboardLoading, setDashboardLoading] = useState(false)
   const [dashboardError, setDashboardError] = useState('')
   const [form, setForm] = useState(blankForm)
+  const [recurringContext,setRecurringContext]=useState(null)
   const [vouchers, setVouchers] = useState([])
   const [loading, setLoading] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -1392,10 +1396,19 @@ async function uploadInvoice(line, file) {
     if (jrPilot && !jrDocuments.length) {
       setSubmitMessage('Upload and register a JR PDF before submission.');return
     }
-    if (!viewLines.length || !viewLines.every(line =>
+    if (!viewLines.length) {
+      setSubmitMessage('At least one PV line is required.');return
+    }
+    if (!viewLines.every(line =>
       invoiceDocuments.some(doc => doc.line_item_id === line.id))) {
-      setSubmitMessage('Upload one registered invoice PDF/image for every invoice before submitting.')
-      return
+      // The server authorizes this exception ONLY for one-line recurring PVs
+      // with an actual, registered, in-date supporting document in Finance Archive.
+      const {data:validSupport,error:supportError}=await supabase.rpc(
+        'jims_recurring_has_valid_supporting_v1',{p_voucher_id:voucher.id})
+      if(supportError||validSupport!==true){
+        setSubmitMessage('Upload a registered invoice for each line, or link a valid FM-approved Recurring Payment Supporting Document.')
+        return
+      }
     }
     if (invoiceBreakdownLoading || invoiceDetailsDirty) {
       setSubmitMessage('Complete and save Invoice Details before submitting.')
@@ -2128,6 +2141,7 @@ async function uploadInvoice(line, file) {
 
   function clearForm() {
     setForm(blankForm())
+    setRecurringContext(null)
     setEditPaymentDatesLocked(false)
     setEditingVoucher(null)
     setError('')
@@ -2163,6 +2177,62 @@ async function uploadInvoice(line, file) {
     setWorkspaceMode(nextMode)
     return true
   }
+
+  // Open a server-verified FM recurring preset in the unchanged PV draft form.
+  async function openRecurringTask(taskId){
+    if(!canRaisePV||!canEditPlanningDates){
+      setError('Only the assigned AP Executive can prepare a recurring PV.');return
+    }
+    try{
+      const {data:task,error:e}=await supabase.rpc('jims_recurring_ap_prepare_v1',{p_task_id:taskId})
+      if(e)throw e
+      if(task?.status!=='pending_ap'){
+        throw new Error('This recurring task already has a PV or is unavailable. Check its linked PV first.')
+      }
+      if(task.document_requirement==='recurring_supporting'&&!task.supporting_document_valid){
+        throw new Error('The FM supporting document is missing or expired. FM must update it in Finance Document Archive.')
+      }
+      if(!changeMode('new'))return
+      const preset=task.pv_preset||{}
+      const lead=Math.min(28,Math.max(0,Number(preset.payment_lead_days??1)||0))
+      const due=task.due_date
+      const proposed=new Date(Date.parse(due+'T00:00:00Z')-lead*86400000)
+        .toISOString().slice(0,10)
+      const fromArchive=task.document_requirement==='recurring_supporting'
+      const first={
+        invoice_reference:fromArchive?task.reference_no:'',
+        description:preset.line_description||('Recurring '+task.category_name+' — '+String(task.period_month).slice(0,7)),
+        gl_code:preset.gl_code||'',
+        amount:task.amount_type==='fixed'?String(task.fixed_amount):''
+      }
+      setForm({
+        ...blankForm(),
+        payee_name:task.supplier_name,branch_department:task.branch_code,
+        supplier_code:preset.supplier_code||'',supplier_tin:preset.supplier_tin||'',
+        bank_name:preset.bank_name||'',bank_account_no:preset.bank_account_no||'',
+        payment_method:preset.payment_method||'',payment_type:preset.payment_type||'',
+        expense_nature:preset.expense_nature||'Recurring',
+        budget_classification:preset.budget_classification||'',
+        financial_tier:preset.financial_tier||'',
+        due_date:due,proposed_payment_date:proposed,
+        lines:[first,...blankLines().slice(1)],
+        supporting_types:fromArchive?['Other']:['Invoice'],
+        supporting_other_text:fromArchive
+          ?'Recurring Payment Supporting Documents: '+task.supporting_document_name:'',
+        remarks:'Recurring '+task.category_name+' — '+String(task.period_month).slice(0,7)
+      })
+      setRecurringContext(task)
+      setImportNote('FM recurring preset auto-filled. Review all PV details. '+
+        (fromArchive?'Archived document: '+task.supporting_document_name+'. ':
+        'Upload this month’s invoice in the usual PV section after saving. ')+
+        'Save Draft automatically links this PV to the recurring task.')
+    }catch(e){setError(e?.message||'Recurring preset could not be loaded')}
+  }
+  useEffect(()=>{
+    if(!recurringTaskRequest?.id)return
+    void openRecurringTask(recurringTaskRequest.id)
+    onRecurringTaskHandled?.()
+  },[recurringTaskRequest?.key])
 
   // Step 46G: open the selected PV directly from Delegation Workspace.
   // Actual approval is still performed only by the existing secure PV RPCs.
@@ -2478,7 +2548,7 @@ async function uploadInvoice(line, file) {
         return // Prevent the create_v2 call below from generating a duplicate.
       }
 
-      const { data, error: saveError } = await supabase.rpc('create_pv_draft_v6', {
+      const draftArgs = {
         p_financial_tier: form.financial_tier,
         p_template_version: form.template_version,
         p_payee_name: form.payee_name.trim(),
@@ -2503,18 +2573,28 @@ async function uploadInvoice(line, file) {
         p_supporting_other_text: form.supporting_other_text.trim() || null,
         p_source_voucher_no: form.source_voucher_no.trim() || null,
         p_source_pv_date: form.source_pv_date || null
-      })
+      }
+      const draftResponse = recurringContext
+        ? await supabase.rpc('jims_recurring_ap_create_pv_draft_v1',{
+          p_task_id:recurringContext.task_id,
+          p_form:Object.fromEntries(
+            Object.entries(draftArgs).map(([name,value])=>[name.slice(2),value]))
+        })
+        : await supabase.rpc('create_pv_draft_v6',draftArgs)
+      const {data,error:saveError}=draftResponse
       if (saveError) throw saveError
       if (!data?.pv_number || data.financial_tier !== form.financial_tier ||
           data.source_template_version !== form.template_version) {
         throw new Error('PV save and financial tier/template metadata could not be confirmed. Check Existing Drafts before retrying to avoid duplicates.')
       }
       const planningError = await persistDraftPaymentDates(data.id)
-      setSuccess(`${data.pv_number} saved as Draft (${money(data.amount)}).`)
+      setSuccess(`${data.pv_number} saved as Draft (${money(data.amount)})`+
+        (recurringContext?' — recurring task auto-linked.':'.'))
       if (planningError) setError('Draft was created, but Payment Planning dates were NOT saved: ' +
         planningError + '. Open this existing Draft to complete the dates; do not create a second PV.')
       setEditPaymentDatesLocked(false)
       setForm(blankForm())
+      setRecurringContext(null)
       setImportNote('')
       setListCategory('draft')
       setListStage('all')
@@ -2560,7 +2640,8 @@ async function uploadInvoice(line, file) {
       {workspaceMode === 'home' && paymentLanding &&
         profile?.is_active===true && profile?.role==='executive' &&
         profile?.department==='Finance' && profile?.subdepartment==='Accounts Payable' && (
-          <JIMSRecurringAPTasks profile={profile} onPreparePV={()=>changeMode('new')} />
+          <JIMSRecurringAPTasks profile={profile}
+            onPreparePV={taskId=>onPrepareRecurringTask?.(taskId)} />
       )}
       {workspaceMode === 'home' && paymentLanding && (
         <JIMSPaymentProcessBoard
@@ -2690,7 +2771,17 @@ async function uploadInvoice(line, file) {
           <h2>{editingVoucher
             ? `Edit Payment Voucher — ${editingVoucher.pv_number}`
             : 'New Payment Voucher'}</h2>
-          <p className="muted">New PV: fill the form manually, or upload the official Excel for auto-fill. Both options use the same validation and approval workflow.</p>
+          <p className="muted">New PV: manual entry, Excel import or FM recurring preset. All use the same financial tier and approval rules.</p>
+          {recurringContext&&<div className="pv-notice" role="status">
+            <strong>FM Recurring PV — Auto-fill Active</strong>
+            <p>Supplier {recurringContext.supplier_name} · {recurringContext.category_name} ·
+              Supplier Due {recurringContext.due_date}. Save Draft will auto-link to this monthly instruction.</p>
+            <p>{recurringContext.document_requirement==='recurring_supporting'
+              ?'Archived Supporting Document: '+recurringContext.supporting_document_name+
+                '. This is not an invoice, and will be reviewed as the recurring supporting evidence.'
+              :'Monthly invoice required: upload this month’s actual bill using the existing Invoice Details upload after saving Draft.'}</p>
+            <p>FM preset values can be reviewed. The recurring supplier, branch and fixed amount are validated again by the backend.</p>
+          </div>}
           {workspaceMode === 'new' ? (
             <>
               <div className="pv-section">OFFICIAL JAUHAR EXCEL TEMPLATE</div>
@@ -2706,7 +2797,7 @@ async function uploadInvoice(line, file) {
               <div className="pv-field">
                 <label htmlFor="pv-import">Upload Completed Official PV Excel (.xlsx) — Optional</label>
                 <input id="pv-import" type="file" accept=".xlsx"
-                  disabled={mobileUploadsBlocked || importing || loading} onChange={handleExcelImport} />
+                  disabled={Boolean(recurringContext) || mobileUploadsBlocked || importing || loading} onChange={handleExcelImport} />
                 {mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}
               </div>
               <p className="muted">
@@ -3336,6 +3427,7 @@ async function uploadInvoice(line, file) {
               </table>
             </div>
 
+            <JIMSRecurringPVSupport voucherId={viewingVoucher.id} />
             {canSeePVPlanning && <JIMSPVPlanningSummary
               data={viewPlanningDates} loading={viewPlanningLoading}
               error={viewPlanningError}

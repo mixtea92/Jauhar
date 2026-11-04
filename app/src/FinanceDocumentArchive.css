@@ -38,3 +38,11 @@
 .jims-archive-nav::before { content:none !important; display:none !important; }
 .jims-archive-nav .jims-archive-nav-icon { display:block; width:19px; height:19px; flex:0 0 19px; color:var(--jims-gold,#c8a764); }
 .jims-archive-nav .jims-archive-nav-label { min-width:0; text-align:left; }
+
+.jims-fa-recurring-upload{border:1px solid rgba(180,147,77,.4);border-radius:12px;padding:16px;margin:0 0 20px;display:grid;gap:12px}
+.jims-fa-recurring-upload h3{font-size:16px;margin:0}
+.jims-fa-recurring-upload p{margin:0}
+.jims-fa-recurring-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:12px}
+.jims-fa-recurring-fields label{display:grid;gap:6px;font-size:12px}
+.jims-fa-recurring-fields input,.jims-fa-recurring-fields select{width:100%;padding:10px;border:1px solid rgba(180,160,110,.35);border-radius:8px;background:var(--surface-1,#252525);color:inherit;box-sizing:border-box}
+.jims-fa-recurring-upload .btn{justify-self:start}

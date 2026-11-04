@@ -22,3 +22,7 @@
 .jims-recurring-card .muted{font-size:12px}
 .jims-recurring-actions button:disabled{opacity:.5}
 @media(max-width:740px){.jims-recurring-columns{grid-template-columns:1fr}.jims-recurring-item{align-items:flex-start;flex-wrap:wrap}}
+
+.jims-recurring-preset{border-top:1px solid rgba(190,158,85,.35);padding:15px 0;display:grid;gap:12px}
+.jims-recurring-preset h3{font-size:15px;margin:0}
+.jims-recurring-preset>p{margin:0}
