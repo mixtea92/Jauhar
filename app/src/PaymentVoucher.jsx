@@ -23,6 +23,7 @@ import PVDelegationHistory from './PVDelegationHistory'
 import JRPanel from './jr/JRPanel'
 import PaymentTrackingPanel from './payment/PaymentTrackingPanel'
 import JIMSPaymentProcessBoard from './JIMSPaymentProcessBoard'
+import JIMSRecurringAPTasks from './JIMSRecurringAPTasks'
 import JIMSV2FinanceManagerQueue from './JIMSV2FinanceManagerQueue'
 import JIMSPaymentCompletionQueue from './JIMSPaymentCompletionQueue'
 // JAUHAR_STEP_46D_SEPARATE_DELEGATION_MENU
@@ -2556,6 +2557,11 @@ async function uploadInvoice(line, file) {
       {/* 51UI payment-only dashboard; no new RPC, payment state or approval behaviour. */}
       {/* JIMS_STEP_57B9_UNIFIED_PAYMENT_PROCESS:
           Pending Payment -> Full/Partial status -> one Payment History LAST. */}
+      {workspaceMode === 'home' && paymentLanding &&
+        profile?.is_active===true && profile?.role==='executive' &&
+        profile?.department==='Finance' && profile?.subdepartment==='Accounts Payable' && (
+          <JIMSRecurringAPTasks profile={profile} onPreparePV={()=>changeMode('new')} />
+      )}
       {workspaceMode === 'home' && paymentLanding && (
         <JIMSPaymentProcessBoard
           profile={profile}

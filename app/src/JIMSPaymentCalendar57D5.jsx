@@ -4,6 +4,8 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
 import {supabase} from './lib/supabase'
 import JIMSPaymentPlanning57D3 from './JIMSPaymentPlanning57D3'
+import JIMSRecurringPaymentFM from './JIMSRecurringPaymentFM'
+import {isFinanceManagerActual} from './lib/jimsFmPartialApprovalQueue'
 import './JIMSPaymentCalendar57D5.css'
 
 const amount=n=>'RM '+Number(n||0).toLocaleString('en-MY',{
@@ -36,6 +38,8 @@ const statusText={upcoming:'Upcoming',due_today:'Due Today',overdue:'Overdue',
 function sumCents(rows){return rows.reduce((n,r)=>n+Math.round(Number(r.outstanding_amount||0)*100),0)/100}
 
 export default function JIMSPaymentCalendar57D5({profile}){
+  const fmOnly=isFinanceManagerActual(profile)
+  const [workspaceTab,setWorkspaceTab]=useState('calendar')
   const [feed,setFeed]=useState(null)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
@@ -156,6 +160,13 @@ export default function JIMSPaymentCalendar57D5({profile}){
     </button>
   </div>
   return <section className="panel jims-cal-page" aria-label="Payment Calendar">
+    {fmOnly&&<nav className="jims-recurring-tabs" role="group" aria-label="Finance Manager payment workspace" style={{marginBottom:16}}>
+      <button type="button" className={workspaceTab==='calendar'?'selected':''}
+        aria-pressed={workspaceTab==='calendar'} onClick={()=>setWorkspaceTab('calendar')}>Payment Calendar</button>
+      <button type="button" className={workspaceTab==='recurring'?'selected':''}
+        aria-pressed={workspaceTab==='recurring'} onClick={()=>setWorkspaceTab('recurring')}>Recurring Payment</button>
+    </nav>}
+    {fmOnly&&workspaceTab==='recurring'?<JIMSRecurringPaymentFM profile={profile}/>:<>
     <header className="jims-cal-header">
       <div><h2>Payment Calendar</h2>
         
@@ -278,5 +289,6 @@ export default function JIMSPaymentCalendar57D5({profile}){
       voucher={selectedPV} profile={profile}
       transactions={selectedPV.transactions||[]}
       onClose={closePlanning}/>}
+    </>}
   </section>
 }

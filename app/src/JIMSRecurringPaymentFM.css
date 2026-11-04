@@ -1,0 +1,24 @@
+.jims-recurring{display:grid;gap:16px;color:inherit}
+.jims-recurring-top,.jims-recurring-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.jims-recurring-top h2,.jims-recurring-title h3{margin:0}
+.jims-recurring-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid rgba(184,157,88,.27);padding-bottom:10px}
+.jims-recurring-tabs button{background:transparent;color:inherit;border:1px solid rgba(180,160,110,.27);border-radius:8px;padding:10px 14px;cursor:pointer}
+.jims-recurring-tabs button.selected{background:rgba(180,143,65,.18);border-color:#b89a55;color:#e9c778}
+.jims-recurring-columns{display:grid;grid-template-columns:minmax(240px,1fr) minmax(300px,1.4fr);gap:14px}
+.jims-recurring-card{background:rgba(120,117,101,.06);border:1px solid rgba(170,155,100,.22);border-radius:11px;padding:16px;display:grid;gap:13px}
+.jims-recurring-card h3{margin:0}
+.jims-recurring-card label{display:grid;gap:5px;font-size:13px}
+.jims-recurring-card input:not([type=checkbox]),.jims-recurring-card select,.jims-recurring-card textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid rgba(150,151,151,.42);border-radius:7px;padding:10px;color:inherit;background:var(--surface-1,#242425);font:inherit}
+.jims-recurring-card select option{background:#242425;color:white}
+.jims-recurring-card .jims-recurring-check{display:flex;gap:8px;align-items:center}
+.jims-recurring-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.jims-recurring-wide{grid-column:1/-1}
+.jims-recurring-item{display:flex;justify-content:space-between;gap:14px;align-items:center;border-top:1px solid rgba(150,150,150,.2);padding:12px 0}
+.jims-recurring-description,.jims-recurring-item>div:first-child{display:grid;gap:4px;min-width:0}
+.jims-recurring-item small{display:block;color:var(--muted,#a8a8aa);overflow-wrap:anywhere}
+.jims-recurring-actions{display:flex;flex-wrap:wrap;gap:7px}
+.jims-recurring-actions button{border:1px solid rgba(180,160,110,.3);background:transparent;color:inherit;border-radius:7px;padding:7px 10px;cursor:pointer}
+.jims-recurring-tag{border:1px solid rgba(170,155,100,.3);border-radius:99px;padding:6px 10px;font-size:12px;white-space:nowrap}
+.jims-recurring-card .muted{font-size:12px}
+.jims-recurring-actions button:disabled{opacity:.5}
+@media(max-width:740px){.jims-recurring-columns{grid-template-columns:1fr}.jims-recurring-item{align-items:flex-start;flex-wrap:wrap}}
