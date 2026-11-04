@@ -10,10 +10,7 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
     profile?.department==='Finance'&&profile?.subdepartment==='Accounts Payable'
   const [tasks,setTasks]=useState([])
   const [loading,setLoading]=useState(false)
-  const [busy,setBusy]=useState('')
   const [error,setError]=useState('')
-  const [notice,setNotice]=useState('')
-  const [pvNumbers,setPvNumbers]=useState({})
   const reload=useCallback(async()=>{
     if(!eligible)return
     setLoading(true)
@@ -28,20 +25,6 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
   useEffect(()=>{void reload()},[reload])
   if(!eligible)return null
 
-  async function link(task){
-    const pvNumber=(pvNumbers[task.id]||'').trim()
-    if(!pvNumber){setError('Enter your created PV number before linking.');return}
-    setBusy(task.id);setError('');setNotice('')
-    try{
-      const {error:e}=await supabase.rpc('jims_recurring_ap_link_pv_v1',{
-        p_task_id:task.id,p_pv_number:pvNumber
-      })
-      if(e)throw e
-      await reload()
-      setNotice('Recurring task linked to your Payment Voucher. Normal PV approval still applies.')
-    }catch(e){setError(e?.message||'Could not link Payment Voucher')}
-    finally{setBusy('')}
-  }
   const pending=tasks.filter(t=>t.status==='pending_ap')
   const linked=tasks.filter(t=>t.status==='pv_linked')
   if(!loading&&!error&&tasks.length===0)return null
@@ -51,13 +34,13 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
         <h3>Recurring Payment Tasks from FM</h3>
         <p className="muted">AP can prepare and link PVs, but cannot manage FM recurring categories or instructions.</p>
       </div>
-      <button className="btn" type="button" onClick={reload} disabled={loading||!!busy}>
+      <button className="btn" type="button" onClick={reload} disabled={loading}>
         {loading?'Loading...':'Refresh Tasks'}
       </button>
     </div>
     {error&&<p className="error" role="alert">{error}</p>}
-    {notice&&<p className="pv-notice" role="status">{notice}</p>}
-    <p className="muted">{pending.length} Pending AP · {linked.length} Linked PV</p>
+    <p className="muted">{pending.length} Assigned FM Request(s) · {linked.length} Created PV(s).
+      Use Edit Recurring Details to complete the request; Save Draft auto-links the PV.</p>
     {pending.map(t=><div className="jims-recurring-item" key={t.id}>
       <div className="jims-recurring-description">
         <strong>{t.supplier_name} — {String(t.period_month).slice(0,7)}</strong>
@@ -67,12 +50,6 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
       </div>
       <div className="jims-recurring-actions">
         <button className="btn" type="button" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
-        <input aria-label={'PV number for '+t.supplier_name} placeholder="Created PV number"
-          maxLength={100} value={pvNumbers[t.id]||''} disabled={!!busy}
-          onChange={e=>setPvNumbers(x=>({...x,[t.id]:e.target.value}))}/>
-        <button className="btn" type="button" disabled={!!busy} onClick={()=>link(t)}>
-          {busy===t.id?'Linking...':'Link Created PV'}
-        </button>
       </div>
     </div>)}
     {linked.length>0&&<details>

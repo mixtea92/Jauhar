@@ -337,6 +337,8 @@ export default function JIMSRecurringPaymentFM({profile}){
             <strong>{i.supplier_name}</strong>
             <small>{data.categories.find(c=>c.id===i.category_id)?.name||'Category'} · {branches[i.branch_code]||i.branch_code} · {i.amount_type==='fixed'?money(i.fixed_amount):'Variable bill'}</small>
             <small>Due day {i.due_day} · From {String(i.start_month).slice(0,7)} · AP: {apName(i.assigned_ap_id)} · {i.status.toUpperCase()}</small>
+            <small>{i.ap_last_edited_at?'AP details completed / edited '+String(i.ap_last_edited_at).slice(0,10):'Awaiting AP details'}
+              {i.supporting_document_id?' · Optional supporting file attached':' · No recurring supporting file (optional)'}</small>
           </div>
           <div className="jims-recurring-actions">
             <button type="button" onClick={()=>editInstruction(i)} disabled={busy}>Edit</button>

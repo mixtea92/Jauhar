@@ -238,6 +238,26 @@ function App() {
   }, [profile?.role, profile?.department, profile?.is_active,
       activePage, refreshMyApprovalBadge])
 
+  // Separate FM recurring request notification; PV/payment counters stay unchanged.
+  const [apRecurringCount,setApRecurringCount]=useState(0)
+  useEffect(()=>{
+    const ap=profile?.is_active===true&&profile.role==='executive'&&
+      profile.department==='Finance'&&profile.subdepartment==='Accounts Payable'
+    if(!ap){setApRecurringCount(0);return}
+    let alive=true
+    const refresh=async()=>{
+      try{
+        const {data,error}=await supabase.rpc('jims_recurring_ap_tasks_v1')
+        if(alive)setApRecurringCount(!error&&Array.isArray(data?.tasks)
+          ?data.tasks.filter(t=>t.status==='pending_ap').length:0)
+      }catch{if(alive)setApRecurringCount(0)}
+    }
+    void refresh()
+    const onFocus=()=>void refresh()
+    const interval=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh()},60000)
+    window.addEventListener('focus',onFocus)
+    return()=>{alive=false;window.clearInterval(interval);window.removeEventListener('focus',onFocus)}
+  },[profile?.id,profile?.role,profile?.department,profile?.subdepartment,profile?.is_active,activePage])
   const [jimsActionCounts,setJimsActionCounts] = useState({pv:undefined,payment:undefined,cv:undefined})
   const [financeOpen, setFinanceOpen] = useState(true)
   const [delegationOpen, setDelegationOpen] = useState(false)
@@ -527,6 +547,11 @@ function App() {
                     setResetUser(null)
                   }}>
                   Payment Calendar
+                  {apRecurringCount>0&&<span className="jims-nav-notification"
+                    aria-label={apRecurringCount+' assigned recurring requests'}
+                    title={apRecurringCount+' FM recurring tasks for your action'}>
+                    {apRecurringCount>99?'99+':apRecurringCount}
+                  </span>}
                 </button>
               )}
               {jimsAPModuleAccess(profile) && (

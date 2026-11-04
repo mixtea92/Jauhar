@@ -50,8 +50,6 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
   const [recurringLoading,setRecurringLoading]=useState(false)
   const [recurringError,setRecurringError]=useState('')
   const [recurringNotice,setRecurringNotice]=useState('')
-  const [recurringPvNumbers,setRecurringPvNumbers]=useState({})
-  const [recurringLinkBusy,setRecurringLinkBusy]=useState('')
   const [showRecurringOverdue,setShowRecurringOverdue]=useState(true)
   const [feed,setFeed]=useState(null)
   const [loading,setLoading]=useState(true)
@@ -200,21 +198,6 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
   const openPlanning=record=>setSelectedPV(record)
   const closePlanning=()=>{setSelectedPV(null);reload()}
   const openCalendarTab=()=>{setWorkspaceTab('calendar');reload()}
-  async function linkRecurringPV(task){
-    if(!apOnly||task.status!=='pending_ap'||task.source!=='task')return
-    const pvNumber=String(recurringPvNumbers[task.id]||'').trim()
-    if(!pvNumber){setRecurringError('Enter the PV number after creating the voucher.');return}
-    setRecurringLinkBusy(task.id);setRecurringError('');setRecurringNotice('')
-    try{
-      const {error:e}=await supabase.rpc('jims_recurring_ap_link_pv_v1',{
-        p_task_id:task.id,p_pv_number:pvNumber
-      })
-      if(e)throw e
-      setRecurringNotice('PV linked to recurring task. Normal PV approval and payment workflow continue.')
-      reload()
-    }catch(e){setRecurringError(e?.message||'Could not link the PV')}
-    finally{setRecurringLinkBusy('')}
-  }
   const recurringLabel=t=>t.source==='projection'?'Scheduled (Forecast)':
     t.status==='pending_ap'?(t.due_date<today?'Overdue Task':'Pending AP'):
     t.status==='pv_linked'?'PV Created':'Inactive'
@@ -246,15 +229,6 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
     {apOnly&&t.source==='task'&&t.status==='pending_ap'&&
       <div className="jims-cal-recurring-actions">
         <button type="button" className="btn" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
-        <label>Link Created PV
-          <input type="text" placeholder="PV Number" maxLength={100}
-            value={recurringPvNumbers[t.id]||''} disabled={!!recurringLinkBusy}
-            onChange={e=>setRecurringPvNumbers(p=>({...p,[t.id]:e.target.value}))}/>
-        </label>
-        <button type="button" className="btn" disabled={!!recurringLinkBusy}
-          onClick={()=>linkRecurringPV(t)}>
-          {recurringLinkBusy===t.id?'Linking...':'Link PV'}
-        </button>
       </div>}
   </div>
   const countStatus=(rows)=>rows.length+' PV'
