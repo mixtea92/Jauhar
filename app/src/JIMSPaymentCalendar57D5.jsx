@@ -5,6 +5,7 @@ import {useCallback,useEffect,useMemo,useState} from 'react'
 import {supabase} from './lib/supabase'
 import JIMSPaymentPlanning57D3 from './JIMSPaymentPlanning57D3'
 import JIMSRecurringPaymentFM from './JIMSRecurringPaymentFM'
+import JIMSRecurringAPDetails from './JIMSRecurringAPDetails'
 import {isFinanceManagerActual} from './lib/jimsFmPartialApprovalQueue'
 import './JIMSPaymentCalendar57D5.css'
 
@@ -50,6 +51,7 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
   const [recurringLoading,setRecurringLoading]=useState(false)
   const [recurringError,setRecurringError]=useState('')
   const [recurringNotice,setRecurringNotice]=useState('')
+  const [editingRecurringTaskId,setEditingRecurringTaskId]=useState(null)
   const [showRecurringOverdue,setShowRecurringOverdue]=useState(true)
   const [feed,setFeed]=useState(null)
   const [loading,setLoading]=useState(true)
@@ -228,6 +230,7 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
     </div>
     {apOnly&&t.source==='task'&&t.status==='pending_ap'&&
       <div className="jims-cal-recurring-actions">
+        <button type="button" className="btn" onClick={()=>setEditingRecurringTaskId(t.id)}>Edit Recurring Details</button>
         <button type="button" className="btn" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
       </div>}
   </div>
@@ -410,6 +413,8 @@ export default function JIMSPaymentCalendar57D5({profile,onPreparePV}){
       </details>
       <p className="jims-cal-footnote">PV payment figures use Supplier Due Date and exclude recurring task amounts. Forecasts are informational; recurring tasks never create, approve or pay a PV automatically.</p>
     </>}
+    {editingRecurringTaskId&&<JIMSRecurringAPDetails taskId={editingRecurringTaskId}
+      onSaved={()=>reload()} onClose={()=>setEditingRecurringTaskId(null)}/>}
     {selectedPV&&<JIMSPaymentPlanning57D3
       voucher={selectedPV} profile={profile}
       transactions={selectedPV.transactions||[]}

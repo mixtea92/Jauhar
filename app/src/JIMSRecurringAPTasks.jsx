@@ -3,6 +3,7 @@
 import {useCallback,useEffect,useState} from 'react'
 import {supabase} from './lib/supabase'
 import './JIMSRecurringPaymentFM.css'
+import JIMSRecurringAPDetails from './JIMSRecurringAPDetails'
 
 const money=value=>'RM '+Number(value||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})
 export default function JIMSRecurringAPTasks({profile,onPreparePV}){
@@ -11,6 +12,7 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
   const [tasks,setTasks]=useState([])
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState('')
+  const [editingTaskId,setEditingTaskId]=useState(null)
   const reload=useCallback(async()=>{
     if(!eligible)return
     setLoading(true)
@@ -32,7 +34,7 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
     <div className="jims-recurring-top">
       <div>
         <h3>Recurring Payment Tasks from FM</h3>
-        <p className="muted">AP can prepare and link PVs, but cannot manage FM recurring categories or instructions.</p>
+        <p className="muted">AP can edit details and optionally upload a supporting document, but cannot delete or cancel FM requests.</p>
       </div>
       <button className="btn" type="button" onClick={reload} disabled={loading}>
         {loading?'Loading...':'Refresh Tasks'}
@@ -46,9 +48,10 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
         <strong>{t.supplier_name} — {String(t.period_month).slice(0,7)}</strong>
         <small>{t.category_name} · Branch {t.branch_code} · Supplier Due {t.due_date}</small>
         <small>{t.amount_type==='fixed'?money(t.fixed_amount):'Variable: use actual monthly invoice'}</small>
-        <small>FM instruction only: AP must complete required invoice or archive-linked supporting evidence in the PV.</small>
+        <small>Recurring supporting PDF is optional here. PV submission still requires valid financial evidence.</small>
       </div>
       <div className="jims-recurring-actions">
+        <button className="btn" type="button" onClick={()=>setEditingTaskId(t.id)}>Edit Recurring Details</button>
         <button className="btn" type="button" onClick={()=>onPreparePV?.(t.id)}>+ Prepare PV (Auto-fill)</button>
       </div>
     </div>)}
@@ -61,5 +64,7 @@ export default function JIMSRecurringAPTasks({profile,onPreparePV}){
         </div>
       </div>)}
     </details>}
+    {editingTaskId&&<JIMSRecurringAPDetails taskId={editingTaskId}
+      onSaved={()=>{void reload()}} onClose={()=>setEditingTaskId(null)}/>}
   </section>
 }

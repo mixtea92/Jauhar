@@ -21,7 +21,6 @@ const dateText=date=>date?String(date).slice(0,10).split('-').reverse().join('/'
 export default function JIMSRecurringPaymentFM({profile}){
   const allowed=isFinanceManagerActual(profile)
   const [data,setData]=useState({categories:[],instructions:[],tasks:[],ap_users:[]})
-  const [documents,setDocuments]=useState([])
   const [loading,setLoading]=useState(true)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
@@ -36,13 +35,8 @@ export default function JIMSRecurringPaymentFM({profile}){
     if(!allowed)return
     setLoading(true)
     try{
-      const [{data:result,error:e},{data:docs,error:de}]=await Promise.all([
-        supabase.rpc('jims_recurring_fm_dashboard_v1'),
-        supabase.rpc('jims_recurring_documents_list_v1')
-      ])
-      if(e||de)throw e||de
-      if(!Array.isArray(docs?.documents))throw new Error('Recurring document list incomplete')
-      setDocuments(docs.documents)
+      const {data:result,error:e}=await supabase.rpc('jims_recurring_fm_dashboard_v1')
+      if(e)throw e
       if(!Array.isArray(result?.categories)||!Array.isArray(result?.instructions)||
          !Array.isArray(result?.tasks)||!Array.isArray(result?.ap_users)){
         throw new Error('Recurring Payment dataset incomplete')
@@ -266,59 +260,10 @@ export default function JIMSRecurringPaymentFM({profile}){
               <option value="paused">Paused — stop future submissions</option>
             </select>
           </label>
-          <label className="jims-recurring-wide">Supporting Document Requirement *
-            <select value={form.docRequirement} disabled={busy}
-              onChange={e=>setForm(f=>({...f,docRequirement:e.target.value}))}>
-              <option value="monthly_invoice">Monthly Bill / Invoice — AP uploads monthly document</option>
-              <option value="recurring_supporting">Recurring Payment Supporting Document — reuse archive document</option>
-            </select>
-          </label>
-          {form.docRequirement==='recurring_supporting'&&
-            <label className="jims-recurring-wide">Select Archived Supporting Document *
-              <select required value={form.documentId} disabled={busy}
-                onChange={e=>setForm(f=>({...f,documentId:e.target.value}))}>
-                <option value="">Choose a named document uploaded by FM</option>
-                {documents.filter(d=>(!d.branch_code||d.branch_code===form.branch)
-                  &&(!d.effective_to||d.effective_to>=form.startMonth+'-01'))
-                  .map(d=><option key={d.id} value={d.id}>{d.document_name}
-                    {' · '}{d.original_filename}</option>)}
-              </select>
-              <small>To add one, go to Finance Document Archive → Recurring Payment Supporting Documents, upload and give it a custom Document Name. Then Refresh here.</small>
-            </label>}
-          {form.docRequirement==='monthly_invoice'&&<p className="muted jims-recurring-wide">
-            AP must upload each month’s actual bill in the existing PV Invoice Upload section.
-          </p>}
-          <div className="jims-recurring-wide jims-recurring-preset">
-            <h3>PV Autofill Preset (FM)</h3>
-            <p className="muted">Optional preset fields are auto-filled for AP. AP still verifies every invoice or supporting document and prepares the real PV.</p>
-            <div className="jims-recurring-fields">
-              {[
-                ['financial_tier','Financial Tier (optional)'],
-                ['supplier_code','Supplier Code'],
-                ['supplier_tin','Supplier TIN'],
-                ['bank_name','Bank Name'],
-                ['bank_account_no','Bank Account No.'],
-                ['payment_method','Payment Method'],
-                ['payment_type','Payment Type'],
-                ['expense_nature','Expense Nature'],
-                ['budget_classification','Budget Classification'],
-                ['gl_code','GL Code'],
-                ['line_description','PV Line Description']
-              ].map(([key,label])=><label key={key}>{label}
-                {key==='financial_tier'?<select value={form.preset[key]||''}
-                  disabled={busy} onChange={e=>setForm(f=>({...f,preset:{...f.preset,[key]:e.target.value}}))}>
-                  <option value="">AP will select</option>
-                  {['T01','T02','T03','T04','T05','T06','T07','T08','T09'].map(t=><option key={t} value={t}>{t}</option>)}
-                </select>:<input maxLength={200} value={form.preset[key]||''} disabled={busy}
-                  onChange={e=>setForm(f=>({...f,preset:{...f.preset,[key]:e.target.value}}))}/>}
-              </label>)}
-              <label>Payment Lead Days (AP Proposed Date)
-                <input type="number" min="0" max="28" required disabled={busy}
-                  value={form.preset.payment_lead_days||'0'}
-                  onChange={e=>setForm(f=>({...f,preset:{...f.preset,payment_lead_days:e.target.value}}))}/>
-              </label>
-            </div>
-          </div>
+          <p className="muted jims-recurring-wide">
+            FM submits a recurring request. AP then edits payment details and may attach supporting
+            documents directly in the same task. Supporting PDF is optional during recurring setup.
+          </p>
           <label className="jims-recurring-wide">Instructions / Notes
             <textarea maxLength={500} rows={2} disabled={busy} value={form.notes}
               onChange={e=>setForm(f=>({...f,notes:e.target.value}))}/>
