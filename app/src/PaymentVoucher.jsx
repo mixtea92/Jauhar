@@ -2506,13 +2506,22 @@ async function uploadInvoice(line, file) {
           'Financial Tier: '+saved.financial_tier+'\nAmount: '+money(saved.amount)+
           '\nThe PV will be locked until returned for amendment.'))
         return {ok:false,cancelled:true,message:'Draft saved. Submission was cancelled.'}
+      // Payment Planning may update the voucher after Save Draft. Re-read the
+      // current version to preserve the existing optimistic-lock submit guard.
+      const {data:latestVoucher,error:latestError}=await supabase.from('payment_vouchers')
+        .select('id,status,updated_at,financial_tier')
+        .eq('id',saved.id).is('archived_at',null).single()
+      if(latestError)throw latestError
+      if(latestVoucher?.status!==saved.status ||
+          latestVoucher?.financial_tier!==saved.financial_tier)
+        return fail('PV status or tier changed. Reopen the saved voucher before retrying.')
       const tier=saved.financial_tier
       const rpc=JR_TIERS.includes(tier)?'submit_finance_jr_v1'
         :tier==='T08'?'submit_finance_t08_v1'
         :tier==='T04'?'submit_finance_t04_v1'
         :'submit_finance_t01_t02_v2'
       const {data:submitted,error:submitError}=await supabase.rpc(rpc,{
-        p_voucher_id:saved.id,p_expected_updated_at:saved.updated_at
+        p_voucher_id:saved.id,p_expected_updated_at:latestVoucher.updated_at
       })
       if(submitError)throw submitError
       if(submitted?.id!==saved.id || submitted.status!=='pending_finance_manager')
@@ -3189,6 +3198,10 @@ async function uploadInvoice(line, file) {
                 disabled={loading || importing || (workspaceMode === 'new' && !TIER_PERSISTENCE_BACKEND_READY)}>
                 {loading ? 'Processing...' : 'Save & Submit → Finance Manager'}
               </button>}
+              {isAPFinance&&<span className="muted" style={{fontSize:12}}>
+                Submit checks saved invoice details and required attachments. If proof is missing,
+                JIMS opens this saved PV directly so you can finish the upload.
+              </span>}
               <button type="button" className="btn" style={{ background: '#68788d' }}
                 disabled={loading || importing}
                 onClick={() => {
