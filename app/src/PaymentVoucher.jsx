@@ -3458,7 +3458,8 @@ async function uploadInvoice(line, file) {
               data={viewPlanningDates} loading={viewPlanningLoading}
               error={viewPlanningError}
               awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
-              pendingFMReview={fmPaymentProcessPlanning}
+              pendingFMReview={fmPaymentProcessPlanning ||
+                (isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager')}
               paymentProcessReview={fmPaymentProcessPlanning}
               paymentMode={viewingVoucher.payment_mode}
               voucherId={viewingVoucher.id}
