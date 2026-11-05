@@ -317,9 +317,13 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
                if (isMobileUploadBlocked()) { setProofFile(null); setMessage(MOBILE_UPLOAD_NOTICE); setFailed(true); return }
                setProofFile(selected)
              }}/>{mobileUploadsBlocked && <small>{MOBILE_UPLOAD_NOTICE}</small>}</div>
-        <div className="pv-actions">
-          <button type="button" className="btn" disabled={busy || mobileUploadsBlocked || !proofFile} onClick={uploadProof}>1. Upload & Register Proof</button>
-          <button type="button" className="btn" disabled={busy || !latest || newerProofRequired} onClick={submitInitiation}>2. Submit Payment Initiation</button>
+        <div className="pv-actions" aria-label="Payment Initiation Save and Submit">
+          <button type="button" className="btn"
+            disabled={busy || mobileUploadsBlocked || !proofFile}
+            onClick={uploadProof}>Save / Register Proof</button>
+          <button type="button" className="btn" style={{background:'#167347'}}
+            disabled={busy || !latest || newerProofRequired}
+            onClick={submitInitiation}>Submit Payment Initiation</button>
         </div>
         {decision === 'returned' && <p className="pv-notice">Finance Manager returned the initiation. Upload and register a NEW proof version before resubmitting.</p>}
       </div>}
