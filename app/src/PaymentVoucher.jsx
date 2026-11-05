@@ -525,9 +525,19 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
       })
     return ()=>{active=false}
   },[fmPlanningOpen,viewingVoucher?.id,viewingVoucher?.payment_mode])
-  const isFMPlanningViewer = profile?.role === 'manager' && profile?.department === 'Finance'
-  // R10: mandatory FM date review belongs to Payment Process, not PV approval.
+  const [delegateAuthorities, setDelegateAuthorities] = useState([])
+  // R11A-01: an authorised FM delegate can plan only while its specific PV is
+  // actionable. Server RPC also checks grant status, scope, permissions and expiry.
+  const isFMPlanningViewer = Boolean(
+    (profile?.role === 'manager' && profile?.department === 'Finance') ||
+    (profile?.role === 'executive' && profile?.department === 'Finance' &&
+      delegateAuthorities.some(d =>
+        d.authority === 'finance_manager' && d.department === 'Finance' &&
+        (d.permissions || []).includes('approve')))
+  )
+  // Mandatory date acceptance is a Payment Process gate, never a PV approval gate.
   const fmPaymentProcessPlanning = paymentLanding && isFMPlanningViewer &&
+    viewPlanningDates?.can_fm_payment_planning === true &&
     viewingVoucher?.status === 'fully_approved' &&
     ['pending_payment','payment_initiated'].includes(viewingVoucher?.payment_status)
   const canSeePVPlanning = Boolean(
@@ -601,7 +611,6 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [historyError, setHistoryError] = useState('')
   // Step 31: separate finance/payment tracking from the approval process.
   const [currentUserId, setCurrentUserId] = useState(null)
-  const [delegateAuthorities, setDelegateAuthorities] = useState([])
   const [handoverVouchers, setHandoverVouchers] = useState([])
   const [allDelegationRecords, setAllDelegationRecords] = useState([])
   const [allHandoverRecords, setAllHandoverRecords] = useState([])
@@ -3464,8 +3473,7 @@ async function uploadInvoice(line, file) {
               voucherId={viewingVoucher.id}
               invoiceDocuments={invoiceDocuments} invoiceLines={viewLines}
               onDatesSaved={()=>setViewPlanningRefresh(n=>n+1)}
-              onManagePlanning={paymentLanding && isFMPlanningViewer &&
-                viewingVoucher.status==='fully_approved'
+              onManagePlanning={fmPaymentProcessPlanning
                 ? ()=>setFmPlanningOpen(true):null}/>}
             {/* UAT-FIX-02: record existing Payment Planning dates in the invoice entry area. */}
             {ownsVoucher(viewingVoucher) &&
@@ -3490,8 +3498,7 @@ async function uploadInvoice(line, file) {
                 planningVoucherId={viewingVoucher.id}
                 planningInvoiceDocuments={invoiceDocuments} planningInvoiceLines={viewLines}
                 onPlanningSaved={()=>setViewPlanningRefresh(n=>n+1)}
-                onManagePlanning={paymentLanding && isFMPlanningViewer &&
-                  viewingVoucher.status==='fully_approved'
+                onManagePlanning={fmPaymentProcessPlanning
                   ? ()=>setFmPlanningOpen(true):null}
                 doc={invoiceDocuments.find(d=>d.line_item_id===invoiceDetailsLineId)||null}
                 canEdit={ownsVoucher(viewingVoucher) &&
@@ -3516,7 +3523,7 @@ async function uploadInvoice(line, file) {
               />
             )}
 
-            {fmPlanningOpen && isFMPlanningViewer && viewingVoucher.status==='fully_approved' &&
+            {fmPlanningOpen && fmPaymentProcessPlanning &&
               <JIMSPaymentPlanning57D3 voucher={viewingVoucher} profile={profile}
                 transactions={fmPlanningTransactions}
                 onClose={()=>{
