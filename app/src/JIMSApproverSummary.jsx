@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 import { isFinanceManagerActual, loadPendingFmPartialApprovals } from './lib/jimsFmPartialApprovalQueue'
+import { loadPendingFmFullPaymentApprovals } from './lib/jimsFmFullPaymentApprovalQueue'
 import './JIMSApproverSummary.css'
 
 const rm = x => 'RM '+Number(x||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -42,11 +43,12 @@ const stageName = x=>({
 })[x]||show(x)
 
 export default function JIMSApproverSummary({
-  profile,onOpenVoucher,onDecisionRecorded,refreshKey=0
+  profile,onOpenVoucher,onOpenPaymentVoucher,onDecisionRecorded,refreshKey=0
 }){
   const userTitle=titleFor(profile)
   const [rows,setRows]=useState([])
   const [partialRows,setPartialRows]=useState([])
+  const [fullPaymentRows,setFullPaymentRows]=useState([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
@@ -57,17 +59,19 @@ export default function JIMSApproverSummary({
   const load=useCallback(async()=>{
     setLoading(true);setError('')
     try{
-      const [summary, pendingPartial] = await Promise.all([
+      const [summary, pendingPartial, pendingFull] = await Promise.all([
         supabase.rpc('jims_actual_approver_summary_v1'),
-        isFinanceManagerActual(profile) ? loadPendingFmPartialApprovals() : Promise.resolve([])
+        isFinanceManagerActual(profile) ? loadPendingFmPartialApprovals() : Promise.resolve([]),
+        isFinanceManagerActual(profile) ? loadPendingFmFullPaymentApprovals() : Promise.resolve([])
       ])
       if(summary.error)throw summary.error
       if(!summary.data||!Array.isArray(summary.data.rows))
         throw new Error('Unexpected approval response')
       setRows(summary.data.rows)
       setPartialRows(pendingPartial)
+      setFullPaymentRows(pendingFull)
     }catch(e){
-      setRows([]);setPartialRows([])
+      setRows([]);setPartialRows([]);setFullPaymentRows([])
       setError(e.message||'Failed to load your approvals')
     }finally{setLoading(false)}
   },[profile?.role,profile?.department,profile?.is_active])
@@ -78,8 +82,9 @@ export default function JIMSApproverSummary({
 
   const total=useMemo(()=>
     rows.reduce((s,v)=>s+Number(v.amount||0),0) +
-    partialRows.reduce((s,v)=>s+Number(v.requested_amount||0),0),
-  [rows,partialRows])
+    partialRows.reduce((s,v)=>s+Number(v.requested_amount||0),0) +
+    fullPaymentRows.reduce((s,v)=>s+Number(v.amount||0),0),
+  [rows,partialRows,fullPaymentRows])
   const fmPartialQueue = isFinanceManagerActual(profile)
   if(!userTitle||profile?.is_active!==true)return null
 
@@ -141,18 +146,49 @@ export default function JIMSApproverSummary({
         <small className="jims-approval-overline">{userTitle.toUpperCase()} · ACTUAL APPROVAL AUTHORITY</small>
         <h2>My Approval Summary</h2>
         <p className="muted">Review here, or choose View Details for invoices, JR and approval history.
-          {fmPartialQueue && ' Partial Payment initiation proof must be verified before AP can record final payment.'}</p>
+          {fmPartialQueue && ' Full and partial payment initiation proofs awaiting FM review are shown separately below.'}</p>
       </div>
       <button type="button" className="btn" disabled={loading||!!busy} onClick={load}>
         {loading?'Loading...':'Refresh'}
       </button>
     </div>
     {!error&&<div className="jims-approval-metrics">
-      <div><small>Awaiting My Decision</small><strong>{loading?'—':rows.length+partialRows.length}</strong></div>
+      <div><small>Awaiting My Decision</small><strong>{loading?'—':rows.length+partialRows.length+fullPaymentRows.length}</strong></div>
       <div><small>Total Awaiting Approval</small><strong>{loading?'—':rm(total)}</strong></div>
     </div>}
     {error&&<p role="alert" className="error">{error}</p>}
     {notice&&<p role="status" className="pv-success">{notice}</p>}
+    {fmPartialQueue && <section className="jims-fm-partial-queue" aria-label="FM full payment initiation approvals">
+      <h3>Full Payment — Awaiting FM Verification ({fullPaymentRows.length})</h3>
+      <p className="muted">AP has initiated these payments. FM must open the PV, check the initiation proof, then Approve or Return. This is not a new PV approval.</p>
+      <div className="table-wrap jims-approval-scroll">
+        <table className="jims-approval-table">
+          <thead><tr>
+            <th>PV / Tier</th><th>Supplier / Department</th>
+            <th>Initiated At</th><th>Amount to Verify</th><th>Action</th>
+          </tr></thead>
+          <tbody>
+            {fullPaymentRows.map(item=><tr key={item.id}>
+              <td><strong className="jims-approval-number">{item.pv_number}</strong>
+                <div className="jims-approval-muted">{show(item.financial_tier)}</div></td>
+              <td><strong>{show(item.payee_name)}</strong>
+                <div className="jims-approval-muted">{show(item.origin_department)}</div></td>
+              <td>{item.payment_initiated_at ? new Date(item.payment_initiated_at).toLocaleString('en-MY',{timeZone:'Asia/Kuala_Lumpur'}) : '—'}</td>
+              <td className="jims-approval-money">{rm(item.amount)}</td>
+              <td><div className="jims-approval-actions">
+                <button type="button" className="jims-approval-view"
+                  disabled={!!busy||!onOpenPaymentVoucher}
+                  onClick={()=>onOpenPaymentVoucher?.(item.id)}>
+                  Open &amp; Verify Proof
+                </button>
+              </div></td>
+            </tr>)}
+            {loading&&!fullPaymentRows.length&&<tr><td colSpan={5} className="jims-approval-empty">Loading full payment initiation reviews...</td></tr>}
+            {!loading&&!error&&!fullPaymentRows.length&&<tr><td colSpan={5} className="jims-approval-empty">No full payments awaiting FM verification.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </section>}
     {fmPartialQueue && <section className="jims-fm-partial-queue" aria-label="FM partial payment approvals">
       <h3>Partial Payment — Awaiting FM Verification</h3>
       <p className="muted">Review AP's uploaded initiation proof before approving or returning each installment. This is not final bank payment approval.</p>
