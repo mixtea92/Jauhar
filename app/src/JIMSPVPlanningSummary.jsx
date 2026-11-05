@@ -36,6 +36,12 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
         For installment-specific payment schedules, use FM — Accept / Change Payment Date,
         select the installment and confirm its proposed date before approving that installment.
       </p>}
+    {pendingFMReview && !paymentProcessReview && !loading && !error &&
+      <p role="status" style={{color:'#c9b782',fontSize:12,margin:'11px 0 0'}}>
+        Optional at PV Approval: FM may Accept or Adjust the proposed date here,
+        or do it later in Payment Process. It becomes mandatory before FM approves
+        Payment Initiation, not before PV approval.
+      </p>}
     {pendingFMReview && !loading && !error && voucherId &&
       <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}
         invoiceDocuments={invoiceDocuments} invoiceLines={invoiceLines}/>}
