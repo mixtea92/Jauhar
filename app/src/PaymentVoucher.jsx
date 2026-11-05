@@ -504,6 +504,10 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [viewPlanningRefresh, setViewPlanningRefresh] = useState(0)
   const [fmPlanningOpen, setFmPlanningOpen] = useState(false)
   const isFMPlanningViewer = profile?.role === 'manager' && profile?.department === 'Finance'
+  // R10: mandatory FM date review belongs to Payment Process, not PV approval.
+  const fmPaymentProcessPlanning = paymentLanding && isFMPlanningViewer &&
+    viewingVoucher?.status === 'fully_approved' &&
+    ['pending_payment','payment_initiated'].includes(viewingVoucher?.payment_status)
   const canSeePVPlanning = Boolean(
     (profile?.role==='executive' && profile?.department==='Finance' &&
       profile?.subdepartment==='Accounts Payable') ||
@@ -3432,11 +3436,13 @@ async function uploadInvoice(line, file) {
               data={viewPlanningDates} loading={viewPlanningLoading}
               error={viewPlanningError}
               awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
-              pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
+              pendingFMReview={fmPaymentProcessPlanning}
+              paymentProcessReview={fmPaymentProcessPlanning}
               voucherId={viewingVoucher.id}
               invoiceDocuments={invoiceDocuments} invoiceLines={viewLines}
               onDatesSaved={()=>setViewPlanningRefresh(n=>n+1)}
-              onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
+              onManagePlanning={paymentLanding && isFMPlanningViewer &&
+                viewingVoucher.status==='fully_approved'
                 ? ()=>setFmPlanningOpen(true):null}/>}
             {/* UAT-FIX-02: record existing Payment Planning dates in the invoice entry area. */}
             {ownsVoucher(viewingVoucher) &&
@@ -3457,11 +3463,12 @@ async function uploadInvoice(line, file) {
                 planningLoading={viewPlanningLoading}
                 planningError={viewPlanningError}
                 awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
-                pendingFMReview={isFMPlanningViewer && viewingVoucher.status==='pending_finance_manager'}
+                pendingFMReview={false}
                 planningVoucherId={viewingVoucher.id}
                 planningInvoiceDocuments={invoiceDocuments} planningInvoiceLines={viewLines}
                 onPlanningSaved={()=>setViewPlanningRefresh(n=>n+1)}
-                onManagePlanning={isFMPlanningViewer && viewingVoucher.status==='fully_approved'
+                onManagePlanning={paymentLanding && isFMPlanningViewer &&
+                  viewingVoucher.status==='fully_approved'
                   ? ()=>setFmPlanningOpen(true):null}
                 doc={invoiceDocuments.find(d=>d.line_item_id===invoiceDetailsLineId)||null}
                 canEdit={ownsVoucher(viewingVoucher) &&
@@ -3982,6 +3989,7 @@ async function uploadInvoice(line, file) {
               {/* Step 45: secure payment initiation, Finance Manager review, final PDF receipt. */}
               <PaymentTrackingPanel key={viewingVoucher.id}
                 voucher={viewingVoucher} profile={profile}
+                paymentPlanReady={viewPlanningDates?.payment_process_plan_ready === true}
                 delegatedReviewPermissions={delegateAuthorities.some(d => d.authority === 'finance_manager' && d.department === 'Finance') ?
                   (delegateAuthorities.find(d => d.authority === 'finance_manager' && d.department === 'Finance')?.permissions || []) : []}
                 suspendedFinanceManager={authoritySuspended(viewingVoucher, 'finance_manager')}
