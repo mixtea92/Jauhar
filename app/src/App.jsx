@@ -11,6 +11,7 @@ import './JIMSFinanceActionBadges.css'
 import {fetchJIMSActionNotifications} from './jimsActionNotifications'
 import { supabase } from './lib/supabase'
 import { isFinanceManagerActual, loadPendingFmPartialApprovals } from './lib/jimsFmPartialApprovalQueue'
+import { loadPendingFmFullPaymentApprovals } from './lib/jimsFmFullPaymentApprovalQueue'
 import './AddUser'
 import './EditUser'
 import './UserOrganizationAssignment'
@@ -198,16 +199,17 @@ function App() {
       return
     }
     try {
-      const [summary, partialRows] = await Promise.all([
+      const [summary, partialRows, fullPaymentRows] = await Promise.all([
         supabase.rpc('jims_actual_approver_summary_v1'),
-        isFinanceManagerActual(profile) ? loadPendingFmPartialApprovals() : Promise.resolve([])
+        isFinanceManagerActual(profile) ? loadPendingFmPartialApprovals() : Promise.resolve([]),
+        isFinanceManagerActual(profile) ? loadPendingFmFullPaymentApprovals() : Promise.resolve([])
       ])
       if (sequence !== myApprovalBadgeSequence.current) return
       if (summary.error || !Array.isArray(summary.data?.rows)) {
         setMyApprovalBadge(null)
         return
       }
-      setMyApprovalBadge(summary.data.rows.length + partialRows.length)
+      setMyApprovalBadge(summary.data.rows.length + partialRows.length + fullPaymentRows.length)
     } catch {
       if (sequence === myApprovalBadgeSequence.current) setMyApprovalBadge(null)
     }
@@ -499,7 +501,29 @@ function App() {
       </button>
     )}
     {profile.role !== 'non_executive' && (<>
-    {/* FINANCE APPROVAL: MAIN MENU WITH SUBMENU */}
+    {/* My Approvals: primary summary for authorized HOD / FM / CEO / BOD. */}
+          {/* JIMS 57C5S: Standalone role-specific Approval Dashboard. */}
+          {jimsCanSeeMyApprovals(profile) && (
+            <button
+              type="button"
+              className={`nav-item jims-57d6c1-row jims-57d6c1-approvals ${activePage === 'my_approvals' ? 'nav-active' : ''}`}
+              onClick={() => {
+                setVoucherOpenRequest(null)
+                setActivePage('my_approvals')
+                setEditingUser(null)
+                setResetUser(null)
+              }}
+            >
+              <span>My Approvals</span>
+              {myApprovalBadge !== null && myApprovalBadge > 0 && (
+                <span className="jims-my-approval-badge"
+                  aria-label={myApprovalBadge + ' pending approvals'}>
+                  {myApprovalBadge >= 100 ? '99+' : myApprovalBadge}
+                </span>
+              )}
+            </button>
+          )}
+          {/* FINANCE APPROVAL: MAIN MENU WITH SUBMENU */}
           <button
             type="button"
             className={`nav-item jims-57d6c1-row jims-57d6c1-group jims-57d6c1-finance nav-group-toggle ${
@@ -665,28 +689,6 @@ function App() {
           )}
 
           </>)}
-{/* JIMS 57C5S: Standalone role-specific Approval Dashboard. */}
-          {jimsCanSeeMyApprovals(profile) && (
-            <button
-              type="button"
-              className={`nav-item jims-57d6c1-row jims-57d6c1-approvals ${activePage === 'my_approvals' ? 'nav-active' : ''}`}
-              onClick={() => {
-                setVoucherOpenRequest(null)
-                setActivePage('my_approvals')
-                setEditingUser(null)
-                setResetUser(null)
-              }}
-            >
-              <span>My Approvals</span>
-              {myApprovalBadge !== null && myApprovalBadge > 0 && (
-                <span className="jims-my-approval-badge"
-                  aria-label={myApprovalBadge + ' pending approvals'}>
-                  {myApprovalBadge >= 100 ? '99+' : myApprovalBadge}
-                </span>
-              )}
-            </button>
-          )}
-
 {/* FUTURE FINANCE DASHBOARD (SEPARATE MAIN MODULE) */}
           <div className="nav-item nav-placeholder jims-57d6c1-soon" aria-disabled="true">
             Finance Dashboard — Soon
@@ -766,6 +768,10 @@ function App() {
                   setVoucherOpenRequest({ id, key: Date.now() })
                   setActivePage('payment_voucher')
                 }}
+                onOpenPaymentVoucher={id => {
+                  setVoucherOpenRequest({ id, key: Date.now() })
+                  setActivePage('payment_process')
+                }}
               />
             ) : (
               <section className="panel">
@@ -798,7 +804,9 @@ function App() {
               onRecurringTaskHandled={()=>setRecurringPrepareRequest(null)} />
           ) : activePage === 'payment_process' ? (
             <PaymentVoucher key="pv-payment-route" profile={profile}
-              dashboardSection="payment" onPrepareRecurringTask={prepareRecurringPV} />
+              dashboardSection="payment" onPrepareRecurringTask={prepareRecurringPV}
+              openRequest={voucherOpenRequest}
+              onOpenRequestHandled={() => setVoucherOpenRequest(null)} />
           ) : activePage === 'delegation_workspace' ? (
             <DelegationWorkspace profile={profile}
               onGoPaymentVoucher={() => setActivePage('payment_voucher')}
