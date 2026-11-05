@@ -22,7 +22,7 @@ function checkFile(file,receipt=false){
   return {ext,mime:FORMAT[ext]}
 }
 export default function JIMSInstallmentWorkflow({
-  voucher,ledger=[],onUpdated,canAP=false,canFM=false,disabled=false
+  voucher,ledger=[],onUpdated,canAP=false,canFM=false,disabled=false,paymentPlanReady=false
 }){
   const [docs,setDocs]=useState([])
   const [proof,setProof]=useState(null)
@@ -167,11 +167,17 @@ export default function JIMSInstallmentWorkflow({
         </button>
       </div>}
     {canFM&&active?.status==='initiated'&&<div className="jims-v2-fieldset">
+      {!paymentPlanReady&&<p role="status" className="jims-v2-flag">
+        Mandatory FM Payment Planning: validate Supplier Due Date and Accept / Change the
+        planned date in Payment Process before approving this installment.
+      </p>}
       <label htmlFor="jims-v2-return">Finance Manager Remarks (mandatory if Return)</label>
       <textarea id="jims-v2-return" value={reason} maxLength={2000} rows={2}
         disabled={busy||disabled} onChange={e=>setReason(e.target.value)}/>
       <div className="jims-v2-actions">
-        <button disabled={busy||disabled} onClick={()=>review('approve')} type="button">Approve Initiation</button>
+        <button disabled={busy||disabled||!paymentPlanReady}
+          title={!paymentPlanReady?'Approve FM Payment Planning first':'Approve initiation'}
+          onClick={()=>review('approve')} type="button">Approve Initiation</button>
         <button disabled={busy||disabled||!reason.trim()} onClick={()=>review('return')} type="button">
           Return for Amendment
         </button>
