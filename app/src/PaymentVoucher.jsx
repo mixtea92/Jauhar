@@ -503,6 +503,28 @@ export default function PaymentVoucher({ profile, openRequest = null, onOpenRequ
   const [viewPlanningError, setViewPlanningError] = useState('')
   const [viewPlanningRefresh, setViewPlanningRefresh] = useState(0)
   const [fmPlanningOpen, setFmPlanningOpen] = useState(false)
+  const [fmPlanningTransactions, setFmPlanningTransactions] = useState([])
+  // A partial-payment plan can have a separate pending proposal per installment.
+  // Load eligible tranche references for the FM Payment Process schedule selector.
+  useEffect(()=>{
+    if(!fmPlanningOpen || !viewingVoucher?.id || viewingVoucher.payment_mode!=='partial'){
+      setFmPlanningTransactions([])
+      return
+    }
+    let active=true
+    supabase.from('pv_payment_transactions')
+      .select('id,voucher_id,installment_no,status')
+      .eq('voucher_id',viewingVoucher.id).limit(301)
+      .then(({data,error})=>{
+        if(!active)return
+        if(error || (data||[]).length>300){
+          setFmPlanningTransactions([])
+          return
+        }
+        setFmPlanningTransactions(data||[])
+      })
+    return ()=>{active=false}
+  },[fmPlanningOpen,viewingVoucher?.id,viewingVoucher?.payment_mode])
   const isFMPlanningViewer = profile?.role === 'manager' && profile?.department === 'Finance'
   // R10: mandatory FM date review belongs to Payment Process, not PV approval.
   const fmPaymentProcessPlanning = paymentLanding && isFMPlanningViewer &&
@@ -3495,6 +3517,7 @@ async function uploadInvoice(line, file) {
 
             {fmPlanningOpen && isFMPlanningViewer && viewingVoucher.status==='fully_approved' &&
               <JIMSPaymentPlanning57D3 voucher={viewingVoucher} profile={profile}
+                transactions={fmPlanningTransactions}
                 onClose={()=>{
                   setFmPlanningOpen(false)
                   setViewPlanningRefresh(n=>n+1)
