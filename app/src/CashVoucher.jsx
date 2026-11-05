@@ -77,7 +77,7 @@ export default function CashVoucher({profile}) {
   const isMobileUpload=typeof navigator!=='undefined' && (Boolean(navigator.userAgentData?.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'') || (/Macintosh/i.test(navigator.userAgent||'') && navigator.maxTouchPoints>1))
   const isAdmin=profile?.is_active===true && profile?.role==='system_admin'
   const isAP=profile?.is_active===true && profile?.role==='executive' && profile?.department==='Finance'
-  const isHOD=profile?.is_active===true && profile?.role==='manager'
+  const isHOD=profile?.is_active===true && profile?.role==='manager' && profile?.department==='Finance'
   const [rows,setRows]=useState([])
   const [approvals,setApprovals]=useState([])
   const [receipts,setReceipts]=useState([])
@@ -88,7 +88,7 @@ export default function CashVoucher({profile}) {
   const [form,setForm]=useState(blankCVForm)
   const [sheetForImport,setSheetForImport]=useState('PC (Digital)')
   const [checked,setChecked]=useState([])
-  const [approvalStage,setApprovalStage]=useState('applicable_hod')
+  const approvalStage='finance_hod' // R11C: other-department HOD approvals deferred
   const [signature,setSignature]=useState('')
   const [busy,setBusy]=useState(false)
   const [loading,setLoading]=useState(true)
@@ -132,7 +132,7 @@ export default function CashVoucher({profile}) {
   const hasApproval=(id,authority)=>approvals.some(a=>a.voucher_id===id&&a.authority===authority)
   const canSign=(v,authority)=>{
     if(!isHOD||!v||v.status!=='pending_approval'||hasApproval(v.id,authority))return false
-    return authority==='finance_hod' ? profile.department==='Finance' : profile.department===v.applicable_department
+    return authority==='finance_hod' && profile.department==='Finance'
   }
   const stageRows=rows.filter(v=>canSign(v,approvalStage))
   const displayRows=rows.filter(v=>filter==='active'
@@ -143,7 +143,7 @@ export default function CashVoucher({profile}) {
     rows.forEach(v=>{out[v.status]=(out[v.status]||0)+1;out.total+=Number(v.total_amount||0)})
     return out
   },[rows])
-  const myAttention=rows.filter(v=>canSign(v,'applicable_hod')||canSign(v,'finance_hod')).length
+  const myAttention=rows.filter(v=>canSign(v,'finance_hod')).length
 
   async function reload(){setRefresh(x=>x+1)}
   async function action(label,call){
@@ -242,8 +242,8 @@ export default function CashVoucher({profile}) {
   }
   async function submitCV(v){
     if(!isAP||v.status!=='draft')return
-    if(!window.confirm('Submit '+v.cv_number+' for BOTH Applicable HOD and HOD FM signed verification?'))return
-    const result=await action('CV submitted for dual HOD verification.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
+    if(!window.confirm('Submit '+v.cv_number+' for Finance HOD signed verification?'))return
+    const result=await action('CV submitted for Finance HOD verification.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
     if(result)setMode('home')
   }
   async function signSelected(){
@@ -299,7 +299,7 @@ export default function CashVoucher({profile}) {
   return <section className="panel" style={{maxWidth:'100%',overflow:'hidden'}}>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',alignItems:'center'}}>
       <div><h2 style={{marginBottom:5}}>Petty Cash</h2>
-        <p style={{marginTop:0}}>Two HOD approvals required.</p>
+        <p style={{marginTop:0}}>Finance HOD approval required for initial rollout. Other-department HOD approvals are deferred.</p>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {mode!=='home'&&<button type="button" className="btn" onClick={()=>{setMode('home');setError('')}}>Back to Petty Cash Dashboard</button>}
@@ -312,7 +312,7 @@ export default function CashVoucher({profile}) {
     {mode==='home'&&<>
       
       <JIMSPettyCashRevisionPanel profile={profile} /><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',gap:10,margin:'18px 0'}}>
-        {[['Draft',totals.draft],['Pending Dual HOD',totals.pending_approval],['Action Required',myAttention]].map(([k,n])=>
+        {[['Draft',totals.draft],['Pending Finance Approval',totals.pending_approval],['Action Required',myAttention]].map(([k,n])=>
           <div key={k} style={{border:'1px solid #9a7b3c',borderRadius:10,padding:14}}>
             <div style={{fontSize:12,opacity:.9}}>{k}</div><strong style={{fontSize:26}}>{n}</strong>
           </div>)}
@@ -348,8 +348,8 @@ export default function CashVoucher({profile}) {
           {displayRows.map(v=><tr key={v.id}>
             <td style={cellStyle}>{v.cv_number}</td><td style={cellStyle}>{v.form_data?.claimant_name||'—'}</td>
             <td style={cellStyle}>{v.applicable_department||'—'}</td><td style={cellStyle}>{money(v.total_amount)}</td>
-            <td style={cellStyle}>{v.status==='pending_approval'?'Pending Dual Approval':v.status.toUpperCase()}</td>
-            <td style={cellStyle}>{hasApproval(v.id,'applicable_hod')?'Signed':'Pending'}</td>
+            <td style={cellStyle}>{v.status==='pending_approval'?'Pending Finance Approval':v.status.toUpperCase()}</td>
+            <td style={cellStyle}>{hasApproval(v.id,'applicable_hod')?'Signed (legacy)':'Not required'}</td>
             <td style={cellStyle}>{hasApproval(v.id,'finance_hod')?'Signed':'Pending'}</td>
             <td style={cellStyle}>{dateLabel(v.created_at)}</td>
             <td style={cellStyle}>
@@ -362,15 +362,9 @@ export default function CashVoucher({profile}) {
         </tbody>
       </table></div>
       {isHOD&&<>
-        <h3 style={{marginTop:22}}>HOD Verification / Bulk Approval</h3>
+        <h3 style={{marginTop:22}}>Finance HOD Verification / Bulk Approval</h3>
         
-        <label>Verification Stage
-          <select style={{...inputStyle,maxWidth:300,marginTop:5}} value={approvalStage}
-            onChange={e=>{setApprovalStage(e.target.value);setChecked([]);setSignature('')}}>
-            <option value="applicable_hod">Applicable HOD</option>
-            {profile.department==='Finance'&&<option value="finance_hod">HOD FM</option>}
-          </select>
-        </label>
+        <p>Finance HOD signs the Petty Cash verification. Applicable HOD approval is not required during the Finance-only rollout.</p>
         <div style={{margin:'12px 0',maxWidth:700}}>
           {stageRows.map(v=><label key={v.id} style={{display:'flex',alignItems:'center',gap:10,margin:'8px 0',padding:9,border:'1px solid #5b5b5b55',borderRadius:7}}>
             <input type="checkbox" checked={checked.includes(v.id)}
@@ -389,7 +383,7 @@ export default function CashVoucher({profile}) {
       </>}
       <section className="jims-closed-history" aria-label="Petty Cash History">
         <h3>Petty Cash History</h3>
-        <p>Closed records after both HOD signatures. Existing CV identifiers and official signed Excel stay unchanged.</p>
+        <p>Closed records after Finance HOD signature. Historical Applicable HOD signatures, if any, remain visible; original Excel layout remains unchanged.</p>
         <details>
           <summary>View Closed Petty Cash ({historyRows.length} loaded records)</summary>
           <div className="jims-history-scroll">
@@ -424,7 +418,7 @@ export default function CashVoucher({profile}) {
         {field('Claimant Name (D13)','claimant_name')}
         {field('Staff ID (D14)','staff_id')}
         {field('Position (D15)','position')}
-        {field('Department / Applicable HOD (D16)','department','text',CV_DEPARTMENTS)}
+        {field('Department (D16)','department','text',CV_DEPARTMENTS)}
         {field('Branch (D17)','branch','text',CV_BRANCHES)}
         {field('Claim Category (G13)','claim_category','text',CV_CLAIM_CATEGORIES)}
         {field('Sheet / Expense Category Dropdown Set','source_sheet','text',CV_SHEETS)}
@@ -502,8 +496,8 @@ export default function CashVoucher({profile}) {
         {['applicable_hod','finance_hod'].map(authority=>{
           const approval=byId(selected.id).find(x=>x.authority===authority)
           return <div key={authority} style={{border:'1px solid #a48a53',padding:10,borderRadius:8,minWidth:230}}>
-            <strong>{authority==='applicable_hod'?'Applicable HOD':'HOD FM'}</strong>
-            <p>{approval?'Approved & Signed':'Pending'}</p>
+            <strong>{authority==='applicable_hod'?'Applicable HOD (legacy)':'HOD FM'}</strong>
+            <p>{approval?'Approved & Signed':authority==='applicable_hod'?'Not required during initial rollout':'Pending'}</p>
             {approval&&<div data-jsync-cv-signature-capture={authority} style={{display:'flex',flexDirection:'column',alignItems:'center',background:'transparent',width:'100%',gap:0}}><img alt={'Digital signature '+authority} src={approval.signature_png}
               style={{maxWidth:220,maxHeight:90,background:'transparent'}}/>
               <div style={{fontFamily:'"Monotype Corsiva","Apple Chancery","Brush Script MT",cursive',fontSize:26,fontStyle:'italic',color:'#c5a05b',lineHeight:1.1,maxWidth:230,overflowWrap:'anywhere'}}>
@@ -516,7 +510,7 @@ export default function CashVoucher({profile}) {
       <h3>Audit Trail</h3>
       <ul>{audit.map((a,i)=><li key={i}>{dateLabel(a.created_at)} — {a.action}</li>)}</ul>
       {isAP&&selected.status==='draft'&&<button type="button" className="btn" onClick={()=>editForm(selected)}>Edit Draft</button>}
-      {isAP&&selected.status==='draft'&&<button type="button" className="btn" disabled={busy} onClick={()=>submitCV(selected)}>Submit for Dual Approval</button>}
+      {isAP&&selected.status==='draft'&&<button type="button" className="btn" disabled={busy} onClick={()=>submitCV(selected)}>Submit for Finance HOD Approval</button>}
       {isHOD&&(canSign(selected,'applicable_hod')||canSign(selected,'finance_hod'))&&
         <p>To approve, return to the dashboard, select this CV in the HOD verification section and draw your digital signature.</p>}
     </>}
