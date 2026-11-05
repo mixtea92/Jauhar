@@ -281,10 +281,10 @@ export default function CashVoucher({profile}) {
             <span>{v.cv_number} · {v.form_data?.claimant_name||'—'} · {money(v.total_amount)}</span>
             <button type="button" style={smallButton} onClick={()=>inspect(v)}>View</button>
           </label>)}
-          {!stageRows.length&&<p>No Petty Cash records awaiting this HOD approval stage.</p>}
+          {!stageRows.length&&<p>No Petty Cash records awaiting Finance Manager approval.</p>}
         </div>
         {checked.length>0&&<>
-          <p><strong>{checked.length} selected</strong> · Confirm documents before signing.</p>
+          <p><strong>{checked.length} selected</strong> · Review documents before approval.</p>
           <button type="button" className="btn" disabled={busy} onClick={approveSelected}
             style={{marginTop:10}}>Approve {checked.length} Petty Cash Record(s)</button>
         </>}
@@ -312,30 +312,30 @@ export default function CashVoucher({profile}) {
               </tbody>
             </table>
           </div>
-          <small>Showing records currently loaded, up to the latest 500. Original approval audit and signed Excel remain available.</small>
+          <small>Showing up to 500 recent records. Approval audit remains available inside JIMS.</small>
         </details>
       </section>
     </>}
     {mode==='form'&&isAP&&<>
       
-      <JIMSPettyCashChargeFields form={form} setForm={setForm} /><h3>{editingId?'Edit Petty Cash Draft':'New Petty Cash'}</h3>
+      <JIMSPettyCashChargeFields form={form} setForm={setForm} /><h3>{editingId?'Edit Petty Cash Draft':'New Petty Cash'}</h3><p>Enter claim details directly. No Excel template is required. Upload a receipt for each expense line before Submit.</p>
       
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(215px,1fr))',gap:12}}>
-        {field('Date of Request (H10)','date_of_request','date')}
+        {field('Date of Request','date_of_request','date')}
         {field('Actual Petty Cash Disbursement Date (system record)','date_disbursed','date')}
-        {field('Claimant Name (D13)','claimant_name')}
-        {field('Staff ID (D14)','staff_id')}
-        {field('Position (D15)','position')}
-        {field('Department (D16)','department','text',CV_DEPARTMENTS)}
-        {field('Branch (D17)','branch','text',CV_BRANCHES)}
-        {field('Claim Category (G13)','claim_category','text',CV_CLAIM_CATEGORIES)}
-        {field('Sheet / Expense Category Dropdown Set','source_sheet','text',CV_SHEETS)}
-        {field('Extra Category (C18, legacy dropdown)','legacy_category','text',CV_EXTRA_C18)}
+        {field('Claimant Name','claimant_name')}
+        {field('Staff ID','staff_id')}
+        {field('Position','position')}
+        {field('Department','department','text',CV_DEPARTMENTS)}
+        {field('Branch','branch','text',CV_BRANCHES)}
+        {field('Claim Category','claim_category','text',CV_CLAIM_CATEGORIES)}
+        {field('Expense Category Set','source_sheet','text',CV_SHEETS)}
+        {field('Extra Expense Category','legacy_category','text',CV_EXTRA_C18)}
       </div>
-      <label style={{display:'block',marginTop:15}}>Remarks Claim (G14:I16)
+      <label style={{display:'block',marginTop:15}}>Remarks / Purpose
         <textarea style={{...inputStyle,minHeight:65}} value={form.remarks||''} onChange={e=>setField('remarks',e.target.value)}/>
       </label>
-      <p>Payment Method (G17:I17): <strong>Cash (Petty Cash)</strong></p>
+      <p>Payment Method: <strong>Cash (Petty Cash)</strong></p>
       <h3>Expense Details — Maximum 10 Receipt Lines</h3>
       <p style={{fontSize:12}}>Receipt required per row (PDF/image, max 10 MB). Re-upload after editing a row. Desktop upload only.</p>
       <div style={{overflowX:'auto'}}>
@@ -349,7 +349,7 @@ export default function CashVoucher({profile}) {
             <td style={cellStyle}>{selectCell(line,i,'expense_category',expenseCategories)}</td>
             <td style={cellStyle}>{selectCell(line,i,'expenses_branch',CV_BRANCHES)}</td>
             <td style={cellStyle}>{textCell(line,i,'amount','number')}</td>
-            <td style={cellStyle}>{selectCell(line,i,'receipt_attached',['Yes','No'])}</td>
+            <td style={cellStyle}>{receiptFor(editingId,i+1)?'Yes':'No'}</td>
             <td style={cellStyle}>
               <input type="file" aria-label={'Upload receipt for expense row '+(i+1)}
                 accept={CV_RECEIPT_ACCEPT}
@@ -394,33 +394,24 @@ export default function CashVoucher({profile}) {
           <td style={cellStyle}>{receiptFor(selected.id,i+1)?<button type="button" style={smallButton} onClick={()=>openReceipt(receiptFor(selected.id,i+1))}>View Receipt</button>:'Missing receipt'}</td>
         </tr>)}</tbody></table></div>
       {selected.status!=='draft'&&<div style={{margin:'14px 0',display:'flex',flexDirection:'column',alignItems:'flex-start',gap:6}}>
-        <button type="button" className="btn" disabled={busy||!templateReady} onClick={()=>downloadSigned(selected)}>
-          Download Signed CV Excel (Print / PDF)
+        <button type="button" className="btn" disabled={busy||selected.status!=='closed'} onClick={()=>downloadOfficial(selected)}>
+          Download Official Petty Cash (PDF · A4)
         </button>
-        <small>PDF: Open signed Excel → Save as PDF.</small>
+        <small>One-page print-ready PDF, available after Finance Manager approval.</small>
       </div>}
-      <h3>Digital Signatures</h3>
-      <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-        {['applicable_hod','finance_hod'].map(authority=>{
-          const approval=byId(selected.id).find(x=>x.authority===authority)
-          return <div key={authority} style={{border:'1px solid #a48a53',padding:10,borderRadius:8,minWidth:230}}>
-            <strong>{authority==='applicable_hod'?'Applicable HOD (legacy)':'HOD FM'}</strong>
-            <p>{approval?'Approved & Signed':authority==='applicable_hod'?'Not required during initial rollout':'Pending'}</p>
-            {approval&&<div data-jsync-cv-signature-capture={authority} style={{display:'flex',flexDirection:'column',alignItems:'center',background:'transparent',width:'100%',gap:0}}><img alt={'Digital signature '+authority} src={approval.signature_png}
-              style={{maxWidth:220,maxHeight:90,background:'transparent'}}/>
-              <div style={{fontFamily:'"Monotype Corsiva","Apple Chancery","Brush Script MT",cursive',fontSize:26,fontStyle:'italic',color:'#c5a05b',lineHeight:1.1,maxWidth:230,overflowWrap:'anywhere'}}>
-                {approval.approved_username||'Signer username not recorded'}
-              </div>
-              <p style={{fontSize:16,margin:'4px 0 0'}}>Date: {new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kuala_Lumpur',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(approval.approved_at))}</p></div>}
-          </div>
-        })}
-      </div>
+      <h3>Finance Approval</h3>
+      {(()=>{const approval=byId(selected.id).find(x=>x.authority==='finance_hod')
+        return <div style={{border:'1px solid #a48a53',padding:12,borderRadius:8,marginBottom:12}}>
+          <strong>{approval?'Approved':'Pending Finance Manager approval'}</strong>
+          {approval&&<p>Approved By: {approval.approved_username||'Account unavailable'} · {approval.approved_designation||'Finance Manager'} · {dateLabel(approval.approved_at)}</p>}
+        </div>
+      })()}
       <h3>Audit Trail</h3>
       <ul>{audit.map((a,i)=><li key={i}>{dateLabel(a.created_at)} — {a.action}</li>)}</ul>
       {isAP&&selected.status==='draft'&&<button type="button" className="btn" onClick={()=>editForm(selected)}>Edit Draft</button>}
-      {isAP&&selected.status==='draft'&&<button type="button" className="btn" disabled={busy} onClick={()=>submitCV(selected)}>Submit for Finance HOD Approval</button>}
-      {isHOD&&(canSign(selected,'applicable_hod')||canSign(selected,'finance_hod'))&&
-        <p>To approve, return to the dashboard, select this CV in the HOD verification section and draw your digital signature.</p>}
+      {isAP&&selected.status==='draft'&&<button type="button" className="btn" disabled={busy} onClick={()=>submitCV(selected)}>Submit for Finance Manager Approval</button>}
+      {isHOD&&canSign(selected,'finance_hod')&&
+        <p>To approve, return to the dashboard, select this CV in the Finance Manager approval section and click Approve.</p>}
     </>}
   </section>
 }
