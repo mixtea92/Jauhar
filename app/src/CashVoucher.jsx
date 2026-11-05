@@ -165,8 +165,8 @@ export default function CashVoucher({profile}) {
   }
   async function submitCV(v){
     if(!isAP||v.status!=='draft')return
-    if(!window.confirm('Submit '+v.cv_number+' for Finance HOD signed verification?'))return
-    const result=await action('CV submitted for Finance HOD verification.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
+    if(!window.confirm('Submit '+v.cv_number+' for Finance Manager approval?'))return
+    const result=await action('Petty Cash submitted for Finance Manager approval.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
     if(result)setMode('home')
   }
   async function approveSelected(){
@@ -224,7 +224,7 @@ export default function CashVoucher({profile}) {
   return <section className="panel" style={{maxWidth:'100%',overflow:'hidden'}}>
     <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',alignItems:'center'}}>
       <div><h2 style={{marginBottom:5}}>Petty Cash</h2>
-        <p style={{marginTop:0}}>Finance HOD approval required for initial rollout. Other-department HOD approvals are deferred.</p>
+        <p style={{marginTop:0}}>Finance Manager approves in JIMS. No drawn signature or Excel upload required.</p>
       </div>
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
         {mode!=='home'&&<button type="button" className="btn" onClick={()=>{setMode('home');setError('')}}>Back to Petty Cash Dashboard</button>}
@@ -242,22 +242,7 @@ export default function CashVoucher({profile}) {
             <div style={{fontSize:12,opacity:.9}}>{k}</div><strong style={{fontSize:26}}>{n}</strong>
           </div>)}
       </div>
-      <section style={{border:'1px solid #81704c',borderRadius:9,padding:12,marginBottom:18}}>
-        <h3>Official Petty Cash Excel Template</h3>
-        
-        {templateReady?<a className="btn" href={CV_TEMPLATE_URL} download="FIN_FM_PC_Petty Cash.xlsx">Download Original Excel Template</a>:
-          <p className="pv-notice">Official template is not installed in public/templates yet. Upload the original unchanged XLSX file to enable download.</p>}
-        {isAP&&<div style={{marginTop:12,display:'flex',gap:12,alignItems:'end',flexWrap:'wrap'}}>
-          <label>Import worksheet
-            <select style={{...inputStyle,marginTop:5}} value={sheetForImport} onChange={e=>setSheetForImport(e.target.value)}>
-              {selectOptions(CV_SHEETS)}
-            </select>
-          </label>
-          <label>Upload Completed Official CV Excel (.xlsx)
-            <input style={{...inputStyle,marginTop:5}} type="file" accept=".xlsx" disabled={busy||isMobileUpload} onChange={uploadExcel}/>
-          </label>
-        </div>}
-      </section>
+      <p className="pv-notice">Enter Petty Cash directly in JIMS. Expense receipts remain required as supporting evidence; Excel import is disabled.</p>
       <h3>Petty Cash Records</h3>
       <div style={{display:'flex',gap:8,margin:'10px 0',flexWrap:'wrap'}}>
         {['active','draft','pending_approval'].map(s=>
@@ -268,14 +253,13 @@ export default function CashVoucher({profile}) {
       </div>
       <div style={{overflowX:'auto'}}>
       <table style={{width:'100%',borderCollapse:'collapse',minWidth:870}}>
-        <thead><tr>{['CV Number','Claimant','Department','Amount','Status','Applicable HOD','HOD FM','Date','Action'].map(s=><th key={s} style={cellStyle}>{s}</th>)}</tr></thead>
+        <thead><tr>{['CV Number','Claimant','Department','Amount','Status','Finance Approved','Date','Action'].map(s=><th key={s} style={cellStyle}>{s}</th>)}</tr></thead>
         <tbody>
           {displayRows.map(v=><tr key={v.id}>
             <td style={cellStyle}>{v.cv_number}</td><td style={cellStyle}>{v.form_data?.claimant_name||'—'}</td>
             <td style={cellStyle}>{v.applicable_department||'—'}</td><td style={cellStyle}>{money(v.total_amount)}</td>
             <td style={cellStyle}>{v.status==='pending_approval'?'Pending Finance Approval':v.status.toUpperCase()}</td>
-            <td style={cellStyle}>{hasApproval(v.id,'applicable_hod')?'Signed (legacy)':'Not required'}</td>
-            <td style={cellStyle}>{hasApproval(v.id,'finance_hod')?'Signed':'Pending'}</td>
+            <td style={cellStyle}>{hasApproval(v.id,'finance_hod')?'Approved':'Pending'}</td>
             <td style={cellStyle}>{dateLabel(v.created_at)}</td>
             <td style={cellStyle}>
               <button type="button" style={smallButton} onClick={()=>inspect(v)}>View</button>
@@ -283,13 +267,13 @@ export default function CashVoucher({profile}) {
               {isAP&&v.status==='draft'&&<button type="button" style={smallButton} disabled={busy} onClick={()=>submitCV(v)}>Submit</button>}
             </td>
           </tr>)}
-          {!displayRows.length&&<tr><td style={cellStyle} colSpan={9}>{loading?'Loading Petty Cash records...':'No matching Petty Cash records'}</td></tr>}
+          {!displayRows.length&&<tr><td style={cellStyle} colSpan={8}>{loading?'Loading Petty Cash records...':'No matching Petty Cash records'}</td></tr>}
         </tbody>
       </table></div>
       {isHOD&&<>
-        <h3 style={{marginTop:22}}>Finance HOD Verification / Bulk Approval</h3>
+        <h3 style={{marginTop:22}}>Finance Manager Approval</h3>
         
-        <p>Finance HOD signs the Petty Cash verification. Applicable HOD approval is not required during the Finance-only rollout.</p>
+        <p>Select the Petty Cash records to approve. The system records your account, designation and approval timestamp automatically.</p>
         <div style={{margin:'12px 0',maxWidth:700}}>
           {stageRows.map(v=><label key={v.id} style={{display:'flex',alignItems:'center',gap:10,margin:'8px 0',padding:9,border:'1px solid #5b5b5b55',borderRadius:7}}>
             <input type="checkbox" checked={checked.includes(v.id)}
@@ -301,14 +285,13 @@ export default function CashVoucher({profile}) {
         </div>
         {checked.length>0&&<>
           <p><strong>{checked.length} selected</strong> · Confirm documents before signing.</p>
-          <SignaturePad key={approvalStage} onSignatureChange={setSignature}/>
-          <button type="button" className="btn" disabled={!signature||busy} onClick={signSelected}
-            style={{marginTop:10}}>Digitally Sign & Approve {checked.length} CV(s)</button>
+          <button type="button" className="btn" disabled={busy} onClick={approveSelected}
+            style={{marginTop:10}}>Approve {checked.length} Petty Cash Record(s)</button>
         </>}
       </>}
       <section className="jims-closed-history" aria-label="Petty Cash History">
         <h3>Petty Cash History</h3>
-        <p>Closed records after Finance HOD signature. Historical Applicable HOD signatures, if any, remain visible; original Excel layout remains unchanged.</p>
+        <p>Closed records can be downloaded as a one-page official PDF with creator and Finance Manager approval details.</p>
         <details>
           <summary>View Closed Petty Cash ({historyRows.length} loaded records)</summary>
           <div className="jims-history-scroll">
