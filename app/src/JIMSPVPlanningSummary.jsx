@@ -25,6 +25,12 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
     <small className="muted" style={{display:'block',marginTop:9}}>
       Dates apply to this PV, not individual invoice lines. These are not actual payment dates.
     </small>
+    {awaitingFinalApproval && !pendingFMReview && !loading && !error &&
+      <p className="muted" role="note" style={{fontSize:12,margin:'10px 0 0'}}>
+        Payment date changes can be made during Payment Process. FM may approve this PV
+        without adjusting the date now; the payment date must be confirmed before
+        FM approves Payment Initiation.
+      </p>}
     {paymentProcessReview && !loading && !error && !data?.payment_process_plan_ready &&
       <p role="status" style={{color:'#dfb95f',fontSize:12,margin:'11px 0 0'}}>
         PAYMENT PROCESS — Mandatory FM date review: validate Supplier Due Date, then
@@ -39,9 +45,7 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
     {pendingFMReview && !loading && !error && voucherId &&
       <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}
         invoiceDocuments={invoiceDocuments} invoiceLines={invoiceLines}/>}
-    {awaitingFinalApproval && !pendingFMReview && <p className="muted">
-      Payment Planning can be reviewed here. Final schedule management remains under Finance Manager.
-    </p>}
+
     {onManagePlanning && <button type="button" className="btn" style={{marginTop:10}}
       onClick={onManagePlanning}>FM — Accept / Change Payment Date</button>}
   </section>
