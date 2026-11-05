@@ -6,7 +6,7 @@ import JIMSInstallmentWorkflow from './JIMSInstallmentWorkflow'
 // Partial initiation, reviews, storage and settlement remain disabled.
 const money = v => 'RM ' + Number(v || 0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})
 
-export default function JIMSPaymentModeSelector({voucher,mode,onModeChange,onDraftChanged,disabled=false,profile,canReview=false}){
+export default function JIMSPaymentModeSelector({voucher,mode,onModeChange,onDraftChanged,disabled=false,profile,canReview=false,paymentPlanReady=false}){
   const [balance,setBalance]=useState(null)
   const [ledger,setLedger]=useState([])
   const [loading,setLoading]=useState(true)
@@ -183,7 +183,8 @@ export default function JIMSPaymentModeSelector({voucher,mode,onModeChange,onDra
         </div>)}
       </div>}
       {partialLocked&&<JIMSInstallmentWorkflow voucher={voucher} ledger={ledger}
-        onUpdated={reloadVoucher} canAP={isAP} canFM={canReview} disabled={disabled}/>}
+        onUpdated={reloadVoucher} canAP={isAP} canFM={canReview} disabled={disabled}
+        paymentPlanReady={paymentPlanReady}/>}
       {!partialLocked&&<p className="jims-pay-mode-note">Create an installment draft to unlock compulsory proof upload and Finance Manager review.</p>}
     </div>}
     {!!error&&<p className="jims-pay-mode-error" role="alert">{error}</p>}
