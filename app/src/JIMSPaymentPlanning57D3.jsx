@@ -53,7 +53,9 @@ export default function JIMSPaymentPlanning57D3({voucher,profile,transactions=[]
   },[id,revision])
   const r=data?.role
   const canAP=r==='ap_executive' && data?.payment_status!=='paid'
-  const canFM=r==='finance_manager' && data?.payment_status!=='paid'
+  const delegatedFM=r==='finance_manager_delegate'
+  const canFM=['finance_manager','finance_manager_delegate'].includes(r) &&
+    data?.payment_status!=='paid'
   const selected=useMemo(()=>data?.schedules?.find(
     s=>(s.transaction_id||'')===(txn||'')),[data,txn])
   const activeTransactions=transactions.filter(t=>t.voucher_id===id &&
@@ -126,7 +128,11 @@ export default function JIMSPaymentPlanning57D3({voucher,profile,transactions=[]
             Record Obligation
           </button>
         </div>}
-        {canFM&&<div style={{padding:12,border:'1px solid #65552d',borderRadius:9,marginBottom:14}}>
+        {delegatedFM&&<p className="muted" style={{fontSize:12}}>
+          Acting FM (approved delegation). Supplier Due Date changes require evidence
+          through the FM Review Payment Dates panel in the PV detail.
+        </p>}
+        {canFM&&!delegatedFM&&<div style={{padding:12,border:'1px solid #65552d',borderRadius:9,marginBottom:14}}>
           <h3>Finance Manager — Validate / Amend Due Date</h3>
           {!data.due?<p className="muted">AP must record a due date first (or FM can use Record Obligation below).</p>:<>
             <label>Current contractual due date
