@@ -3460,6 +3460,7 @@ async function uploadInvoice(line, file) {
               awaitingFinalApproval={isFMPlanningViewer && viewingVoucher.status!=='fully_approved'}
               pendingFMReview={fmPaymentProcessPlanning}
               paymentProcessReview={fmPaymentProcessPlanning}
+              paymentMode={viewingVoucher.payment_mode}
               voucherId={viewingVoucher.id}
               invoiceDocuments={invoiceDocuments} invoiceLines={viewLines}
               onDatesSaved={()=>setViewPlanningRefresh(n=>n+1)}
