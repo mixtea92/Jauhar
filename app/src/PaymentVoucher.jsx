@@ -2450,7 +2450,81 @@ async function uploadInvoice(line, file) {
     }
   }
 
+  // R11D — Same-form Save & Submit (Finance AP only).
+  // Save stays the original RPC. Submission uses the same stage RPC and
+  // server-recorded invoice/JR details, rather than unsaved React preview data.
+  async function submitSavedFinanceDraft(saved) {
+    const fail = message => ({ok:false,message:'Draft '+saved.pv_number+
+      ' saved, but NOT submitted: '+message})
+    if(!isAPFinance || !saved?.id || !['draft','returned'].includes(saved.status))
+      return fail('Only a Finance AP Draft or Returned PV may be submitted.')
+    try {
+      const [linesResult,documentsResult] = await Promise.all([
+        supabase.from('pv_line_items')
+          .select('id,invoice_reference,description,amount').eq('voucher_id',saved.id),
+        supabase.from('pv_invoice_documents')
+          .select('id,line_item_id').eq('voucher_id',saved.id)
+      ])
+      if(linesResult.error)throw linesResult.error
+      if(documentsResult.error)throw documentsResult.error
+      const lines=linesResult.data||[], documents=documentsResult.data||[]
+      if(!lines.length)return fail('At least one invoice line is required.')
+      if(JR_TIERS.includes(saved.financial_tier)){
+        const {data:jr,error:jrError}=await supabase.from('pv_justification_reports')
+          .select('id').eq('voucher_id',saved.id).limit(1)
+        if(jrError)throw jrError
+        if(!jr?.length)return fail('Upload and register the required JR PDF.')
+      }
+      if(!lines.every(line=>documents.some(doc=>doc.line_item_id===line.id))){
+        const {data:support,error:supportError}=await supabase.rpc(
+          'jims_recurring_has_valid_supporting_v1',{p_voucher_id:saved.id})
+        if(supportError||support!==true)
+          return fail('Upload an invoice for every line (or register valid FM-approved recurring support).')
+      }
+      const {data:items,error:itemsError}=await supabase.from('pv_invoice_item_details')
+        .select('line_item_id,item_description,category,quantity,unit_price,total_amount')
+        .in('line_item_id',lines.map(line=>line.id))
+      if(itemsError)throw itemsError
+      for(const line of lines){
+        const issue=invoiceBreakdownProblem(line,items||[])
+        if(issue)return fail('Invoice '+(line.invoice_reference||'unknown')+': '+issue)
+      }
+      const calculated=lines.reduce((sum,line)=>sum+Number(line.amount||0),0)+
+        Number(saved.sst_amount||0)
+      if(Math.round(calculated*100)!==Math.round(Number(saved.amount||0)*100))
+        return fail('Invoice totals + SST do not match PV total.')
+      const {data:duplicateCheck,error:duplicateError}=await supabase.rpc(
+        'jims_57d4_preflight_submit_v1',{p_voucher_id:saved.id})
+      if(duplicateError)throw duplicateError
+      if(duplicateCheck?.can_submit!==true){
+        const matches=(duplicateCheck?.matches||[]).slice(0,4)
+          .map(item=>item.existing_pv).filter(Boolean)
+        return fail('Duplicate supplier invoice detected'+
+          (matches.length?' in '+matches.join(', '):'')+'. Review invoice references.')
+      }
+      if(!window.confirm('Submit & Verify '+saved.pv_number+' for Finance Manager review?\n'+
+          'Financial Tier: '+saved.financial_tier+'\nAmount: '+money(saved.amount)+
+          '\nThe PV will be locked until returned for amendment.'))
+        return {ok:false,cancelled:true,message:'Draft saved. Submission was cancelled.'}
+      const tier=saved.financial_tier
+      const rpc=JR_TIERS.includes(tier)?'submit_finance_jr_v1'
+        :tier==='T08'?'submit_finance_t08_v1'
+        :tier==='T04'?'submit_finance_t04_v1'
+        :'submit_finance_t01_t02_v2'
+      const {data:submitted,error:submitError}=await supabase.rpc(rpc,{
+        p_voucher_id:saved.id,p_expected_updated_at:saved.updated_at
+      })
+      if(submitError)throw submitError
+      if(submitted?.id!==saved.id || submitted.status!=='pending_finance_manager')
+        return fail('Submission status could not be verified. Reopen this PV before retrying.')
+      return {ok:true,message:submitted.pv_number+' submitted to Finance Manager.'}
+    }catch(error){
+      return fail(error?.message||'Unexpected submission error. Please review saved Draft.')
+    }
+  }
+
   async function handleSave(event) {
+    const submitAfterSave = event?.nativeEvent?.submitter?.value === 'save-and-submit' && isAPFinance
     event.preventDefault()
     if (!canCreate || loading || importing) return
     if (workspaceMode === 'new' && !canRaisePV) {
@@ -2580,6 +2654,19 @@ async function uploadInvoice(line, file) {
         setListPage(0)
         setWorkspaceMode('existing')
         await refreshPVData()
+        if(submitAfterSave){
+          if(planningError){
+            await openVoucher(updated.id||editingVoucher.id)
+            setSubmitMessage('Draft saved but Submit blocked: Payment Planning dates did not save. Correct the dates before submitting.')
+          }else{
+            const outcome=await submitSavedFinanceDraft(updated)
+            if(outcome.ok)setSuccess(outcome.message)
+            else {
+              await openVoucher(updated.id||editingVoucher.id)
+              setSubmitMessage(outcome.message)
+            }
+          }
+        }
         return // Prevent the create_v2 call below from generating a duplicate.
       }
 
@@ -2636,6 +2723,19 @@ async function uploadInvoice(line, file) {
       setListPage(0)
       setWorkspaceMode('existing')
       await refreshPVData()
+      if(submitAfterSave){
+        if(planningError){
+          await openVoucher(data.id)
+          setSubmitMessage('Draft saved but Submit blocked: Payment Planning dates did not save. Correct the dates before submitting.')
+        }else{
+          const outcome=await submitSavedFinanceDraft(data)
+          if(outcome.ok)setSuccess(outcome.message)
+          else {
+            await openVoucher(data.id)
+            setSubmitMessage(outcome.message)
+          }
+        }
+      }
     } catch (err) {
       setError(err.message || 'Unable to save Payment Voucher.')
     } finally {
@@ -3084,6 +3184,11 @@ async function uploadInvoice(line, file) {
                 disabled={loading || importing || (workspaceMode === 'new' && !TIER_PERSISTENCE_BACKEND_READY)}>
                 {loading ? 'Saving...' : editingVoucher ? 'Save Changes' : 'Save Draft'}
               </button>
+              {isAPFinance&&<button type="submit" name="pv_save_action" value="save-and-submit"
+                className="btn" style={{background:'#167347'}}
+                disabled={loading || importing || (workspaceMode === 'new' && !TIER_PERSISTENCE_BACKEND_READY)}>
+                {loading ? 'Processing...' : 'Save & Submit → Finance Manager'}
+              </button>}
               <button type="button" className="btn" style={{ background: '#68788d' }}
                 disabled={loading || importing}
                 onClick={() => {
