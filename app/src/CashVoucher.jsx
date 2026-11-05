@@ -1,15 +1,12 @@
 import { JIMSPettyCashChargeFields, JIMSPettyCashRevisionPanel } from './JIMSPettyCash57D1E'
-import { useEffect,useMemo,useRef,useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
-  CV_TEMPLATE_URL,CV_BRANCHES,CV_DEPARTMENTS,CV_SHEETS,
-  CV_CLAIM_CATEGORIES,CV_EXTRA_C18,
+  CV_BRANCHES,CV_DEPARTMENTS,CV_SHEETS,CV_CLAIM_CATEGORIES,CV_EXTRA_C18,
   CV_EXPENSE_CATEGORIES_DIGITAL,CV_EXPENSE_CATEGORIES_MANUAL,
-  blankCVForm,blankCVLine,hasCVLineData,parseCVWorkbook
+  blankCVForm,blankCVLine,hasCVLineData
 } from './cashVoucherExcel'
-import { downloadSignedCVExcel } from './cashVoucherPrint'
-import { captureSignedCVSignatures } from './cashVoucherCapture'
-// JSYNC_CV_CAPTURE_VISIBLE_SIGNATURE_48P
+import { downloadOfficialPettyCashPDF } from './JIMSR11COfficialPettyCashPDF'
 import { CV_RECEIPT_BUCKET,CV_RECEIPT_ACCEPT,validateCVReceiptFile,openPrivateCVReceipt } from './cashVoucherReceipts'
 // JSYNC_CV_RECEIPTS_48J
 // JSYNC_CV_PRINTABLE_SIGNER_V1
@@ -25,54 +22,6 @@ const smallButton={padding:'7px 11px',border:'1px solid #8e742c',borderRadius:7,
 const selectOptions = (values) => values.map(x=><option key={x} value={x}>{x}</option>)
 const normalized = form => ({...form,lines:(form.lines||[]).filter(hasCVLineData).map(l=>({...blankCVLine(),...l}))})
 
-function SignaturePad({onSignatureChange}) {
-  const ref=useRef(null)
-  const drawing=useRef(false)
-  const [signed,setSigned]=useState(false)
-  function point(event){
-    const c=ref.current,rect=c.getBoundingClientRect()
-    return {x:(event.clientX-rect.left)*c.width/rect.width,y:(event.clientY-rect.top)*c.height/rect.height}
-  }
-  function start(event){
-    const c=ref.current,ctx=c.getContext('2d'),p=point(event)
-    c.setPointerCapture(event.pointerId)
-    ctx.strokeStyle='#0c2341'
-    ctx.lineWidth=2.8
-    ctx.lineCap='round'
-    ctx.lineJoin='round'
-    ctx.beginPath()
-    ctx.moveTo(p.x,p.y)
-    ctx.lineTo(p.x+0.1,p.y+0.1)
-    ctx.stroke()
-    drawing.current=true
-    setSigned(true)
-  }
-  function move(event){
-    if(!drawing.current)return
-    const c=ref.current,p=point(event),ctx=c.getContext('2d')
-    ctx.lineTo(p.x,p.y);ctx.stroke()
-  }
-  function end(){
-    if(!drawing.current)return
-    drawing.current=false
-    onSignatureChange(ref.current.toDataURL('image/png'))
-  }
-  function clear(){
-    const c=ref.current
-    c.getContext('2d').clearRect(0,0,c.width,c.height)
-    setSigned(false)
-    onSignatureChange('')
-  }
-  return <div style={{maxWidth:460}}>
-    <p style={{marginBottom:6}}>Draw your digital signature below. This signature is attached to each selected CV approval.</p>
-    <canvas ref={ref} width={460} height={145}
-      style={{width:'100%',background:'#fff',border:'2px solid #ae9460',borderRadius:8,touchAction:'none',cursor:'crosshair'}}
-      onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} />
-    <button type="button" style={{...smallButton,marginTop:6}} onClick={clear}>Clear Signature</button>
-    <span style={{marginLeft:12,fontSize:12}}>{signed?'Signature drawn':'Signature required'}</span>
-  </div>
-}
-
 export default function CashVoucher({profile}) {
   const isMobileUpload=typeof navigator!=='undefined' && (Boolean(navigator.userAgentData?.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||'') || (/Macintosh/i.test(navigator.userAgent||'') && navigator.maxTouchPoints>1))
   const isAdmin=profile?.is_active===true && profile?.role==='system_admin'
@@ -86,15 +35,12 @@ export default function CashVoucher({profile}) {
   const [selected,setSelected]=useState(null)
   const [editingId,setEditingId]=useState(null)
   const [form,setForm]=useState(blankCVForm)
-  const [sheetForImport,setSheetForImport]=useState('PC (Digital)')
   const [checked,setChecked]=useState([])
   const approvalStage='finance_hod' // R11C: other-department HOD approvals deferred
-  const [signature,setSignature]=useState('')
   const [busy,setBusy]=useState(false)
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
-  const [templateReady,setTemplateReady]=useState(false)
   const [refresh,setRefresh]=useState(0)
   const [filter,setFilter]=useState('active')
 
@@ -104,7 +50,7 @@ export default function CashVoucher({profile}) {
       setLoading(true)
       const [vs,as,rs]=await Promise.all([
         supabase.from('cash_vouchers').select('*').order('created_at',{ascending:false}).limit(500),
-        supabase.from('cash_voucher_approvals').select('id,voucher_id,authority,approved_by,approved_at,approved_username,signature_png').limit(1000),
+        supabase.from('cash_voucher_approvals').select('id,voucher_id,authority,approved_by,approved_at,approved_username,approved_designation').limit(1000),
         supabase.from('cash_voucher_receipts').select('id,voucher_id,line_index,storage_path,original_file_name,uploaded_at').limit(5000)
       ])
       if(!live)return
@@ -116,16 +62,6 @@ export default function CashVoucher({profile}) {
     return ()=>{live=false}
   },[refresh])
 
-  useEffect(()=>{
-    let live=true
-    // The master XLSX is an exact unchanged file placed in public/templates.
-    fetch(CV_TEMPLATE_URL,{method:'GET'}).then(async r=>{
-      if(!live)return
-      const type=r.headers.get('content-type')||''
-      setTemplateReady(r.ok && !type.includes('text/html') && (await r.arrayBuffer()).byteLength>10000)
-    }).catch(()=>{if(live)setTemplateReady(false)})
-    return ()=>{live=false}
-  },[])
 
   const byId=id=>approvals.filter(a=>a.voucher_id===id)
   const receiptFor=(voucherId,index)=>receipts.find(r=>r.voucher_id===voucherId&&r.line_index===index)
@@ -168,19 +104,6 @@ export default function CashVoucher({profile}) {
     setEditingId(v.id)
     setForm({...blankCVForm(),...(v.form_data||{}),lines:v.form_data?.lines||[]})
     setMode('form');setError('');setNotice('')
-  }
-  async function uploadExcel(e){
-    if(!isAP)return
-    if(isMobileUpload){setError('File uploads are disabled when accessing JSYNC on mobile. Use a desktop browser.');e.target.value='';return}
-    const f=e.target.files?.[0]
-    if(!f)return
-    setError('');setNotice('');setBusy(true)
-    try{
-      const parsed=await parseCVWorkbook(f,sheetForImport)
-      setForm(parsed);setEditingId(null);setMode('form')
-      setNotice('Excel imported. Check all details, especially the actual disbursement date, before saving.')
-    }catch(err){setError(err?.message||'Excel import failed')}
-    finally{setBusy(false);e.target.value=''}
   }
   function setField(key,value){setForm(f=>({...f,[key]:value}))}
   function setLine(i,key,value){
@@ -246,26 +169,28 @@ export default function CashVoucher({profile}) {
     const result=await action('CV submitted for Finance HOD verification.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
     if(result)setMode('home')
   }
-  async function signSelected(){
-    if(!isHOD||busy||!signature||!checked.length)return
+  async function approveSelected(){
+    if(!isHOD||busy||!checked.length)return
     const eligible=checked.filter(id=>stageRows.some(v=>v.id===id))
-    if(eligible.length!==checked.length){setError('One or more selected CVs are not eligible for this approval stage.');return}
-    if(!window.confirm('Digitally sign and approve '+checked.length+' Petty Cash vouchers as '+(approvalStage==='finance_hod'?'HOD FM':'Applicable HOD')+'? Each CV will receive its own approval and audit record.'))return
-    const result=await action('Signed approvals recorded: '+checked.length+' CV(s).',()=>supabase.rpc('jsync_cv_approve_many_v1',{
-      p_voucher_ids:eligible,p_authority:approvalStage,p_signature_png:signature
-    }))
-    if(result){setChecked([]);setSignature('');setMode('home')}
+    if(eligible.length!==checked.length){
+      setError('One or more selected Petty Cash records are not eligible.');return
+    }
+    if(!window.confirm('Approve '+checked.length+' Petty Cash record(s) as Finance Manager? This will close the records and create an audit event.'))return
+    const result=await action('Finance approval recorded for '+checked.length+' Petty Cash record(s).',
+      ()=>supabase.rpc('jims_r11c_pc_finance_approve_v1',{p_voucher_ids:eligible}))
+    if(result){setChecked([]);setMode('home')}
   }
-  async function downloadSigned(v) {
-    if(busy||!v||v.status==='draft')return
+  async function downloadOfficial(v){
+    if(busy||!v||v.status!=='closed')return
     setError('');setNotice('');setBusy(true)
     try {
-      const visibleImages=await captureSignedCVSignatures()
-      const result=await downloadSignedCVExcel(v,byId(v.id),visibleImages)
-      setNotice(result.filename+' downloaded. Open it in Excel and choose Export / Save As PDF for the same original A4 one-page design.')
-    } catch (err) {setError(err?.message||'Unable to export signed Petty Cash') }
-    finally {setBusy(false)}
+      const result=await downloadOfficialPettyCashPDF(v)
+      setNotice(result.filename+' generated as an official A4 Petty Cash PDF.')
+    } catch(err) {
+      setError(err?.message||'Unable to download official Petty Cash PDF.')
+    } finally {setBusy(false)}
   }
+
   async function inspect(v){
     setSelected(v)
     setMode('view')
