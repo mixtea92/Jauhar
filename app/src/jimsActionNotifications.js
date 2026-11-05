@@ -83,7 +83,7 @@ export async function fetchJIMSActionNotifications(profile) {
   }
 
   try {
-    if(!isManager) cv=0
+    if(!isFinanceManager) cv=0
     else {
       // Match CashVoucher.jsx canSign() rules; don't count all CVs in system.
       const {data:pending,error:e1}=await supabase.from('cash_vouchers')
@@ -98,10 +98,7 @@ export async function fetchJIMSActionNotifications(profile) {
         if(e2) throw e2
         if((approvals||[]).length>=2001) throw new Error('CV approval page exceeds safe limit')
         const signed=new Set((approvals||[]).map(a=>a.voucher_id+'|'+a.authority))
-        cv=done(pending.filter(v=>
-          (v.applicable_department===profile.department && !signed.has(v.id+'|applicable_hod'))
-          || (profile.department==='Finance' && !signed.has(v.id+'|finance_hod'))
-        ).length)
+        cv=done(pending.filter(v=>!signed.has(v.id+'|finance_hod')).length)
       }
     }
   } catch(error){
