@@ -190,7 +190,7 @@ export async function downloadSignedCVExcel(voucher,approvals,capturedImages){
     available.find(a=>a.authority==='applicable_hod'),
     available.find(a=>a.authority==='finance_hod')
   ]
-  if(signed.some(a=>!a))throw Error('Both HOD approval records required to print a CLOSED CV.')
+  if(!signed[1])throw Error('Finance HOD signature is required to print a CLOSED Petty Cash voucher.')
   const sheetFile=sheetPath.split('/').pop()
   const sheetDir=sheetPath.split('/').slice(0,-1).join('/')
   const sheetRelPath=sheetDir+'/_rels/'+sheetFile+'.rels'
@@ -207,6 +207,7 @@ export async function downloadSignedCVExcel(voucher,approvals,capturedImages){
   if(!zip.file(drawingRelsPath))throw Error('Original Excel drawing has no relationships.')
   const drawingRels=xml(await zip.file(drawingRelsPath).async('string'),'drawing relationships')
   for(let i=0;i<signed.length;i++){
+    if(!signed[i])continue // historical Applicable HOD signature remains optional in Finance-only rollout
     const stage=i===0?'applicable_hod':'finance_hod'
     const stamp=capturedImages?.[stage]
     if(!stamp?.base64||!stamp?.width||!stamp?.height)
@@ -230,5 +231,5 @@ export async function downloadSignedCVExcel(voucher,approvals,capturedImages){
   link.click()
   link.remove()
   setTimeout(()=>URL.revokeObjectURL(href),60000)
-  return {filename:link.download,hasBothSignatures:true}
+  return {filename:link.download,hasBothSignatures:Boolean(signed[0])}
 }
