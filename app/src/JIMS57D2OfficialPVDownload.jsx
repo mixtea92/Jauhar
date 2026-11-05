@@ -2,6 +2,11 @@
 // Data is provided only by authorized Supabase RPC; this component never edits financial records.
 import {useState} from 'react'
 import {supabase} from './lib/supabase'
+// Load the 0.2.x browser PDF engine eagerly. A click-time dynamic import of an
+// optimized Vite dependency can point at a stale /node_modules/.vite/deps hash
+// after a Codespaces dev-server restart or dependency optimization.
+import pdfMake from 'pdfmake/build/pdfmake'
+import pdfFonts from 'pdfmake/build/vfs_fonts'
 
 const value=(x)=>x==null||String(x).trim()===''?'—':String(x)
 const money=x=>'RM '+Number(x||0).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -200,11 +205,14 @@ export default function JIMS57D2OfficialPVDownload({voucher}){
       if(rpcError)throw rpcError
       if(data?.voucher?.id!==voucher.id)throw new Error('PV identity mismatch')
       const definition=officialPVDocDefinition(data)
-      const [{default:pdfMake},fonts]=await Promise.all([
-        import('pdfmake/build/pdfmake'),
-        import('pdfmake/build/vfs_fonts')
-      ])
-      const vfs=fonts.default?.pdfMake?.vfs||fonts.pdfMake?.vfs||fonts.default||fonts
+      // Both vendor modules are already loaded with the PV screen; no
+      // click-time request for a possibly invalidated Vite optimized chunk.
+      const vfs=pdfFonts?.pdfMake?.vfs||pdfFonts?.vfs||
+        pdfFonts?.default?.pdfMake?.vfs||pdfFonts?.default?.vfs||
+        pdfFonts?.default||pdfFonts
+      if(typeof pdfMake?.createPdf!=='function' || !vfs || typeof vfs!=='object'){
+        throw new Error('PDF engine or embedded fonts are unavailable. Refresh and retry.')
+      }
       if(typeof pdfMake.addVirtualFileSystem==='function'){
         pdfMake.addVirtualFileSystem(vfs)
       }else{
