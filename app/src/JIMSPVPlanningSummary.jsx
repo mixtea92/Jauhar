@@ -4,7 +4,7 @@ const dateMY = value => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''))
   return match ? match[3]+'/'+match[2]+'/'+match[1] : '—'
 }
-export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false,pendingFMReview=false,voucherId=null,onDatesSaved=null,invoiceDocuments=[],invoiceLines=[]}) {
+export default function JIMSPVPlanningSummary({data,loading=false,error='',onManagePlanning=null,awaitingFinalApproval=false,pendingFMReview=false,paymentProcessReview=false,voucherId=null,onDatesSaved=null,invoiceDocuments=[],invoiceLines=[]}) {
   return <section aria-label="Payment Planning" style={{border:'1px solid #9f8c5a88',
     borderRadius:10,padding:'12px 14px',margin:'14px 0',background:'var(--jims-card-bg,transparent)',color:'inherit'}}>
     <strong style={{color:'#d9b45c'}}>PAYMENT PLANNING</strong>
@@ -25,6 +25,12 @@ export default function JIMSPVPlanningSummary({data,loading=false,error='',onMan
     <small className="muted" style={{display:'block',marginTop:9}}>
       Dates apply to this PV, not individual invoice lines. These are not actual payment dates.
     </small>
+    {paymentProcessReview && !loading && !error && !data?.payment_process_plan_ready &&
+      <p role="status" style={{color:'#dfb95f',fontSize:12,margin:'11px 0 0'}}>
+        PAYMENT PROCESS — Mandatory FM date review: validate Supplier Due Date, then
+        Accept Proposed Date or Change &amp; Approve Payment Date below before
+        approving Payment Initiation. Return remains available.
+      </p>}
     {pendingFMReview && !loading && !error && voucherId &&
       <JIMSFMDateReview voucherId={voucherId} data={data} onSaved={onDatesSaved}
         invoiceDocuments={invoiceDocuments} invoiceLines={invoiceLines}/>}
