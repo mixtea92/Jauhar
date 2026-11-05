@@ -163,11 +163,38 @@ export default function CashVoucher({profile}) {
     }))
     if(result?.id){setEditingId(result.id);setForm({...blankCVForm(),...payload})}
   }
-  async function submitCV(v){
-    if(!isAP||v.status!=='draft')return
-    if(!window.confirm('Submit '+v.cv_number+' for Finance Manager approval?'))return
-    const result=await action('Petty Cash submitted for Finance Manager approval.',()=>supabase.rpc('jsync_cv_submit_v1',{p_voucher_id:v.id}))
-    if(result)setMode('home')
+  // R11D: one form action saves the latest values before submitting.
+  // The existing submit RPC still enforces receipt-per-line and all validation.
+  async function saveAndSubmitCV(){
+    if(!isAP||busy)return
+    if(!window.confirm('Save latest Petty Cash details and Submit for Finance Manager approval?'))return
+    const payload=normalized(form)
+    let saved=null
+    setError('');setNotice('');setBusy(true)
+    try{
+      const {data:draft,error:saveError}=await supabase.rpc('jsync_cv_save_draft_v1',{
+        p_voucher_id:editingId||null,p_form:payload
+      })
+      if(saveError)throw saveError
+      if(!draft?.id||draft.status!=='draft')throw new Error('Draft save was not confirmed.')
+      saved=draft
+      setEditingId(draft.id)
+      setForm({...blankCVForm(),...payload})
+      const {data:submitted,error:submitError}=await supabase.rpc('jsync_cv_submit_v1',{
+        p_voucher_id:draft.id
+      })
+      if(submitError)throw submitError
+      if(submitted?.id!==draft.id||submitted?.status!=='pending_approval')
+        throw new Error('Submission status was not confirmed. Review this Petty Cash before retrying.')
+      setNotice(draft.cv_number+' submitted for Finance Manager approval.')
+      setMode('home')
+    }catch(err){
+      setError((saved?'Draft '+saved.cv_number+' saved. Submit blocked: ':'')+
+        (err?.message||'Unexpected Petty Cash error.'))
+    }finally{
+      setBusy(false)
+      setRefresh(n=>n+1)
+    }
   }
   async function approveSelected(){
     if(!isHOD||busy||!checked.length)return
@@ -264,7 +291,7 @@ export default function CashVoucher({profile}) {
             <td style={cellStyle}>
               <button type="button" style={smallButton} onClick={()=>inspect(v)}>View</button>
               {isAP&&v.status==='draft'&&<button type="button" style={smallButton} onClick={()=>editForm(v)}>Edit</button>}
-              {isAP&&v.status==='draft'&&<button type="button" style={smallButton} disabled={busy} onClick={()=>submitCV(v)}>Submit</button>}
+
             </td>
           </tr>)}
           {!displayRows.length&&<tr><td style={cellStyle} colSpan={8}>{loading?'Loading Petty Cash records...':'No matching Petty Cash records'}</td></tr>}
@@ -370,7 +397,8 @@ export default function CashVoucher({profile}) {
       <p style={{marginTop:13}}><strong>TOTAL CLAIM (RM): {money(tenRows.reduce((acc,l)=>acc+(Number(l.amount)||0),0))}</strong></p>
       
       <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <button type="button" className="btn" disabled={busy} onClick={saveDraft}>Save CV Draft</button>
+        <button type="button" className="btn" disabled={busy} onClick={saveDraft}>Save Draft</button>
+        <button type="button" className="btn" style={{background:'#167347'}} disabled={busy} onClick={saveAndSubmitCV}>Save &amp; Submit → Finance Manager</button>
         <button type="button" style={smallButton} onClick={()=>setMode('home')}>Back to Dashboard</button>
       </div>
     </>}
@@ -409,7 +437,7 @@ export default function CashVoucher({profile}) {
       <h3>Audit Trail</h3>
       <ul>{audit.map((a,i)=><li key={i}>{dateLabel(a.created_at)} — {a.action}</li>)}</ul>
       {isAP&&selected.status==='draft'&&<button type="button" className="btn" onClick={()=>editForm(selected)}>Edit Draft</button>}
-      {isAP&&selected.status==='draft'&&<button type="button" className="btn" disabled={busy} onClick={()=>submitCV(selected)}>Submit for Finance Manager Approval</button>}
+
       {isHOD&&canSign(selected,'finance_hod')&&
         <p>To approve, return to the dashboard, select this CV in the Finance Manager approval section and click Approve.</p>}
     </>}
