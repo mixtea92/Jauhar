@@ -57,7 +57,7 @@ function money(n) {
   return `RM ${Number(n || 0).toLocaleString('en-MY', {minimumFractionDigits:2,maximumFractionDigits:2})}`
 }
 
-export default function PaymentTrackingPanel({ voucher, profile, onVoucherChanged, onBusyChange, delegatedReviewPermissions = [], suspendedFinanceManager = false }) {
+export default function PaymentTrackingPanel({ voucher, profile, onVoucherChanged, onBusyChange, delegatedReviewPermissions = [], suspendedFinanceManager = false, paymentPlanReady = false }) {
   const mobileUploadsBlocked = isMobileUploadBlocked()
   const [proofs, setProofs] = useState([])
   const [proofFile, setProofFile] = useState(null)
@@ -303,7 +303,8 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
       {modeChoiceAllowed && (
         <JIMSPaymentModeSelector voucher={voucher} mode={paymentMode}
           onModeChange={setPaymentMode} onDraftChanged={onVoucherChanged}
-          profile={profile} canReview={financeManager} disabled={busy}/>
+          profile={profile} canReview={financeManager} disabled={busy}
+          paymentPlanReady={paymentPlanReady}/>
       )}
       {canInitiate && (!modeChoiceAllowed || paymentMode === 'full') && <div style={{border:'1px solid #d5e2f0',borderRadius:10,padding:14,margin:'12px 0'}}>
         <h3>AP Executive — Payment Initiation</h3>
@@ -324,12 +325,17 @@ export default function PaymentTrackingPanel({ voucher, profile, onVoucherChange
       </div>}
       {canReview && <div style={{border:'1px solid #d5e2f0',borderRadius:10,padding:14,margin:'12px 0'}}>
         <h3>Finance Manager — Verify Payment Initiation</h3>
-        <p className="muted">Review the latest initiation proof before approval. This does not mark the bank transaction as completed.</p>
+        <p className="muted">Review the latest initiation proof and confirm the FM Payment Planning date above. This does not mark the bank transaction as completed.</p>
+        {!paymentPlanReady && <p role="status" style={{color:'#dfb95f',fontWeight:650}}>
+          Complete PAYMENT PLANNING — Accept Proposed Date or Change &amp; Approve Payment Date — before approving initiation.
+        </p>}
         <div className="pv-field"><label htmlFor="pv-init-review-notes">Remarks (mandatory when returning)</label>
           <textarea id="pv-init-review-notes" rows={2} maxLength={2000} value={managerRemarks}
             onChange={e=>setManagerRemarks(e.target.value)} disabled={busy}/></div>
         <div className="pv-actions">
-          <button type="button" className="btn" disabled={busy} onClick={()=>review('approve')}>Approve Initiation</button>
+          <button type="button" className="btn" disabled={busy||!paymentPlanReady}
+            title={!paymentPlanReady?'FM Payment Planning must be approved first':'Approve Payment Initiation'}
+            onClick={()=>review('approve')}>Approve Initiation</button>
           <button type="button" className="btn" disabled={busy || !managerRemarks.trim()}
             style={{background:'#9a6700'}} onClick={()=>review('return')}>Return for Amendment</button>
         </div>
