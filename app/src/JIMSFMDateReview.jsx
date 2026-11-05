@@ -150,8 +150,9 @@ export default function JIMSFMDateReview({
     aria-label="Finance Manager Payment Planning review">
     <strong style={{color:'#d9b45c'}}>FINANCE MANAGER — REVIEW PAYMENT DATES</strong>
     <p className="muted" style={{fontSize:12,margin:'8px 0 12px'}}>
-      Validate Supplier Due Date, then accept AP proposed date or change the payment plan.
-      This does not approve or pay the Payment Voucher.
+      PAYMENT PROCESS — Validate Supplier Due Date, then accept AP proposed date or
+      change the payment plan before FM approves Payment Initiation. This review does
+      not confirm that the bank payment has been completed.
     </p>
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
       <label><span style={hint}>Supplier Due Date</span>
